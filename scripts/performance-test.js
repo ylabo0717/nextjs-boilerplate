@@ -11,6 +11,7 @@ const http = require('http');
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const SERVER_START_RETRIES = parseInt(process.env.SERVER_START_RETRIES || '3', 10);
 const SERVER_START_RETRY_DELAY = parseInt(process.env.SERVER_START_RETRY_DELAY || '5000', 10);
+const SERVER_POLLING_INTERVAL = parseInt(process.env.SERVER_POLLING_INTERVAL || '1000', 10);
 
 /**
  * Run performance tests against the application
@@ -63,7 +64,7 @@ async function runPerformanceTest() {
 /**
  * Wait for server to be ready by polling the endpoint
  */
-function waitForServerReady(url, timeoutMs = 30000, intervalMs = 500) {
+function waitForServerReady(url, timeoutMs = 30000, intervalMs = SERVER_POLLING_INTERVAL) {
   return new Promise((resolve, reject) => {
     const start = Date.now();
     function check() {

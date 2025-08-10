@@ -96,6 +96,11 @@ export const RETRY_CONFIG = {
    * Delay between server startup retries (unit: ms)
    */
   SERVER_START_RETRY_DELAY: 5000,
+
+  /**
+   * Polling interval for server health checks (unit: ms)
+   */
+  SERVER_POLLING_INTERVAL: 1000,
 } as const;
 
 /**

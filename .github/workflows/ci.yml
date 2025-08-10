@@ -143,12 +143,19 @@ jobs:
       - name: Check coverage threshold
         if: matrix.node-version == '20.x'
         run: |
+          set -o pipefail  # Ensure pipeline failures are caught
+
           if [ -f coverage/coverage-summary.json ]; then
-            COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
-            
-            # Check if jq command failed or COVERAGE is empty
-            if [ $? -ne 0 ] || [ -z "$COVERAGE" ]; then
+            # Parse coverage percentage with proper error handling
+            if ! COVERAGE=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct' 2>/dev/null); then
               echo "❌ Failed to parse coverage percentage from coverage/coverage-summary.json using jq."
+              echo "Please ensure the coverage report has the expected JSON structure."
+              exit 1
+            fi
+            
+            # Check if COVERAGE is empty or not a number
+            if [ -z "$COVERAGE" ] || [ "$COVERAGE" = "null" ]; then
+              echo "❌ Coverage percentage is empty or null in coverage/coverage-summary.json"
               echo "Please ensure the coverage report has the expected JSON structure."
               exit 1
             fi

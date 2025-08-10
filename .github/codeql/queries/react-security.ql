@@ -1,21 +1,37 @@
 /**
- * @name Dangerous HTML injection in React
- * @description Using dangerouslySetInnerHTML with user input can lead to XSS vulnerabilities
- * @kind problem
- * @problem.severity warning
- * @id js/react-dangerous-html
+ * @name React dangerouslySetInnerHTML XSS
+ * @description Detects potential XSS vulnerabilities from using dangerouslySetInnerHTML with untrusted data
+ * @kind path-problem
+ * @problem.severity error
+ * @id js/react-dangerously-set-inner-html-xss
  * @tags security
+ *       external/cwe/cwe-79
  *       react
- *       xss
  */
 
 import javascript
-import semmle.javascript.security.dataflow.DomBasedXssQuery
+import semmle.javascript.security.dataflow.RemoteFlowSources
+import semmle.javascript.frameworks.React
 
-from DataFlow::Node source, DataFlow::Node sink
-where
-  exists(ReactElementDefinition e |
-    e.getAPropertyWrite("dangerouslySetInnerHTML").getRhs() = sink.asExpr() and
-    source.asExpr() instanceof RemoteFlowSource
-  )
-select sink, "Potentially dangerous HTML injection from $@.", source, "user input"
+/**
+ * A taint-tracking configuration for React dangerouslySetInnerHTML XSS vulnerabilities.
+ */
+class DangerouslySetInnerHTMLConfig extends TaintTracking::Configuration {
+  DangerouslySetInnerHTMLConfig() { this = "DangerouslySetInnerHTMLConfig" }
+
+  override predicate isSource(DataFlow::Node source) {
+    source instanceof RemoteFlowSource
+  }
+
+  override predicate isSink(DataFlow::Node sink) {
+    exists(ReactElementDefinition e |
+      e.getAPropertyWrite("dangerouslySetInnerHTML").getRhs() = sink.asExpr()
+    )
+  }
+}
+
+from DangerouslySetInnerHTMLConfig cfg, DataFlow::PathNode source, DataFlow::PathNode sink
+where cfg.hasFlowPath(source, sink)
+select sink.getNode(), source, sink, 
+  "Potentially dangerous HTML injection from $@.", 
+  source.getNode(), "user input"

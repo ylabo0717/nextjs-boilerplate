@@ -1,5 +1,18 @@
 # Next.js Boilerplate
 
+## Testing
+
+Run unit/integration tests with Vitest:
+
+```bash
+pnpm test            # all (unit+integration)
+pnpm test:unit       # unit only
+pnpm test:integration # integration only
+pnpm test:coverage   # coverage for unit+integration
+```
+
+E2E (Playwright) will be added in a separate step.
+
 A production-ready Next.js boilerplate with TypeScript, Tailwind CSS, shadcn/ui, and comprehensive development tooling.
 
 ## 🚀 Features
@@ -120,7 +133,7 @@ pnpm dlx shadcn@latest add [component-name]
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-function MyComponent() {
+export function Example() {
   return <Button onClick={() => toast.success('Hello!')}>Click me</Button>;
 }
 ```

@@ -582,26 +582,46 @@ expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
 
 ### 9.4 テスト実行戦略
 
+本プロジェクトのテストは `tests/` 配下に種類別で配置する。
+
+```text
+tests/
+  unit/         # 単体テスト（関数・フック・純粋コンポーネント）
+  integration/  # 統合テスト（APIモック、ルーティング連携等）
+  e2e/          # エンドツーエンド（Playwright）
+```
+
 #### ローカル開発
 
 ```bash
-# ファイル保存時に自動実行
-pnpm test:watch
+# 全体テスト（Unit/Integration/E2Eを一括実行）
+pnpm test
 
-# カバレッジ確認
+# 種別ごとに実行
+pnpm test:unit
+pnpm test:integration
+pnpm test:e2e
+
+# ウォッチモード（主にUnit/Integration）
+pnpm test:unit -- --watch
+
+# カバレッジ（Unit/Integration 対象）
 pnpm test:coverage
 
-# 特定のファイルのみ実行
-pnpm test src/utils/
+# 特定のテストファイルのみ
+pnpm test:unit -- tests/unit/utils/formatDate.test.ts
+# テスト名で絞り込み
+pnpm test:unit -- -t "should format ISO date"
 ```
 
 #### CI/CD パイプライン
 
 ```yaml
-# .github/workflows/test.yml
+# .github/workflows/test.yml（例）
 - name: Unit & Integration Tests
   run: |
-    pnpm test:ci
+    pnpm test:unit
+    pnpm test:integration
     pnpm test:coverage
 
 - name: E2E Tests
@@ -612,10 +632,12 @@ pnpm test src/utils/
 
 #### Pre-commit フック
 
+コミット前は軽量な検証（lint, typecheck と併せて Unit のみ）を推奨。
+
 ```json
-// .husky/pre-commit
+// .husky/pre-commit（例: lint-staged連携）
 {
-  "*.{ts,tsx}": ["pnpm test:related --passWithNoTests"]
+  "*.{ts,tsx}": ["pnpm test:unit -- --passWithNoTests"]
 }
 ```
 
@@ -642,31 +664,30 @@ pnpm test src/utils/
 
 ### 9.6 ディレクトリ規約
 
-```
-src/
-  components/
-    __tests__/
-      Button.test.tsx            # Unit（表示・イベント）
-  lib/
-    __tests__/
-      apiClient.test.ts          # Unit（APIクライアント）
-  features/users/
-    __tests__/UsersList.int.test.tsx  # Integration（Store+Hook+UI）
-e2e/
-  users.spec.ts                  # E2E（シナリオ）
+```text
+tests/
+  unit/
+    utils/formatDate.test.ts             # Unit（ユーティリティ）
+    components/Button.test.tsx           # Unit（表示・イベント）
+  integration/
+    users/UsersList.integration.test.tsx # Integration（Store+Hook+UI+APIモック）
+  e2e/
+    users.spec.ts                        # E2E（シナリオ）
 ```
 
 ### 9.7 代表セットアップ
 
-**Vitest**
+#### Vitest
 
 ```jsonc
 // package.json (抜粋)
 {
   "scripts": {
-    "test": "vitest --run",
+    "test": "vitest --run --dir tests/unit --dir tests/integration && playwright test",
+    "test:unit": "vitest --run --dir tests/unit",
+    "test:integration": "vitest --run --dir tests/integration",
+    "test:coverage": "vitest --coverage --dir tests/unit --dir tests/integration",
     "test:watch": "vitest",
-    "test:cov": "vitest --coverage",
   },
 }
 ```
@@ -691,10 +712,10 @@ export default defineConfig({
 import '@testing-library/jest-dom';
 ```
 
-**MSW（IntegrationでのAPIモック）**
+#### MSW（IntegrationでのAPIモック）
 
 ```ts
-// src/tests/server.ts
+// tests/integration/server.ts
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 
@@ -703,15 +724,15 @@ export const server = setupServer(
 );
 ```
 
-**Playwright**
+#### Playwright
 
 ```jsonc
 // package.json (抜粋)
 {
   "scripts": {
-    "e2e": "playwright test",
-    "e2e:head": "playwright test --headed",
-    "e2e:report": "playwright show-report",
+    "test:e2e": "playwright test",
+    "test:e2e:head": "playwright test --headed",
+    "test:e2e:report": "playwright show-report",
   },
 }
 ```
@@ -1659,7 +1680,7 @@ groups:
 
 #### ディレクトリ構造例
 
-```
+```text
 src/
   lib/
     db/           # DB接続設定
@@ -1794,7 +1815,7 @@ REDIS_URL=redis://...
 
 ## 14. 付録. ディレクトリ構成例
 
-```
+```text
 src/
   app/
     api/auth/[...nextauth]/

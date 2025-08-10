@@ -1,0 +1,2 @@
+- All responses must be written in Japanese.
+- Refer to CLAUDE.md for development rules.

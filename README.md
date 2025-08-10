@@ -130,6 +130,10 @@ pnpm dlx shadcn@latest add [component-name]
 ### Example Usage
 
 ```tsx
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+
+export function Example() {
   return <Button onClick={() => toast.success('Hello!')}>Click me</Button>;
 }
 ```

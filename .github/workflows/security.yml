@@ -157,29 +157,32 @@ jobs:
   semgrep-analysis:
     name: Semgrep Security Analysis
     runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Run Semgrep
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: .semgrep.yml
-          generateSarif: true
+        run: |
+          # Run Semgrep with custom config if available, otherwise use auto config
+          if [ -f .semgrep.yml ]; then
+            echo "Using custom semgrep configuration"
+            semgrep scan --config=.semgrep.yml --sarif --output=semgrep.sarif . || true
+          else
+            echo "Using auto configuration"
+            semgrep scan --config=auto --sarif --output=semgrep.sarif . || true
+          fi
+
+          # Also generate JSON output for additional processing
+          if [ -f .semgrep.yml ]; then
+            semgrep scan --config=.semgrep.yml --json --output=semgrep-results.json . || true
+          else
+            semgrep scan --config=auto --json --output=semgrep-results.json . || true
+          fi
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
         continue-on-error: true
-
-      - name: Run Semgrep with auto config (fallback)
-        if: failure()
-        run: |
-          docker run --rm -v "${{ github.workspace }}:/src" \
-            returntocorp/semgrep:latest \
-            --config=auto \
-            --config=.semgrep.yml \
-            --json \
-            --output=semgrep-results.json \
-            /src
 
       - name: Upload Semgrep results
         if: always()

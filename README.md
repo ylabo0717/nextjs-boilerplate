@@ -1,4 +1,4 @@
-# Next.js Enterprise Boilerplate
+# Next.js Boilerplate
 
 A production-ready Next.js boilerplate with TypeScript, Tailwind CSS, shadcn/ui, and comprehensive development tooling.
 

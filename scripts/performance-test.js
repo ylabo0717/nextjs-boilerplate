@@ -19,6 +19,12 @@ const SERVER_POLLING_INTERVAL = parseInt(process.env.SERVER_POLLING_INTERVAL || 
 const SERVER_FORCE_KILL_TIMEOUT = parseInt(process.env.SERVER_FORCE_KILL_TIMEOUT || '5000', 10);
 
 /**
+ * Server process variable
+ * Will be initialized in the main execution block for proper error handling
+ */
+let server = null;
+
+/**
  * Run performance tests against the application
  */
 async function runPerformanceTest() {
@@ -166,12 +172,6 @@ async function startServerWithRetry() {
     `Failed to start server after ${SERVER_START_RETRIES} attempts: ${lastError.message}`
   );
 }
-
-/**
- * Server process variable
- * Will be initialized in the main execution block for proper error handling
- */
-let server = null;
 
 /**
  * Ensure server cleanup on any exit

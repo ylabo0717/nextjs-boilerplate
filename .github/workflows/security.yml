@@ -112,6 +112,7 @@ jobs:
           category: '/language:${{ matrix.language }}'
           output: sarif-results
           upload: true
+          upload-database: false
 
       - name: Upload SARIF results
         if: always()

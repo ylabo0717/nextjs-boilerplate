@@ -136,7 +136,7 @@ test.describe('Accessibility', () => {
     const isSupported = htmlLang
       ? SUPPORTED_LOCALES.includes(htmlLang as (typeof SUPPORTED_LOCALES)[number])
       : false;
-    const isValid = isValidLanguageCode(htmlLang!);
+    const isValid = htmlLang ? isValidLanguageCode(htmlLang) : false;
 
     expect(isSupported || isValid).toBeTruthy();
   });

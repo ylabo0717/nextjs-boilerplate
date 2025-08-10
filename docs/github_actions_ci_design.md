@@ -675,34 +675,34 @@ continue-on-error: false
 
 #### 準備作業
 
-- [ ] `.github/workflows/`ディレクトリの作成
+- [x] `.github/workflows/`ディレクトリの作成
 - [ ] GitHub Actionsのシークレット設定確認
-- [ ] 必要な環境変数の洗い出し
+- [x] 必要な環境変数の洗い出し
 
 #### ci.yml実装
 
-- [ ] 基本構造の作成（トリガー、環境変数設定）
-- [ ] Lint Jobの実装
-  - [ ] ESLint実行設定
-  - [ ] Prettier check設定
-  - [ ] エラー出力フォーマット設定
-- [ ] Type Check Jobの実装
-  - [ ] TypeScript compiler設定
-  - [ ] strict modeでのチェック
-- [ ] Test Jobの実装
-  - [ ] Vitest実行設定
-  - [ ] カバレッジレポート生成
-  - [ ] カバレッジ閾値チェック（60%必須、80%目標）
-- [ ] Build Jobの実装
-  - [ ] Next.js build実行
-  - [ ] ビルド時間計測
-  - [ ] ビルド成果物のアーティファクト保存
+- [x] 基本構造の作成（トリガー、環境変数設定）
+- [x] Lint Jobの実装
+  - [x] ESLint実行設定
+  - [x] Prettier check設定
+  - [x] エラー出力フォーマット設定
+- [x] Type Check Jobの実装
+  - [x] TypeScript compiler設定
+  - [x] strict modeでのチェック
+- [x] Test Jobの実装
+  - [x] Vitest実行設定
+  - [x] カバレッジレポート生成
+  - [x] カバレッジ閾値チェック（60%必須、80%目標）
+- [x] Build Jobの実装
+  - [x] Next.js build実行
+  - [x] ビルド時間計測
+  - [x] ビルド成果物のアーティファクト保存
 
 #### キャッシュ最適化
 
-- [ ] pnpmキャッシュ設定
-- [ ] Next.jsキャッシュ設定
-- [ ] node_modulesキャッシュ設定
+- [x] pnpmキャッシュ設定
+- [x] Next.jsキャッシュ設定
+- [x] node_modulesキャッシュ設定
 - [ ] キャッシュ有効性の検証
 
 #### 初期テスト

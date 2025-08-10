@@ -297,11 +297,41 @@ jobs:
 
           // Start the app and run test
           const { exec } = require('child_process');
+          const http = require('http');
           const server = exec('pnpm start');
 
-          // Wait for server to start
-          setTimeout(async () => {
+          // Wait for server to start by polling the root endpoint
+          function waitForServerReady(url, timeoutMs = 30000, intervalMs = 500) {
+            return new Promise((resolve, reject) => {
+              const start = Date.now();
+              function check() {
+                const req = http.get(url, (res) => {
+                  if (res.statusCode === 200) {
+                    res.resume();
+                    resolve();
+                  } else {
+                    res.resume();
+                    retry();
+                  }
+                });
+                req.on('error', retry);
+                function retry() {
+                  if (Date.now() - start > timeoutMs) {
+                    reject(new Error('Server did not become ready in time'));
+                  } else {
+                    setTimeout(check, intervalMs);
+                  }
+                }
+              }
+              check();
+            });
+          }
+
+          (async () => {
             try {
+              console.log('Waiting for server to be ready...');
+              await waitForServerReady('http://localhost:3000');
+              console.log('Server is ready, starting performance tests');
               await runPerformanceTest();
             } catch (error) {
               console.error('Performance test failed:', error);
@@ -309,7 +339,7 @@ jobs:
             } finally {
               server.kill();
             }
-          }, 10000);
+          })();
           EOF
 
           node performance-test.js

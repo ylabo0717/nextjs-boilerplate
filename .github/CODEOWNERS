@@ -1,0 +1,45 @@
+# CODEOWNERS file for automatic review assignment
+# Documentation: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/about-code-owners
+
+# Order matters: the last matching pattern takes precedence
+# Each line is a file pattern followed by one or more owners
+
+# Default owners for everything in the repo
+# These owners will be requested for review when someone opens a pull request
+# Replace with your GitHub username, team name, or organization
+# Format: @username, @org/team-name, or user@example.com
+* @ylabo0717
+
+# You can also specify owners for specific directories or files
+# This allows different team members to own different parts of the codebase
+
+# Frontend components
+# /components/ @frontend-team
+# /app/ @frontend-team
+
+# API and backend
+# /api/ @backend-team
+# /services/ @backend-team
+
+# Configuration and CI/CD
+# /.github/ @devops-team
+# /scripts/ @devops-team
+
+# Documentation
+# *.md @documentation-team
+# /docs/ @documentation-team
+
+# Dependencies and package management
+# package.json @tech-lead
+# pnpm-lock.yaml @tech-lead
+# .npmrc @tech-lead
+
+# Security-sensitive files
+# .env* @security-team
+# /auth/ @security-team
+
+# Example of multiple owners (all will be requested for review)
+# /critical-system/ @tech-lead @senior-dev @ylabo0717
+
+# Example of using email addresses (for external collaborators)
+# /external-integration/ external-dev@example.com

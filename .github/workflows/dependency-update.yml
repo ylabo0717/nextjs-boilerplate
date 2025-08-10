@@ -277,7 +277,7 @@ jobs:
             dependencies
             automated
             ${{ github.event.inputs.update-type || 'patch' }}-update
-          reviewers: ylabo0717
+          # Reviewers are automatically assigned via CODEOWNERS file
 
   vulnerability-check:
     name: Vulnerability Check After Update

@@ -75,9 +75,11 @@ updates:
     labels:
       - 'dependencies'
       - 'automated'
-    # Reviewers and assignees
-    reviewers:
-      - 'ylabo0717' # Add your GitHub username or team
+    # Reviewers are automatically assigned via CODEOWNERS file
+    # If you need to specify additional reviewers, uncomment and modify:
+    # reviewers:
+    #   - 'username'
+    #   - 'org/team-name'
     # Allow security updates
     allow:
       - dependency-type: 'all'
@@ -109,5 +111,4 @@ updates:
       - 'ci'
       - 'dependencies'
       - 'automated'
-    reviewers:
-      - 'ylabo0717' # Add your GitHub username or team
+    # Reviewers are automatically assigned via CODEOWNERS file

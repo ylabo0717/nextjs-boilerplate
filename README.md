@@ -1,4 +1,6 @@
-# Next.js Boilerplate
+# 🚧 Next.js Boilerplate (Under Active Development)
+
+> **⚠️ This project is currently under active development and not yet production-ready. Features and APIs may change.**
 
 ## Testing
 
@@ -326,40 +328,48 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Phase 1 ✅ (Completed)
 
-- Basic Next.js setup
-- TypeScript configuration
-- ESLint/Prettier setup
-- Tailwind CSS v4
-- shadcn/ui components
-- Git hooks with Husky
+- ✅ Basic Next.js setup with App Router
+- ✅ TypeScript configuration with strict mode
+- ✅ ESLint/Prettier setup with auto-formatting
+- ✅ Tailwind CSS v4 with CSS variables
+- ✅ shadcn/ui components integration
+- ✅ Git hooks with Husky and lint-staged
+- ✅ Commitlint for conventional commits
+- ✅ Gitleaks for secret scanning
 
-### Phase 2 (Planned)
+### Phase 2 ✅ (Completed)
 
-- Vitest for unit testing
-- Playwright for E2E testing
-- GitHub Actions CI/CD
-- Testing infrastructure
+- ✅ Vitest for unit testing
+- ✅ Playwright for E2E testing
+- ✅ GitHub Actions CI/CD pipeline
+- ✅ Testing infrastructure with coverage reports
+- ✅ Test constants and best practices
+- ✅ Accessibility testing
+- ✅ Performance testing
+- ✅ Security scanning workflows
+- ✅ Dependency update automation
+- ✅ Claude AI code review integration
 
-### Phase 3 (Planned)
+### Phase 3 (In Progress)
 
-- Docker Compose setup
-- OpenTelemetry integration
-- Structured logging with Pino
-- Monitoring and observability
+- 🚧 Docker Compose setup
+- ⏳ OpenTelemetry integration
+- ⏳ Structured logging with Pino
+- ⏳ Monitoring and observability
 
 ### Phase 4 (Planned)
 
-- TanStack Query setup
-- Zustand state management
-- API client infrastructure
-- Zod schema validation
+- ⏳ TanStack Query setup
+- ⏳ Zustand state management
+- ⏳ API client infrastructure
+- ⏳ Zod schema validation
 
 ### Phase 5 (Planned)
 
-- NextAuth.js authentication
-- Security headers (CSP, etc.)
-- Rate limiting
-- Session management
+- ⏳ NextAuth.js authentication
+- ⏳ Security headers (CSP, etc.)
+- ⏳ Rate limiting
+- ⏳ Session management
 
 ---
 

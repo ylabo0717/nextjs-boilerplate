@@ -10,11 +10,16 @@
       "Bash(npm run build:*)",
       "mcp__serena__think_about_collected_information",
       "mcp__serena__write_memory",
-      "mcp__serena__think_about_whether_you_are_done"
+      "mcp__serena__think_about_whether_you_are_done",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm dlx:*)",
+      "Bash(mkdir:*)",
+      "Bash(pnpm typecheck:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm remove:*)",
+      "Bash(pnpm exec:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "serena"
-  ]
+  "enabledMcpjsonServers": ["serena"]
 }

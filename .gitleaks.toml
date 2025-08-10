@@ -240,8 +240,14 @@ regex = '''-----BEGIN (RSA|DSA|EC|OPENSSH|PGP|PRIVATE) (PRIVATE )?KEY-----'''
 tags = ["private", "key"]
 
 # Passwords - Following Gitleaks Default Configuration Best Practices
-# Generic password uses entropy 4.0 to reduce false positives
-# Context-specific patterns maintain entropy 3.5 for better detection
+# Entropy settings rationale:
+#   - The generic password pattern uses entropy 4.0 (higher than the 3.5 used for context-specific patterns).
+#   - This higher threshold is chosen because generic patterns are more likely to match non-secret values (e.g., documentation, config templates, or benign strings),
+#     so a stricter entropy requirement helps reduce false positives.
+#   - In contrast, context-specific patterns (e.g., for known password fields in specific applications) use entropy 3.5 to improve detection of real secrets,
+#     since the context already reduces the chance of false positives.
+#   - If future changes require adjusting entropy, consider the trade-off: lowering entropy increases detection (but may raise false positives), while raising it reduces noise (but may miss some secrets).
+#   - See also: https://github.com/gitleaks/gitleaks/blob/main/config/gitleaks.toml for upstream defaults and discussion.
 
 [[rules]]
 id = "generic-password"

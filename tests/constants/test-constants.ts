@@ -101,6 +101,11 @@ export const RETRY_CONFIG = {
    * Polling interval for server health checks (unit: ms)
    */
   SERVER_POLLING_INTERVAL: 1000,
+
+  /**
+   * Timeout before force killing unresponsive server process (unit: ms)
+   */
+  SERVER_FORCE_KILL_TIMEOUT: 5000,
 } as const;
 
 /**

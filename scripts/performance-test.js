@@ -12,6 +12,7 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const SERVER_START_RETRIES = parseInt(process.env.SERVER_START_RETRIES || '3', 10);
 const SERVER_START_RETRY_DELAY = parseInt(process.env.SERVER_START_RETRY_DELAY || '5000', 10);
 const SERVER_POLLING_INTERVAL = parseInt(process.env.SERVER_POLLING_INTERVAL || '1000', 10);
+const SERVER_FORCE_KILL_TIMEOUT = parseInt(process.env.SERVER_FORCE_KILL_TIMEOUT || '5000', 10);
 
 /**
  * Run performance tests against the application
@@ -143,12 +144,30 @@ function cleanupServer() {
       server.kill('SIGTERM');
 
       // Force kill after timeout if still running
-      setTimeout(() => {
+      const forceKillTimer = setTimeout(() => {
         if (!server.killed) {
-          console.log('Force killing server process...');
-          server.kill('SIGKILL');
+          console.log(`Force killing server process after ${SERVER_FORCE_KILL_TIMEOUT}ms...`);
+          try {
+            server.kill('SIGKILL');
+          } catch (killErr) {
+            console.error('Failed to force kill server:', killErr);
+            // Try using process.kill as fallback
+            if (server.pid) {
+              try {
+                process.kill(server.pid, 'SIGKILL');
+              } catch (pidErr) {
+                console.error('Failed to kill process by PID:', pidErr);
+              }
+            }
+          }
         }
-      }, 5000);
+      }, SERVER_FORCE_KILL_TIMEOUT);
+
+      // Clear timer if process exits before timeout
+      server.on('exit', () => {
+        clearTimeout(forceKillTimer);
+        console.log('Server process exited gracefully');
+      });
     } catch (err) {
       console.error('Error during server cleanup:', err);
       // Force kill as last resort

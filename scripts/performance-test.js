@@ -96,16 +96,55 @@ function waitForServerReady(url, timeoutMs = 30000, intervalMs = SERVER_POLLING_
 }
 
 /**
+ * Start the server process
+ */
+function startServer() {
+  console.log('Starting server process...');
+
+  // Use spawn instead of exec for better security and control
+  server = spawn('pnpm', ['start:test'], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    shell: false, // Disable shell to prevent command injection
+    env: { ...process.env, NODE_ENV: 'test' },
+  });
+
+  // Capture server output for debugging
+  server.stdout.on('data', (data) => {
+    console.log(`[Server]: ${data.toString().trim()}`);
+  });
+
+  server.stderr.on('data', (data) => {
+    console.error(`[Server Error]: ${data.toString().trim()}`);
+  });
+
+  server.on('error', (error) => {
+    console.error(`Failed to start server process: ${error.message}`);
+  });
+
+  return server;
+}
+
+/**
  * Start server with retry logic
  */
 async function startServerWithRetry() {
   let retries = SERVER_START_RETRIES;
   let lastError;
 
+  // Start the server process once
+  if (!server) {
+    try {
+      startServer();
+    } catch (error) {
+      throw new Error(`Failed to start server process: ${error.message}`);
+    }
+  }
+
+  // Wait for server to be ready with retries
   while (retries > 0) {
     try {
       console.log(
-        `Attempting to start server (attempt ${SERVER_START_RETRIES - retries + 1}/${SERVER_START_RETRIES})...`
+        `Checking server readiness (attempt ${SERVER_START_RETRIES - retries + 1}/${SERVER_START_RETRIES})...`
       );
       await waitForServerReady(BASE_URL);
       console.log('Server is ready');
@@ -129,30 +168,10 @@ async function startServerWithRetry() {
 }
 
 /**
- * Start the app in test mode
- * Using start:test instead of start to:
- * - Use test-specific configurations
- * - Ensure proper cleanup on test completion
- * - Avoid conflicts with production settings
- *
- * Security Note: This script is intended for CI environments only.
- * The command is hardcoded to prevent command injection vulnerabilities.
+ * Server process variable
+ * Will be initialized in the main execution block for proper error handling
  */
-// Use spawn instead of exec for better security and control
-const server = spawn('pnpm', ['start:test'], {
-  stdio: ['ignore', 'pipe', 'pipe'],
-  shell: false, // Disable shell to prevent command injection
-  env: { ...process.env, NODE_ENV: 'test' },
-});
-
-// Capture server output for debugging
-server.stdout.on('data', (data) => {
-  console.log(`[Server]: ${data.toString().trim()}`);
-});
-
-server.stderr.on('data', (data) => {
-  console.error(`[Server Error]: ${data.toString().trim()}`);
-});
+let server = null;
 
 /**
  * Ensure server cleanup on any exit

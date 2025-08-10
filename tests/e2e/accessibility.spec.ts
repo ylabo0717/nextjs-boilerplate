@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { ACCESSIBILITY_TEST } from '../constants/test-constants';
 import AxeBuilder from '@axe-core/playwright';
-import { SUPPORTED_LOCALES, isValidLanguageCode } from '@/constants';
+import { SUPPORTED_LOCALES } from '../constants/test-constants';
+import { isValidLanguageCode } from '@/constants';
 
 test.describe('Accessibility', () => {
   test('should not have any automatically detectable accessibility issues', async ({ page }) => {

@@ -8,27 +8,27 @@
  */
 export const UI_WAIT_TIMES = {
   /**
-   * Minimum wait time for UI updates (milliseconds)
+   * Instant feedback for micro-interactions like hover states and focus (unit: ms)
    */
   MINIMAL: 100,
 
   /**
-   * Short wait time for quick animations (milliseconds)
+   * Quick transitions for dropdowns, tooltips, and accordion panels (unit: ms)
    */
   SHORT: 300,
 
   /**
-   * Standard wait time for most UI operations (milliseconds)
+   * Standard animations for modals, page transitions, and form submissions (unit: ms)
    */
   STANDARD: 500,
 
   /**
-   * Long wait time for complex operations (milliseconds)
+   * Complex UI updates like data loading, chart rendering, and lazy loading (unit: ms)
    */
   LONG: 1000,
 
   /**
-   * Extra long wait time for heavy operations (milliseconds)
+   * Heavy operations like file uploads, bulk operations, and initial page load (unit: ms)
    */
   EXTRA_LONG: 2000,
 } as const;
@@ -38,17 +38,17 @@ export const UI_WAIT_TIMES = {
  */
 export const NETWORK_WAIT_TIMES = {
   /**
-   * Wait time for API responses (milliseconds)
+   * API call completion for REST endpoints and GraphQL queries (unit: ms)
    */
   API_RESPONSE: 3000,
 
   /**
-   * Wait time for page load completion (milliseconds)
+   * Full page load including all assets for initial render and route changes (unit: ms)
    */
   PAGE_LOAD: 5000,
 
   /**
-   * Wait time for network idle state (milliseconds)
+   * Network idle detection when no pending requests remain (unit: ms)
    */
   NETWORK_IDLE: 2000,
 } as const;
@@ -58,17 +58,17 @@ export const NETWORK_WAIT_TIMES = {
  */
 export const TEST_TIMEOUTS = {
   /**
-   * Default timeout for test cases (milliseconds)
+   * Standard test case execution for most integration tests (unit: ms)
    */
   DEFAULT: 30000,
 
   /**
-   * Extended timeout for slow operations (milliseconds)
+   * Complex scenarios including E2E flows and multi-step workflows (unit: ms)
    */
   EXTENDED: 60000,
 
   /**
-   * Quick timeout for fast operations (milliseconds)
+   * Simple unit tests for component rendering and basic interactions (unit: ms)
    */
   QUICK: 10000,
 } as const;
@@ -78,12 +78,12 @@ export const TEST_TIMEOUTS = {
  */
 export const RETRY_CONFIG = {
   /**
-   * Maximum number of retry attempts
+   * Maximum retry attempts for network requests and element visibility checks (unit: count)
    */
   MAX_RETRIES: 3,
 
   /**
-   * Delay between retry attempts (milliseconds)
+   * Wait between retries to prevent rate limiting and allow recovery (unit: ms)
    */
   RETRY_DELAY: 1000,
 } as const;
@@ -93,17 +93,17 @@ export const RETRY_CONFIG = {
  */
 export const ANIMATION_DURATIONS = {
   /**
-   * CSS transition duration (milliseconds)
+   * CSS transitions for color changes, transforms, and opacity (unit: ms)
    */
   TRANSITION: 300,
 
   /**
-   * Modal open/close animation (milliseconds)
+   * Modal animations with fade in/out and scale effects (unit: ms)
    */
   MODAL: 400,
 
   /**
-   * Dropdown animation (milliseconds)
+   * Dropdown menu slide down/up animations (unit: ms)
    */
   DROPDOWN: 200,
 } as const;
@@ -113,7 +113,7 @@ export const ANIMATION_DURATIONS = {
  */
 export const WEBSERVER_TIMEOUT = {
   /**
-   * Timeout for web server startup (milliseconds)
+   * Dev server startup including Next.js build and dependency installation (unit: ms)
    */
   STARTUP: 120000,
 } as const;
@@ -122,17 +122,17 @@ export const WEBSERVER_TIMEOUT = {
  */
 export const TEST_DATA = {
   /**
-   * Number of content items to generate for scroll testing
+   * Content items to generate for virtual scrolling and pagination tests (unit: count)
    */
   SCROLL_CONTENT_COUNT: 50,
 
   /**
-   * Height of each generated element in pixels (without 'px' suffix)
+   * Numeric height for scroll position and viewport calculations (unit: pixels)
    */
   ELEMENT_HEIGHT: 50,
 
   /**
-   * Height of each generated element as CSS string (e.g., '50px')
+   * CSS height value for inline styles and dynamic styling (unit: CSS pixels)
    */
   ELEMENT_HEIGHT_PX: '50px',
 } as const;
@@ -141,7 +141,9 @@ export const TEST_DATA = {
  * Accessibility testing configuration
  */
 export const ACCESSIBILITY_TEST = {
-  /** Maximum number of interactive elements to test in Tab navigation */
+  /**
+   * Tab order verification for forms, navigation, and modals (unit: count)
+   */
   MAX_TAB_NAVIGATION_ELEMENTS: 5,
 } as const;
 
@@ -150,7 +152,7 @@ export const ACCESSIBILITY_TEST = {
  */
 export const SCROLL_POSITIONS = {
   /**
-   * Standard scroll position for testing (pixels)
+   * Scroll behavior verification for smooth scrolling and sticky headers (unit: pixels)
    */
   STANDARD: 500,
 } as const;
@@ -160,12 +162,12 @@ export const SCROLL_POSITIONS = {
  */
 export const PERFORMANCE_THRESHOLDS = {
   /**
-   * First Contentful Paint threshold (milliseconds)
+   * Good FCP score based on Core Web Vitals benchmark (unit: ms)
    */
   FCP_GOOD: 1800,
 
   /**
-   * Maximum acceptable memory increase (MB)
+   * Memory leak detection threshold to prevent excessive RAM usage (unit: MB)
    */
   MEMORY_INCREASE_MAX: 50,
 } as const;
@@ -175,12 +177,12 @@ export const PERFORMANCE_THRESHOLDS = {
  */
 export const MEMORY_CONVERSION = {
   /**
-   * Bytes to kilobytes
+   * Conversion factor for memory usage reporting (unit: bytes per KB)
    */
   BYTES_TO_KB: 1024,
 
   /**
-   * Bytes to megabytes (1024 * 1024)
+   * Conversion factor for performance metrics (unit: bytes per MB)
    */
   BYTES_TO_MB: 1048576,
 } as const;
@@ -190,12 +192,12 @@ export const MEMORY_CONVERSION = {
  */
 export const VIEWPORT_SIZES = {
   /**
-   * Desktop viewport
+   * Full HD desktop for responsive layouts and desktop-first features (unit: pixels)
    */
   DESKTOP: { width: 1920, height: 1080 },
 
   /**
-   * Mobile viewport
+   * iPhone SE/8 size for mobile layouts and touch interactions (unit: pixels)
    */
   MOBILE: { width: 375, height: 667 },
 } as const;

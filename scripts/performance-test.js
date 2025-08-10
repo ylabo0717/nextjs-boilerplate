@@ -13,10 +13,58 @@ const http = require('http');
 
 // Configuration
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-const SERVER_START_RETRIES = parseInt(process.env.SERVER_START_RETRIES || '3', 10);
-const SERVER_START_RETRY_DELAY = parseInt(process.env.SERVER_START_RETRY_DELAY || '5000', 10);
-const SERVER_POLLING_INTERVAL = parseInt(process.env.SERVER_POLLING_INTERVAL || '1000', 10);
-const SERVER_FORCE_KILL_TIMEOUT = parseInt(process.env.SERVER_FORCE_KILL_TIMEOUT || '5000', 10);
+/**
+ * Helper function to safely parse integer environment variables
+ * @param {string} varName - The environment variable name
+ * @param {number} defaultValue - The default value if parsing fails
+ * @param {Object} options - Optional validation options
+ * @param {number} options.min - Minimum allowed value
+ * @param {number} options.max - Maximum allowed value
+ * @returns {number} The parsed integer or default value
+ */
+function parseEnvInt(varName, defaultValue, options = {}) {
+  const value = process.env[varName];
+
+  // If undefined or empty, use default
+  if (value === undefined || value === '') {
+    return defaultValue;
+  }
+
+  const parsed = parseInt(value, 10);
+
+  // Check for NaN
+  if (isNaN(parsed)) {
+    console.warn(
+      `⚠️  Warning: Environment variable ${varName} is set to a non-numeric value ("${value}"). Using default (${defaultValue}).`
+    );
+    return defaultValue;
+  }
+
+  // Optional range validation
+  const { min, max } = options;
+
+  if (min !== undefined && parsed < min) {
+    console.warn(
+      `⚠️  Warning: ${varName}=${parsed} is below minimum (${min}). Using default (${defaultValue}).`
+    );
+    return defaultValue;
+  }
+
+  if (max !== undefined && parsed > max) {
+    console.warn(
+      `⚠️  Warning: ${varName}=${parsed} exceeds maximum (${max}). Using default (${defaultValue}).`
+    );
+    return defaultValue;
+  }
+
+  return parsed;
+}
+
+// Parse environment variables with error handling and validation
+const SERVER_START_RETRIES = parseEnvInt('SERVER_START_RETRIES', 3, { min: 1, max: 10 });
+const SERVER_START_RETRY_DELAY = parseEnvInt('SERVER_START_RETRY_DELAY', 5000, { min: 100 });
+const SERVER_POLLING_INTERVAL = parseEnvInt('SERVER_POLLING_INTERVAL', 1000, { min: 100 });
+const SERVER_FORCE_KILL_TIMEOUT = parseEnvInt('SERVER_FORCE_KILL_TIMEOUT', 5000, { min: 1000 });
 
 /**
  * Server process variable

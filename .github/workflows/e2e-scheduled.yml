@@ -2,7 +2,7 @@ name: Scheduled E2E Tests
 
 on:
   schedule:
-    # Run every day at 12:00 AM JST (15:00 UTC previous day)
+    # Run every day at 0:00 AM JST by scheduling at 15:00 UTC on the previous day
     - cron: '0 15 * * *'
   workflow_dispatch:
     inputs:

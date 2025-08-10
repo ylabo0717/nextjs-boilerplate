@@ -133,7 +133,9 @@ test.describe('Accessibility', () => {
     expect(htmlLang).toBeTruthy();
 
     // Check if it's a supported locale or at least a valid language code
-    const isSupported = SUPPORTED_LOCALES.some((locale) => locale === htmlLang);
+    const isSupported = htmlLang
+      ? SUPPORTED_LOCALES.includes(htmlLang as (typeof SUPPORTED_LOCALES)[number])
+      : false;
     const isValid = isValidLanguageCode(htmlLang!);
 
     expect(isSupported || isValid).toBeTruthy();

@@ -25,9 +25,9 @@ test.describe('Navigation', () => {
     // Navigate to a non-existent page
     const response = await page.goto('/non-existent-page');
 
-    // Next.js should still return 200 for client-side navigation
-    // but we should see the 404 page content
-    expect(response?.status()).toBeLessThanOrEqual(404);
+    // Next.js should return either 200 (client-side navigation) or 404 (server-side)
+    // for non-existent pages
+    expect([200, 404]).toContain(response?.status());
   });
 
   test('should maintain scroll position on navigation', async ({ page }) => {

@@ -1,10 +1,21 @@
+/**
+ * Playwright test framework for end-to-end testing
+ */
 import { test, expect } from '@playwright/test';
+/**
+ * Performance testing constants including network timing, thresholds, and memory conversion utilities
+ */
 import {
   NETWORK_WAIT_TIMES,
   PERFORMANCE_THRESHOLDS,
   MEMORY_CONVERSION,
 } from '../constants/test-constants';
 
+/**
+ * Performance test suite
+ * Tests application performance metrics including load times, Web Vitals, memory usage, and resource optimization
+ * Ensures the application meets performance standards and provides a fast user experience
+ */
 test.describe('Performance', () => {
   test('should load the home page within acceptable time', async ({ page }) => {
     const startTime = Date.now();

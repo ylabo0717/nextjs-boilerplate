@@ -1,6 +1,17 @@
+/**
+ * Playwright test framework for end-to-end testing
+ */
 import { test, expect } from '@playwright/test';
+/**
+ * Viewport size constants for responsive design testing
+ */
 import { VIEWPORT_SIZES } from '../constants/test-constants';
 
+/**
+ * Home page test suite
+ * Tests the main landing page functionality, content, and responsiveness
+ * Validates core elements and user interactions on the home page
+ */
 test.describe('Home Page', () => {
   test('should display the home page', async ({ page }) => {
     await page.goto('/');

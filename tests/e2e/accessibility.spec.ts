@@ -1,8 +1,25 @@
+/**
+ * Playwright test framework for end-to-end testing
+ */
 import { test, expect } from '@playwright/test';
+/**
+ * Accessibility test configuration constants
+ */
 import { ACCESSIBILITY_TEST } from '../constants/test-constants';
+/**
+ * Localization constants and utilities from the application
+ */
 import { SUPPORTED_LOCALES, isValidLanguageCode } from '@/constants';
+/**
+ * Axe accessibility testing library for automated accessibility checks
+ */
 import AxeBuilder from '@axe-core/playwright';
 
+/**
+ * Accessibility test suite
+ * Tests WCAG compliance and accessibility standards across all pages
+ * Ensures the application is usable by people with disabilities
+ */
 test.describe('Accessibility', () => {
   test('should not have any automatically detectable accessibility issues', async ({ page }) => {
     await page.goto('/');

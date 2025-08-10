@@ -1,6 +1,17 @@
+/**
+ * Playwright test framework for end-to-end testing
+ */
 import { test, expect } from '@playwright/test';
+/**
+ * Test constants for UI interactions, scroll positions, and test data
+ */
 import { UI_WAIT_TIMES, SCROLL_POSITIONS, TEST_DATA } from '../constants/test-constants';
 
+/**
+ * Navigation test suite
+ * Tests the application's navigation system including links, routing, and scroll behavior
+ * Validates that all navigation elements work correctly across different scenarios
+ */
 test.describe('Navigation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');

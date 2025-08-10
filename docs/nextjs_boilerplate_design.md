@@ -658,7 +658,198 @@ export default defineConfig({
 
 ---
 
-## 10. APM/ログ送り先候補比較
+## 10. エラーハンドリング戦略
+
+### 10.1 エラー分類と処理方針
+
+#### エラーカテゴリ
+| カテゴリ | 説明 | 処理方針 |
+|----------|------|----------|
+| **Operational Error** | 予期される業務エラー（バリデーション、認証失敗等） | ユーザーへの適切なフィードバック |
+| **Programming Error** | バグ・実装ミス | ログ記録、開発環境でスタックトレース表示 |
+| **System Error** | インフラ・外部サービス障害 | リトライ、フォールバック、サーキットブレーカー |
+
+### 10.2 グローバルエラーハンドラー実装
+
+```typescript
+// lib/errors/AppError.ts
+export class AppError extends Error {
+  public readonly isOperational: boolean;
+  public readonly statusCode: number;
+  public readonly code: string;
+
+  constructor(
+    message: string,
+    statusCode: number,
+    code: string,
+    isOperational = true
+  ) {
+    super(message);
+    this.statusCode = statusCode;
+    this.code = code;
+    this.isOperational = isOperational;
+    Object.setPrototypeOf(this, AppError.prototype);
+  }
+}
+
+// 定義済みエラー
+export class ValidationError extends AppError {
+  constructor(message: string) {
+    super(message, 400, 'VALIDATION_ERROR');
+  }
+}
+
+export class AuthenticationError extends AppError {
+  constructor(message = '認証が必要です') {
+    super(message, 401, 'AUTHENTICATION_ERROR');
+  }
+}
+
+export class AuthorizationError extends AppError {
+  constructor(message = '権限がありません') {
+    super(message, 403, 'AUTHORIZATION_ERROR');
+  }
+}
+```
+
+### 10.3 Error Boundary実装
+
+```typescript
+// components/ErrorBoundary.tsx
+'use client';
+
+import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { AlertCircle } from 'lucide-react';
+
+function ErrorFallback({ error, resetErrorBoundary }: any) {
+  const router = useRouter();
+  
+  // エラーを構造化ログとして送信
+  useEffect(() => {
+    logger.error('ErrorBoundary caught error', {
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      },
+      location: window.location.href,
+      userAgent: navigator.userAgent
+    });
+  }, [error]);
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center p-4">
+      <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+      <h1 className="text-2xl font-bold mb-2">エラーが発生しました</h1>
+      <p className="text-muted-foreground mb-6 text-center max-w-md">
+        {error.isOperational ? error.message : '予期しないエラーが発生しました。'}
+      </p>
+      <div className="flex gap-2">
+        <Button onClick={resetErrorBoundary}>再試行</Button>
+        <Button variant="outline" onClick={() => router.push('/')}>
+          ホームへ戻る
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function ErrorBoundary({ children }: { children: React.ReactNode }) {
+  return (
+    <ReactErrorBoundary
+      FallbackComponent={ErrorFallback}
+      onReset={() => window.location.reload()}
+    >
+      {children}
+    </ReactErrorBoundary>
+  );
+}
+```
+
+### 10.4 API エラーレスポンス統一フォーマット
+
+```typescript
+// types/api.ts
+export interface ApiErrorResponse {
+  error: {
+    code: string;
+    message: string;
+    details?: Record<string, any>;
+    timestamp: string;
+    traceId?: string;
+  };
+}
+
+// lib/apiClient.ts
+class ApiClient {
+  private async handleResponse<T>(response: Response): Promise<T> {
+    if (!response.ok) {
+      const errorData: ApiErrorResponse = await response.json();
+      
+      // エラーコードに基づいた処理
+      switch (errorData.error.code) {
+        case 'AUTHENTICATION_ERROR':
+          // 認証エラー時はログイン画面へ
+          await signOut({ callbackUrl: '/login' });
+          break;
+        case 'RATE_LIMIT_ERROR':
+          // レート制限エラー
+          toast.error('リクエストが多すぎます。しばらくお待ちください。');
+          break;
+        default:
+          // その他のエラー
+          toast.error(errorData.error.message);
+      }
+      
+      throw new AppError(
+        errorData.error.message,
+        response.status,
+        errorData.error.code
+      );
+    }
+    
+    return response.json();
+  }
+}
+```
+
+### 10.5 非同期エラーハンドリング
+
+```typescript
+// hooks/useAsyncError.ts
+export function useAsyncError() {
+  const [, setError] = useState();
+  
+  return useCallback(
+    (error: Error) => {
+      setError(() => {
+        throw error;
+      });
+    },
+    [setError]
+  );
+}
+
+// 使用例
+function MyComponent() {
+  const throwError = useAsyncError();
+  
+  const handleAsyncOperation = async () => {
+    try {
+      await someAsyncOperation();
+    } catch (error) {
+      // Error Boundaryでキャッチされる
+      throwError(error as Error);
+    }
+  };
+}
+```
+
+---
+
+## 11. APM/ログ送り先候補比較
 
 | 項目 | Tempo | Datadog | New Relic | Elastic APM | AWS X-Ray |
 |------|-------|---------|-----------|-------------|-----------|
@@ -673,7 +864,803 @@ export default defineConfig({
 
 ---
 
-## 11. 配布・運用
+## 11. パフォーマンス最適化
+
+### 11.1 バンドルサイズ最適化
+
+#### Bundle Analyzer設定
+```typescript
+// next.config.js
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
+module.exports = withBundleAnalyzer({
+  // その他の設定
+});
+
+// package.json
+{
+  "scripts": {
+    "analyze": "ANALYZE=true pnpm build"
+  }
+}
+```
+
+#### 動的インポートによる分割
+```typescript
+// コンポーネントの遅延読み込み
+const HeavyComponent = dynamic(
+  () => import('@/components/HeavyComponent'),
+  { 
+    loading: () => <Skeleton />,
+    ssr: false // クライアントサイドのみ
+  }
+);
+
+// ライブラリの遅延読み込み
+const loadChart = async () => {
+  const { Chart } = await import('chart.js');
+  return Chart;
+};
+```
+
+### 11.2 React Server Components活用
+
+```typescript
+// app/users/page.tsx (Server Component)
+async function UsersPage() {
+  // サーバーサイドでデータ取得
+  const users = await getUsers();
+  
+  return (
+    <div>
+      {/* Client Componentは必要な部分のみ */}
+      <UserFilters />
+      {/* Server Component内でレンダリング */}
+      <UsersList users={users} />
+    </div>
+  );
+}
+
+// components/UsersList.tsx (Server Component)
+export function UsersList({ users }: Props) {
+  return (
+    <div>
+      {users.map(user => (
+        // インタラクティブな部分のみClient Component
+        <UserCard key={user.id} user={user} />
+      ))}
+    </div>
+  );
+}
+```
+
+### 11.3 画像最適化
+
+```typescript
+// next.config.js
+module.exports = {
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 60 * 60 * 24 * 365, // 1年
+  },
+};
+
+// 使用例
+import Image from 'next/image';
+
+<Image
+  src="/hero.jpg"
+  alt="Hero"
+  width={1920}
+  height={1080}
+  priority // LCP改善
+  placeholder="blur"
+  blurDataURL={blurDataUrl}
+/>
+```
+
+### 11.4 Web Vitals監視
+
+```typescript
+// app/layout.tsx
+import { WebVitalsReporter } from '@/components/WebVitalsReporter';
+
+export default function RootLayout({ children }: Props) {
+  return (
+    <html>
+      <body>
+        {children}
+        <WebVitalsReporter />
+      </body>
+    </html>
+  );
+}
+
+// components/WebVitalsReporter.tsx
+'use client';
+
+import { useReportWebVitals } from 'next/web-vitals';
+
+export function WebVitalsReporter() {
+  useReportWebVitals((metric) => {
+    // しきい値チェック
+    const thresholds = {
+      FCP: 1800,
+      LCP: 2500,
+      FID: 100,
+      TTFB: 800,
+      CLS: 0.1,
+      INP: 200,
+    };
+    
+    if (metric.value > (thresholds[metric.name as keyof typeof thresholds] || Infinity)) {
+      // パフォーマンス劣化を記録
+      logger.warn('Web Vitals threshold exceeded', {
+        metric: metric.name,
+        value: metric.value,
+        threshold: thresholds[metric.name as keyof typeof thresholds],
+        path: window.location.pathname,
+      });
+    }
+    
+    // OpenTelemetryに送信
+    sendToAnalytics(metric);
+  });
+  
+  return null;
+}
+```
+
+### 11.5 キャッシュ戦略
+
+```typescript
+// TanStack Query グローバル設定
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5分
+      gcTime: 10 * 60 * 1000, // 10分（旧cacheTime）
+      refetchOnWindowFocus: false,
+      retry: 2,
+    },
+  },
+});
+
+// 個別のクエリ設定
+const { data } = useQuery({
+  queryKey: ['users', filters],
+  queryFn: fetchUsers,
+  staleTime: Infinity, // マスターデータは常に新鮮
+  gcTime: 24 * 60 * 60 * 1000, // 24時間保持
+});
+
+// プリフェッチ
+export async function prefetchUsers() {
+  await queryClient.prefetchQuery({
+    queryKey: ['users'],
+    queryFn: fetchUsers,
+  });
+}
+```
+
+### 11.6 メモ化とコード分割
+
+```typescript
+// コンポーネントのメモ化
+const ExpensiveComponent = memo(({ data }: Props) => {
+  // 高コストな計算
+  const processed = useMemo(() => 
+    processLargeDataset(data), [data]
+  );
+  
+  // 高コストなコールバック
+  const handleSubmit = useCallback((values) => {
+    submitForm(values);
+  }, []);
+  
+  return <div>{/* ... */}</div>;
+});
+
+// ルートベースのコード分割
+// app/admin/page.tsx
+const AdminDashboard = dynamic(
+  () => import('@/features/admin/Dashboard'),
+  { loading: () => <AdminSkeleton /> }
+);
+```
+
+---
+
+## 12. 状態管理方針
+
+### 12.1 状態の分類と管理手法
+
+| 状態の種類 | 管理手法 | 使用ケース |
+|------------|----------|------------|
+| **サーバー状態** | TanStack Query | API レスポンス、キャッシュ管理 |
+| **フォーム状態** | React Hook Form | 入力値、バリデーション |
+| **グローバルUI状態** | Zustand | テーマ、サイドバー開閉、通知 |
+| **認証状態** | next-auth | ユーザー情報、権限 |
+| **ローカル状態** | useState/useReducer | コンポーネント内の一時的な状態 |
+
+### 12.2 Zustand によるグローバル状態管理
+
+```typescript
+// stores/useAppStore.ts
+import { create } from 'zustand';
+import { devtools, persist } from 'zustand/middleware';
+
+interface AppState {
+  // UI状態
+  sidebarOpen: boolean;
+  theme: 'light' | 'dark' | 'system';
+  
+  // Actions
+  toggleSidebar: () => void;
+  setTheme: (theme: AppState['theme']) => void;
+}
+
+export const useAppStore = create<AppState>()(
+  devtools(
+    persist(
+      (set) => ({
+        sidebarOpen: true,
+        theme: 'system',
+        
+        toggleSidebar: () => set((state) => ({ 
+          sidebarOpen: !state.sidebarOpen 
+        })),
+        
+        setTheme: (theme) => set({ theme }),
+      }),
+      {
+        name: 'app-storage',
+        partialize: (state) => ({ theme: state.theme }), // 一部のみ永続化
+      }
+    )
+  )
+);
+```
+
+### 12.3 複雑なフォーム状態管理
+
+```typescript
+// 複数ステップフォーム
+interface FormStore {
+  step: number;
+  data: Partial<FormData>;
+  setStep: (step: number) => void;
+  updateData: (data: Partial<FormData>) => void;
+  reset: () => void;
+}
+
+const useFormStore = create<FormStore>((set) => ({
+  step: 0,
+  data: {},
+  setStep: (step) => set({ step }),
+  updateData: (data) => set((state) => ({ 
+    data: { ...state.data, ...data } 
+  })),
+  reset: () => set({ step: 0, data: {} }),
+}));
+
+// フォームコンポーネント
+function MultiStepForm() {
+  const { step, data, updateData, setStep } = useFormStore();
+  const form = useForm({
+    defaultValues: data,
+  });
+  
+  const onSubmit = (values: FieldValues) => {
+    updateData(values);
+    if (step < MAX_STEPS - 1) {
+      setStep(step + 1);
+    } else {
+      // 最終送信
+      submitForm({ ...data, ...values });
+    }
+  };
+}
+```
+
+### 12.4 楽観的更新パターン
+
+```typescript
+// hooks/useOptimisticUpdate.ts
+export function useOptimisticUpdate() {
+  const queryClient = useQueryClient();
+  
+  const updateUser = useMutation({
+    mutationFn: updateUserApi,
+    onMutate: async (newUser) => {
+      // キャンセル
+      await queryClient.cancelQueries({ queryKey: ['users', newUser.id] });
+      
+      // 現在の値を保存
+      const previousUser = queryClient.getQueryData(['users', newUser.id]);
+      
+      // 楽観的更新
+      queryClient.setQueryData(['users', newUser.id], newUser);
+      
+      return { previousUser };
+    },
+    onError: (err, newUser, context) => {
+      // ロールバック
+      queryClient.setQueryData(
+        ['users', newUser.id],
+        context?.previousUser
+      );
+    },
+    onSettled: () => {
+      // 再検証
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+  
+  return updateUser;
+}
+```
+
+---
+
+## 13. アクセシビリティ（a11y）対応
+
+### 13.1 基本方針
+
+- WCAG 2.1 レベル AA 準拠
+- キーボードナビゲーション完全対応
+- スクリーンリーダー対応
+- カラーユニバーサルデザイン
+
+### 13.2 実装ガイドライン
+
+#### セマンティックHTML
+```tsx
+// ❌ 悪い例
+<div onClick={handleClick}>ボタン</div>
+
+// ✅ 良い例
+<button onClick={handleClick}>ボタン</button>
+
+// ランドマークの使用
+<header role="banner">
+  <nav role="navigation" aria-label="メインナビゲーション">
+    {/* ... */}
+  </nav>
+</header>
+<main role="main">
+  <section aria-labelledby="section-title">
+    <h2 id="section-title">セクションタイトル</h2>
+  </section>
+</main>
+```
+
+#### ARIA属性の活用
+```tsx
+// フォームの関連付け
+<label htmlFor="email">メールアドレス</label>
+<input 
+  id="email"
+  type="email"
+  aria-required="true"
+  aria-invalid={!!errors.email}
+  aria-describedby="email-error"
+/>
+{errors.email && (
+  <span id="email-error" role="alert">
+    {errors.email.message}
+  </span>
+)}
+
+// 動的コンテンツ
+<div aria-live="polite" aria-atomic="true">
+  {notification && <Alert>{notification}</Alert>}
+</div>
+
+// モーダル
+<Dialog
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="dialog-title"
+  aria-describedby="dialog-description"
+>
+  <h2 id="dialog-title">確認</h2>
+  <p id="dialog-description">本当に削除しますか？</p>
+</Dialog>
+```
+
+#### キーボードナビゲーション
+```tsx
+// フォーカス管理
+const DialogComponent = () => {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  
+  useEffect(() => {
+    // 開いた時に閉じるボタンにフォーカス
+    closeButtonRef.current?.focus();
+    
+    // ESCキーで閉じる
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, []);
+  
+  return (
+    <div role="dialog">
+      <button ref={closeButtonRef} onClick={onClose}>
+        閉じる
+      </button>
+    </div>
+  );
+};
+
+// スキップリンク
+<a href="#main-content" className="sr-only focus:not-sr-only">
+  メインコンテンツへスキップ
+</a>
+```
+
+#### カラーコントラスト
+```css
+/* colors.css */
+:root {
+  /* AA準拠のカラーパレット */
+  --text-primary: #1a1a1a; /* 背景白に対して 15.3:1 */
+  --text-secondary: #4a4a4a; /* 背景白に対して 8.5:1 */
+  --text-disabled: #767676; /* 背景白に対して 4.5:1 (最小基準) */
+  
+  /* エラー・警告色 */
+  --error: #d32f2f; /* コントラスト比 5.4:1 */
+  --warning: #f57c00; /* コントラスト比 3.5:1 (大きいテキスト用) */
+}
+```
+
+### 13.3 テスト戦略
+
+```typescript
+// a11y自動テスト
+import { axe } from '@axe-core/playwright';
+
+test('アクセシビリティチェック', async ({ page }) => {
+  await page.goto('/');
+  const results = await axe(page);
+  expect(results.violations).toHaveLength(0);
+});
+
+// React Testing Library
+import { render } from '@testing-library/react';
+import { axe, toHaveNoViolations } from 'jest-axe';
+
+expect.extend(toHaveNoViolations);
+
+test('Button コンポーネントのa11y', async () => {
+  const { container } = render(<Button>Click me</Button>);
+  const results = await axe(container);
+  expect(results).toHaveNoViolations();
+});
+```
+
+---
+
+## 14. 開発環境設定
+
+### 14.1 VSCode推奨拡張機能
+
+```json
+// .vscode/extensions.json
+{
+  "recommendations": [
+    // 必須
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    
+    // 開発効率向上
+    "usernamehw.errorlens",
+    "streetsidesoftware.code-spell-checker",
+    "christian-kohler.path-intellisense",
+    "formulahendry.auto-rename-tag",
+    
+    // デバッグ
+    "msjsdiag.debugger-for-chrome",
+    "ms-vscode.js-debug-nightly",
+    
+    // Git
+    "eamodio.gitlens",
+    "donjayamanne.githistory"
+  ]
+}
+```
+
+### 14.2 ESLint/Prettier設定
+
+```javascript
+// .eslintrc.js
+module.exports = {
+  extends: [
+    'next/core-web-vitals',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:tailwindcss/recommended',
+    'prettier'
+  ],
+  rules: {
+    '@typescript-eslint/no-unused-vars': ['error', { 
+      argsIgnorePattern: '^_',
+      varsIgnorePattern: '^_',
+    }],
+    'tailwindcss/no-custom-classname': 'off',
+    'import/order': ['error', {
+      groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
+      'newlines-between': 'always',
+      alphabetize: { order: 'asc' }
+    }]
+  }
+};
+
+// .prettierrc.js
+module.exports = {
+  semi: true,
+  trailingComma: 'es5',
+  singleQuote: true,
+  printWidth: 100,
+  tabWidth: 2,
+  plugins: ['prettier-plugin-tailwindcss'],
+  tailwindFunctions: ['clsx', 'cn'],
+};
+```
+
+### 14.3 デバッグ設定
+
+```json
+// .vscode/launch.json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Next.js: debug server-side",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm dev"
+    },
+    {
+      "name": "Next.js: debug client-side",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3000"
+    },
+    {
+      "name": "Next.js: debug full stack",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm dev",
+      "serverReadyAction": {
+        "pattern": "- Local:.+(https?://\\S+)",
+        "uriFormat": "%s",
+        "action": "debugWithChrome"
+      }
+    }
+  ]
+}
+```
+
+### 14.4 Git設定
+
+```bash
+# .gitmessage
+# <type>(<scope>): <subject>
+#
+# <body>
+#
+# <footer>
+
+# Type: feat, fix, docs, style, refactor, test, chore
+# Scope: 影響範囲（オプション）
+# Subject: 変更内容の要約（50文字以内）
+# Body: 詳細な説明（オプション）
+# Footer: Breaking changes, Issues closed（オプション）
+```
+
+```json
+// .czrc (Commitizen設定)
+{
+  "path": "cz-conventional-changelog"
+}
+```
+
+---
+
+## 15. 監視・アラート設計
+
+### 15.1 メトリクス定義
+
+| メトリクス | しきい値 | アラート条件 |
+|------------|----------|--------------|
+| **エラー率** | 1% | 5分間で1%超過 |
+| **レスポンス時間 (P95)** | 500ms | 5分間で500ms超過 |
+| **可用性** | 99.9% | 5分間で3回以上のヘルスチェック失敗 |
+| **メモリ使用率** | 80% | 10分間で80%超過 |
+| **CPU使用率** | 70% | 10分間で70%超過 |
+
+### 15.2 カスタムメトリクス
+
+```typescript
+// lib/metrics.ts
+import { metrics } from '@opentelemetry/api';
+
+const meter = metrics.getMeter('app-metrics');
+
+// ビジネスメトリクス
+export const businessMetrics = {
+  userSignup: meter.createCounter('user.signup', {
+    description: 'Number of user signups',
+  }),
+  
+  purchaseAmount: meter.createHistogram('purchase.amount', {
+    description: 'Purchase amount distribution',
+    unit: 'JPY',
+  }),
+  
+  activeUsers: meter.createUpDownCounter('users.active', {
+    description: 'Number of active users',
+  }),
+};
+
+// 使用例
+businessMetrics.userSignup.add(1, { 
+  source: 'google',
+  plan: 'premium' 
+});
+```
+
+### 15.3 アラート設定
+
+```yaml
+# grafana/alerts.yml
+groups:
+  - name: application
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }}"
+      
+      - alert: SlowResponse
+        expr: histogram_quantile(0.95, http_request_duration_seconds) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow response time"
+          description: "P95 response time is {{ $value }}s"
+```
+
+---
+
+## 16. データ永続化層の考慮事項
+
+### 16.1 ボイラープレートの方針
+
+本ボイラープレートではデータ永続化層（ORM、データベース）は **含まない** 設計とする。
+
+理由：
+- プロジェクトごとにDB要件が異なる（RDB、NoSQL、外部API等）
+- ORM選択もプロジェクト依存（Prisma、Drizzle、TypeORM等）
+- 不要な依存関係を避ける
+
+### 16.2 データ層実装時の推奨事項
+
+プロジェクトでデータ層を追加する際の推奨事項：
+
+#### ORM選定の観点
+- **Prisma**: 型安全性重視、開発効率優先
+- **Drizzle**: パフォーマンス重視、SQL制御優先
+- **TypeORM**: エンタープライズ向け、機能豊富
+
+#### ディレクトリ構造例
+```
+src/
+  lib/
+    db/           # DB接続設定
+  repositories/   # データアクセス層
+  services/       # ビジネスロジック層
+```
+
+#### 環境変数管理
+```typescript
+// 実装時に追加する環境変数例
+DATABASE_URL=postgresql://...
+REDIS_URL=redis://...
+```
+
+---
+
+## 17. 段階的導入計画
+
+### 17.1 フェーズ分け
+
+#### Phase 1: 開発基盤構築（1週間）
+- [ ] 基本的なNext.js セットアップ
+- [ ] TypeScript設定
+- [ ] ESLint/Prettier設定
+- [ ] Tailwind CSS v4 設定
+- [ ] shadcn/ui 導入と基本コンポーネント
+- [ ] ディレクトリ構造の確立
+
+#### Phase 2: 品質・CI/CD基盤（1週間）
+- [ ] Vitest環境構築（単体テスト）
+- [ ] Husky + lint-staged設定
+- [ ] GitHub Actions CI設定
+- [ ] Playwright環境構築（E2E）
+- [ ] コミット規約設定（Conventional Commits）
+
+#### Phase 3: インフラ・運用基盤（1週間）
+- [ ] Docker Compose環境構築
+- [ ] 環境変数管理設定
+- [ ] OpenTelemetry基本設定
+- [ ] Pino構造化ログ設定
+- [ ] エラーハンドリング基盤
+- [ ] Grafana/Tempo/Loki設定
+
+#### Phase 4: アプリケーション基盤（1週間）
+- [ ] TanStack Query設定
+- [ ] Zustand状態管理設定
+- [ ] React Hook Form設定
+- [ ] APIクライアント基盤構築
+- [ ] Zod スキーマ定義基盤
+
+#### Phase 5: 認証・セキュリティ（1週間）
+- [ ] Keycloak連携設定
+- [ ] next-auth実装
+- [ ] RBAC実装
+- [ ] CSP/セキュリティヘッダー設定
+- [ ] Rate Limiting実装
+
+#### Phase 6: 機能実装・最適化（1週間）
+- [ ] サンプルページ実装（ダッシュボード、設定画面）
+- [ ] モックAPIとの連携サンプル
+- [ ] パフォーマンス最適化
+- [ ] アクセシビリティ対応
+- [ ] Web Vitals監視設定
+- [ ] ドキュメント整備
+
+### 17.2 チェックリスト
+
+```markdown
+## 開発開始前チェックリスト
+
+### 環境準備
+- [ ] Node.js 20.x インストール
+- [ ] pnpm インストール
+- [ ] Docker Desktop インストール
+- [ ] VSCode + 推奨拡張機能
+
+### アカウント準備
+- [ ] GitHub組織アカウント
+- [ ] Keycloak管理者権限
+- [ ] 監視システムアクセス
+
+### 初期設定
+- [ ] テンプレートからリポジトリ作成
+- [ ] 環境変数設定（.env.local）
+- [ ] pre-commit hook確認
+- [ ] ローカル動作確認
+```
+
+---
+
+## 18. 配布・運用
 
 - 配布形態: GitHubテンプレート
 - 運用ルール:

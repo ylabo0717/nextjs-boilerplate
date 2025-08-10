@@ -13,6 +13,8 @@
       "mcp__serena__think_about_collected_information",
       "mcp__serena__write_memory",
       "mcp__serena__think_about_whether_you_are_done",
+      "mcp__serena__insert_after_symbol",
+      "mcp__serena__find_referencing_symbols",
       "Bash(mkdir:*)",
       "Bash(pnpm add:*)",
       "Bash(pnpm dlx:*)",
@@ -24,8 +26,7 @@
       "Bash(pnpm format:check:*)",
       "Bash(pnpm format:*)",
       "Bash(pnpm test:*)",
-      "Bash(pnpm eslint:*)",
-      "mcp__serena__insert_after_symbol"
+      "Bash(pnpm eslint:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -122,8 +122,14 @@ async function startServerWithRetry() {
   );
 }
 
-// Start the app
-const server = exec('pnpm start');
+/**
+ * Start the app in test mode
+ * Using start:test instead of start to:
+ * - Use test-specific configurations
+ * - Ensure proper cleanup on test completion
+ * - Avoid conflicts with production settings
+ */
+const server = exec('pnpm start:test');
 
 /**
  * Ensure server cleanup on any exit

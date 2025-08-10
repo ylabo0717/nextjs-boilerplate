@@ -29,7 +29,8 @@
       "Bash(pnpm format:*)",
       "Bash(pnpm test:*)",
       "Bash(pnpm eslint:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(gitleaks detect:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

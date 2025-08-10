@@ -86,7 +86,7 @@ test.describe('Performance', () => {
       return 0;
     });
 
-    // Memory increase should be reasonable (not more than 50MB)
+    // Memory increase should be reasonable (not more than PERFORMANCE_THRESHOLDS.MEMORY_INCREASE_MAX MB)
     if (initialMemory > 0 && finalMemory > 0) {
       const memoryIncrease = (finalMemory - initialMemory) / 1024 / 1024; // Convert to MB
       expect(memoryIncrease).toBeLessThan(PERFORMANCE_THRESHOLDS.MEMORY_INCREASE_MAX);

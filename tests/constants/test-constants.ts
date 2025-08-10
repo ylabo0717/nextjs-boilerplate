@@ -186,16 +186,6 @@ export const MEMORY_CONVERSION = {
 } as const;
 
 /**
- * Supported locales for testing
- */
-export const SUPPORTED_LOCALES = ['ja', 'en', 'en-US', 'ja-JP'] as const;
-
-/**
- * Type for supported locales
- */
-export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
-
-/**
  * Viewport sizes for responsive testing
  */
 export const VIEWPORT_SIZES = {

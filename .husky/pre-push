@@ -1,0 +1,12 @@
+#!/bin/sh
+
+echo "🔍 Running secret scan before push..."
+gitleaks detect --config .gitleaks.toml --log-level=error
+
+if [ $? -ne 0 ]; then
+  echo "❌ Secrets detected! Push aborted."
+  echo "💡 Run 'gitleaks detect --verbose' for details"
+  exit 1
+fi
+
+echo "✅ No secrets detected"

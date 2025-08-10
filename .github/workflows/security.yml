@@ -206,7 +206,7 @@ jobs:
 
       - name: Download and install gitleaks
         env:
-          GITLEAKS_VERSION: '8.24.3' # Pinned for reproducibility - update periodically
+          GITLEAKS_VERSION: '8.28.0' # Pinned for reproducibility - update periodically
         run: |
           # Download gitleaks binary directly
           wget -q "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"

@@ -1716,7 +1716,7 @@ REDIS_URL=redis://...
 
 - [x] Vitest環境構築（単体テスト）
 - [x] GitHub Actions CI設定
-- [ ] Playwright環境構築（E2E）
+- [x] Playwright環境構築（E2E）
 - [ ] コミット規約設定（Conventional Commits）
 
 #### Phase 3: インフラ・運用基盤（1週間）

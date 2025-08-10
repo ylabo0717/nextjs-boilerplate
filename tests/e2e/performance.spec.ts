@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { NETWORK_WAIT_TIMES, PERFORMANCE_THRESHOLDS } from '../constants/test-constants';
+import {
+  NETWORK_WAIT_TIMES,
+  PERFORMANCE_THRESHOLDS,
+  MEMORY_CONVERSION,
+} from '../constants/test-constants';
 
 test.describe('Performance', () => {
   test('should load the home page within acceptable time', async ({ page }) => {
@@ -88,7 +92,7 @@ test.describe('Performance', () => {
 
     // Memory increase should be reasonable (not more than PERFORMANCE_THRESHOLDS.MEMORY_INCREASE_MAX MB)
     if (initialMemory > 0 && finalMemory > 0) {
-      const memoryIncrease = (finalMemory - initialMemory) / 1024 / 1024; // Convert to MB
+      const memoryIncrease = (finalMemory - initialMemory) / MEMORY_CONVERSION.BYTES_TO_MB;
       expect(memoryIncrease).toBeLessThan(PERFORMANCE_THRESHOLDS.MEMORY_INCREASE_MAX);
     }
   });

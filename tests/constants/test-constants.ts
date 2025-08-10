@@ -163,6 +163,21 @@ export const PERFORMANCE_THRESHOLDS = {
 } as const;
 
 /**
+ * Memory conversion factors
+ */
+export const MEMORY_CONVERSION = {
+  /**
+   * Bytes to kilobytes
+   */
+  BYTES_TO_KB: 1024,
+
+  /**
+   * Bytes to megabytes (1024 * 1024)
+   */
+  BYTES_TO_MB: 1048576,
+} as const;
+
+/**
  * Viewport sizes for responsive testing
  */
 export const VIEWPORT_SIZES = {

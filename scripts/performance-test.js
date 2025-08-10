@@ -7,6 +7,11 @@ const { chromium } = require('playwright');
 const { exec } = require('child_process');
 const http = require('http');
 
+// Configuration
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+const SERVER_START_RETRIES = parseInt(process.env.SERVER_START_RETRIES || '3', 10);
+const SERVER_START_RETRY_DELAY = parseInt(process.env.SERVER_START_RETRY_DELAY || '5000', 10);
+
 /**
  * Run performance tests against the application
  */
@@ -16,7 +21,7 @@ async function runPerformanceTest() {
   const page = await context.newPage();
 
   // Start measuring
-  await page.goto('http://localhost:3000');
+  await page.goto(BASE_URL);
 
   // Collect performance metrics
   const metrics = await page.evaluate(() => {
@@ -30,14 +35,17 @@ async function runPerformanceTest() {
 
   console.log('Performance Metrics:', JSON.stringify(metrics, null, 2));
 
-  // Check thresholds
+  // Check thresholds (configurable via environment variables)
+  const MAX_TOTAL_TIME = parseInt(process.env.MAX_TOTAL_TIME || '3000', 10);
+  const MAX_DOM_CONTENT_LOADED = parseInt(process.env.MAX_DOM_CONTENT_LOADED || '1500', 10);
+
   const failed = [];
-  if (metrics.totalTime > 3000) {
-    failed.push(`Total load time (${metrics.totalTime}ms) exceeds threshold (3000ms)`);
+  if (metrics.totalTime > MAX_TOTAL_TIME) {
+    failed.push(`Total load time (${metrics.totalTime}ms) exceeds threshold (${MAX_TOTAL_TIME}ms)`);
   }
-  if (metrics.domContentLoaded > 1500) {
+  if (metrics.domContentLoaded > MAX_DOM_CONTENT_LOADED) {
     failed.push(
-      `DOM content loaded time (${metrics.domContentLoaded}ms) exceeds threshold (1500ms)`
+      `DOM content loaded time (${metrics.domContentLoaded}ms) exceeds threshold (${MAX_DOM_CONTENT_LOADED}ms)`
     );
   }
 
@@ -79,6 +87,39 @@ function waitForServerReady(url, timeoutMs = 30000, intervalMs = 500) {
     }
     check();
   });
+}
+
+/**
+ * Start server with retry logic
+ */
+async function startServerWithRetry() {
+  let retries = SERVER_START_RETRIES;
+  let lastError;
+
+  while (retries > 0) {
+    try {
+      console.log(
+        `Attempting to start server (attempt ${SERVER_START_RETRIES - retries + 1}/${SERVER_START_RETRIES})...`
+      );
+      await waitForServerReady(BASE_URL);
+      console.log('Server is ready');
+      return;
+    } catch (error) {
+      lastError = error;
+      retries--;
+
+      if (retries > 0) {
+        console.log(
+          `Server not ready, retrying in ${SERVER_START_RETRY_DELAY}ms... (${retries} retries left)`
+        );
+        await new Promise((resolve) => setTimeout(resolve, SERVER_START_RETRY_DELAY));
+      }
+    }
+  }
+
+  throw new Error(
+    `Failed to start server after ${SERVER_START_RETRIES} attempts: ${lastError.message}`
+  );
 }
 
 // Start the app
@@ -133,9 +174,9 @@ process.on('uncaughtException', (err) => {
 (async () => {
   let exitCode = 0;
   try {
-    console.log('Waiting for server to be ready...');
-    await waitForServerReady('http://localhost:3000');
-    console.log('Server is ready, starting performance tests');
+    console.log('Starting server and waiting for it to be ready...');
+    await startServerWithRetry();
+    console.log('Starting performance tests...');
     await runPerformanceTest();
     console.log('Performance tests completed successfully');
   } catch (error) {

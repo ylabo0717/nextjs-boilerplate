@@ -288,6 +288,10 @@ jobs:
 
       - name: Run performance tests
         run: node scripts/performance-test.js
+        env:
+          BASE_URL: http://localhost:3000
+          SERVER_START_RETRIES: 3
+          SERVER_START_RETRY_DELAY: 5000
 
       - name: Generate performance report
         if: always()

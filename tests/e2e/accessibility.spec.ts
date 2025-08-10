@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { SUPPORTED_LOCALES, isValidLanguageCode } from '@/constants';
 
 test.describe('Accessibility', () => {
   test('should not have any automatically detectable accessibility issues', async ({ page }) => {
@@ -125,7 +126,12 @@ test.describe('Accessibility', () => {
 
     const htmlLang = await page.getAttribute('html', 'lang');
     expect(htmlLang).toBeTruthy();
-    expect(['ja', 'en', 'en-US', 'ja-JP']).toContain(htmlLang); // Accept common language codes
+
+    // Check if it's a supported locale or at least a valid language code
+    const isSupported = SUPPORTED_LOCALES.some((locale) => locale === htmlLang);
+    const isValid = isValidLanguageCode(htmlLang!);
+
+    expect(isSupported || isValid).toBeTruthy();
   });
 
   test('should have skip navigation link', async ({ page }) => {

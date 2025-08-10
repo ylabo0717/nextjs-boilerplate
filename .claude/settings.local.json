@@ -23,7 +23,8 @@
       "Bash(pnpm test:e2e:*)",
       "Bash(pnpm format:check:*)",
       "Bash(pnpm format:*)",
-      "Bash(pnpm test:*)"
+      "Bash(pnpm test:*)",
+      "Bash(pnpm eslint:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

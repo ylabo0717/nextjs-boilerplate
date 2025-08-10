@@ -179,15 +179,22 @@ jobs:
             *This issue was automatically created by the scheduled E2E test workflow.*`;
 
             // Check if an issue already exists for today
+            // Use since parameter to filter issues updated after today's date
+            const todayStart = new Date(date + 'T00:00:00Z').toISOString();
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               labels: 'e2e-failure,automated',
               state: 'open',
-              created: `>=${date}`
+              since: todayStart
             });
 
-            if (issues.data.length === 0) {
+            // Filter issues by title containing today's date
+            const todayIssues = issues.data.filter(issue => 
+              issue.title.includes(date)
+            );
+
+            if (todayIssues.length === 0) {
               // Create new issue
               await github.rest.issues.create({
                 owner: context.repo.owner,
@@ -201,7 +208,7 @@ jobs:
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: issues.data[0].number,
+                issue_number: todayIssues[0].number,
                 body: `### 🔄 Additional failure detected\n\n[View latest failed run](${runUrl})`
               });
             }

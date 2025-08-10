@@ -26,7 +26,7 @@ const eslintConfig = [
     },
     plugins: {
       '@typescript-eslint': typescriptPlugin,
-      'security': securityPlugin,
+      security: securityPlugin,
       'no-secrets': noSecretsPlugin,
     },
     rules: {

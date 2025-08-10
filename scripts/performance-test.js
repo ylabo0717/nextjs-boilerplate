@@ -1,10 +1,14 @@
 /**
  * Performance test script for E2E scheduled workflow
+ *
+ * SECURITY WARNING: This script is designed for CI environments only.
+ * It starts a server process with hardcoded commands to prevent injection attacks.
+ * Do not use with untrusted input or in production environments.
  */
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { chromium } = require('playwright');
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 const http = require('http');
 
 // Configuration
@@ -130,8 +134,25 @@ async function startServerWithRetry() {
  * - Use test-specific configurations
  * - Ensure proper cleanup on test completion
  * - Avoid conflicts with production settings
+ *
+ * Security Note: This script is intended for CI environments only.
+ * The command is hardcoded to prevent command injection vulnerabilities.
  */
-const server = exec('pnpm start:test');
+// Use spawn instead of exec for better security and control
+const server = spawn('pnpm', ['start:test'], {
+  stdio: ['ignore', 'pipe', 'pipe'],
+  shell: false, // Disable shell to prevent command injection
+  env: { ...process.env, NODE_ENV: 'test' },
+});
+
+// Capture server output for debugging
+server.stdout.on('data', (data) => {
+  console.log(`[Server]: ${data.toString().trim()}`);
+});
+
+server.stderr.on('data', (data) => {
+  console.error(`[Server Error]: ${data.toString().trim()}`);
+});
 
 /**
  * Ensure server cleanup on any exit

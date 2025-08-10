@@ -55,13 +55,13 @@ git clone https://github.com/yourusername/nextjs-boilerplate.git
 cd nextjs-boilerplate
 ```
 
-1. Install dependencies:
+2. Install dependencies:
 
 ```bash
 pnpm install
 ```
 
-1. Start the development server:
+3. Start the development server:
 
 ```bash
 pnpm dev

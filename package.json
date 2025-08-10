@@ -14,7 +14,7 @@
     "test": "vitest --run",
     "test:unit": "vitest --run --dir tests/unit",
     "test:integration": "vitest --run --dir tests/integration",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest --coverage --run",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -50,6 +50,7 @@
     "@typescript-eslint/eslint-plugin": "^8.39.0",
     "@typescript-eslint/parser": "^8.39.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "@vitest/coverage-v8": "3.2.4",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
     "eslint-config-prettier": "^10.1.8",

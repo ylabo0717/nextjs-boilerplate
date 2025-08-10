@@ -101,7 +101,7 @@ jobs:
       - name: Check repository visibility
         id: repo-check
         run: |
-          IS_PUBLIC=$(gh api repos/${{ github.repository }} --jq '.private' | grep -q false && echo "true" || echo "false")
+          IS_PUBLIC=$(gh api repos/${{ github.repository }} --jq 'if .private then "false" else "true" end')
           echo "is_public=$IS_PUBLIC" >> $GITHUB_OUTPUT
           if [ "$IS_PUBLIC" = "true" ]; then
             echo "✅ Public repository - Code Scanning upload will be attempted"

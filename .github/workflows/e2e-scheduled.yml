@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       browsers:
-        description: 'Browsers to test (comma-separated: chromium,firefox,webkit)'
+        description: 'Browsers to test (comma-separated: chromium,firefox)'
         required: false
         default: 'chromium,firefox'
         type: string
@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 45
     strategy:
       matrix:
-        browser: [chromium, firefox, webkit]
+        browser: [chromium, firefox] # webkit is not supported per playwright.config.ts
       fail-fast: false
       max-parallel: 2 # Limit parallel execution to reduce resource usage
     steps:
@@ -86,13 +86,7 @@ jobs:
 
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: |
-          if [[ "${{ matrix.browser }}" == "webkit" ]]; then
-            # WebKit requires additional dependencies
-            pnpm exec playwright install --with-deps webkit
-          else
-            pnpm exec playwright install --with-deps ${{ matrix.browser }}
-          fi
+        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
 
       - name: Install Playwright dependencies
         if: steps.playwright-cache.outputs.cache-hit == 'true'
@@ -290,8 +284,10 @@ jobs:
         run: node scripts/performance-test.js
         env:
           BASE_URL: http://localhost:3000
-          SERVER_START_RETRIES: 3
-          SERVER_START_RETRY_DELAY: 5000
+          SERVER_START_RETRIES: 3 # From RETRY_CONFIG.SERVER_START_RETRIES
+          SERVER_START_RETRY_DELAY: 5000 # From RETRY_CONFIG.SERVER_START_RETRY_DELAY
+          MAX_TOTAL_TIME: 3000 # From PERFORMANCE_THRESHOLDS.PAGE_LOAD_TIME
+          MAX_DOM_CONTENT_LOADED: 1500 # From PERFORMANCE_THRESHOLDS.DOM_CONTENT_LOADED_TIME
 
       - name: Generate performance report
         if: always()

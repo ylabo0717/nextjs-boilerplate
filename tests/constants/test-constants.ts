@@ -121,11 +121,19 @@ export const WEBSERVER_TIMEOUT = {
  * Test data configuration for content generation in tests
  */
 export const TEST_DATA = {
-  /** Number of content items to generate for scroll testing */
+  /**
+   * Number of content items to generate for scroll testing
+   */
   SCROLL_CONTENT_COUNT: 50,
-  /** Height of each generated element in pixels (without 'px' suffix) */
+
+  /**
+   * Height of each generated element in pixels (without 'px' suffix)
+   */
   ELEMENT_HEIGHT: 50,
-  /** Height of each generated element as CSS string */
+
+  /**
+   * Height of each generated element as CSS string (e.g., '50px')
+   */
   ELEMENT_HEIGHT_PX: '50px',
 } as const;
 

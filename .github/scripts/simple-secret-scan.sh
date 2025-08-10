@@ -38,8 +38,14 @@ declare -a patterns=(
     "eyJ[A-Za-z0-9-_]+\.eyJ[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+"
     
     # Generic secrets
-    "password.*['\"].*[a-zA-Z0-9]{8,}"
-    "secret.*['\"].*[a-zA-Z0-9]{8,}"
+    # Password assignments in env/config files
+    "password\s*[:=]\s*['\"][^'\"]{8,}['\"]"
+    "PASSWORD\s*=\s*[^\s'\"]{8,}"
+    "\"password\"\s*:\s*\"[^\"]{8,}\""
+    # Secret patterns - kept more specific
+    "secret\s*[:=]\s*['\"][^'\"]{8,}['\"]"
+    "SECRET\s*=\s*[^\s'\"]{8,}"
+    "\"secret\"\s*:\s*\"[^\"]{8,}\""
 )
 
 # Files to exclude from scanning

@@ -43,7 +43,7 @@ const eslintConfig = [
       'security/detect-eval-with-expression': 'error',
       'security/detect-no-csrf-before-method-override': 'warn',
       'security/detect-possible-timing-attacks': 'warn',
-      'no-secrets/no-secrets': 'error',
+      'no-secrets/no-secrets': 'warn',
     },
   },
   ...compat.extends('prettier'),

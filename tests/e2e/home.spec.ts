@@ -5,7 +5,11 @@ test.describe('Home Page', () => {
   test('should display the home page', async ({ page }) => {
     await page.goto('/');
 
-    // Check if the page title is correct
+    /**
+     * Verify the page title matches the expected application name.
+     * This ensures the Next.js app is correctly configured and the metadata
+     * is properly set in the layout component.
+     */
     await expect(page).toHaveTitle('Next.js Boilerplate');
 
     // Check if main content is visible

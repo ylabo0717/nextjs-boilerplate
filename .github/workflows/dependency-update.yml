@@ -61,9 +61,9 @@ jobs:
             echo "has-updates=true" >> $GITHUB_OUTPUT
             
             # Create summary
-            SUMMARY="## 📦 Outdated Dependencies Found\n\n"
-            SUMMARY="${SUMMARY}| Package | Current | Wanted | Latest | Type |\n"
-            SUMMARY="${SUMMARY}|---------|---------|--------|--------|------|\n"
+            SUMMARY=$(printf "## 📦 Outdated Dependencies Found\n\n")
+            SUMMARY=$(printf "%s| Package | Current | Wanted | Latest | Type |\n" "$SUMMARY")
+            SUMMARY=$(printf "%s|---------|---------|--------|--------|------|\n" "$SUMMARY")
             
             # Parse JSON and create table (using jq if available, otherwise use node)
             node -e "
@@ -75,7 +75,7 @@ jobs:
             " >> summary.md
             
             if [ -s summary.md ]; then
-              SUMMARY="${SUMMARY}$(cat summary.md)"
+              SUMMARY=$(printf "%s%s" "$SUMMARY" "$(cat summary.md)")
             fi
             
             echo "summary<<EOF" >> $GITHUB_OUTPUT
@@ -189,49 +189,49 @@ jobs:
 
           # Run linting
           if pnpm lint; then
-            TEST_RESULTS="${TEST_RESULTS}✅ Lint check passed\n"
+            TEST_RESULTS=$(printf "%s✅ Lint check passed\n" "$TEST_RESULTS")
           else
-            TEST_RESULTS="${TEST_RESULTS}❌ Lint check failed\n"
+            TEST_RESULTS=$(printf "%s❌ Lint check failed\n" "$TEST_RESULTS")
             ALL_PASSED=false
           fi
 
           # Run type checking
           if pnpm typecheck; then
-            TEST_RESULTS="${TEST_RESULTS}✅ Type check passed\n"
+            TEST_RESULTS=$(printf "%s✅ Type check passed\n" "$TEST_RESULTS")
           else
-            TEST_RESULTS="${TEST_RESULTS}❌ Type check failed\n"
+            TEST_RESULTS=$(printf "%s❌ Type check failed\n" "$TEST_RESULTS")
             ALL_PASSED=false
           fi
 
           # Run tests if they exist
           if [ -f "vitest.config.ts" ]; then
             if pnpm test:unit; then
-              TEST_RESULTS="${TEST_RESULTS}✅ Unit tests passed\n"
+              TEST_RESULTS=$(printf "%s✅ Unit tests passed\n" "$TEST_RESULTS")
             else
-              TEST_RESULTS="${TEST_RESULTS}❌ Unit tests failed\n"
+              TEST_RESULTS=$(printf "%s❌ Unit tests failed\n" "$TEST_RESULTS")
               ALL_PASSED=false
             fi
           else
-            TEST_RESULTS="${TEST_RESULTS}⏭️ Unit tests skipped (no test config found)\n"
+            TEST_RESULTS=$(printf "%s⏭️ Unit tests skipped (no test config found)\n" "$TEST_RESULTS")
           fi
 
           # Run build
           if pnpm build; then
-            TEST_RESULTS="${TEST_RESULTS}✅ Build succeeded\n"
+            TEST_RESULTS=$(printf "%s✅ Build succeeded\n" "$TEST_RESULTS")
           else
-            TEST_RESULTS="${TEST_RESULTS}❌ Build failed\n"
+            TEST_RESULTS=$(printf "%s❌ Build failed\n" "$TEST_RESULTS")
             ALL_PASSED=false
           fi
 
           # Save results for PR body
           echo "test-results<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$TEST_RESULTS" >> $GITHUB_OUTPUT
+          printf "%s" "$TEST_RESULTS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
           echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
 
           # Display results
-          echo -e "\n📊 Test Results Summary:\n$TEST_RESULTS"
+          printf "\n📊 Test Results Summary:\n%s" "$TEST_RESULTS"
 
           if [ "$ALL_PASSED" = false ]; then
             echo "⚠️ Some checks failed. Please review the PR and fix any issues."

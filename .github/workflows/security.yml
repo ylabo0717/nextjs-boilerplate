@@ -287,11 +287,8 @@ jobs:
 
       - name: Check licenses
         run: |
-          # Install license checker
-          pnpm add -g license-checker
-
-          # Run license check and output to JSON
-          npx license-checker --json --out licenses.json --excludePrivatePackages
+          # Run license check and output to JSON using pnpm dlx (no global install)
+          pnpm dlx license-checker --json --out licenses.json --excludePrivatePackages
 
           # Check for problematic licenses (GPL, AGPL, etc.)
           PROBLEMATIC_LICENSES="GPL|AGPL|LGPL|SSPL|CC-BY-NC"

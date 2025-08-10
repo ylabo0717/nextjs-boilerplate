@@ -16,6 +16,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Important:** This project uses `pnpm` as the package manager, not npm or yarn.
 
+## Development Guidelines
+
+### IMPORTANT: Verify Latest Versions and Best Practices
+
+**Before implementing any feature or using any library/tool:**
+
+1. **Always verify the latest stable version** of libraries, tools, and GitHub Actions
+   - Check official documentation and GitHub repositories
+   - Verify if the tool/action is deprecated or has newer alternatives
+   - Use specific version tags rather than `latest` for reproducibility
+
+2. **Research current best practices** before implementation
+   - Check official documentation for recommended patterns
+   - Verify security best practices for the specific use case
+   - Look for community standards and widely adopted patterns
+
+3. **Validate external suggestions and recommendations**
+   - Don't blindly trust AI suggestions (including GitHub Copilot)
+   - Cross-reference with official documentation
+   - Test recommendations in development before applying to production
+
+4. **Stay updated with deprecation notices**
+   - Check for deprecation warnings in documentation
+   - Look for migration guides when tools are deprecated
+   - Replace deprecated dependencies proactively
+
+### Examples of Required Verification
+
+- **GitHub Actions:** Always check the latest version and verify if the action is still maintained
+- **Docker Images:** Verify the official image name and latest stable tags
+- **npm/pnpm packages:** Check for security vulnerabilities and latest versions
+- **APIs and SDKs:** Ensure you're using the current recommended approach, not legacy methods
+
 ## Architecture
 
 ### Project Structure

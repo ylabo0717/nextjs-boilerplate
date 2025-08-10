@@ -45,6 +45,7 @@ A production-ready Next.js boilerplate with TypeScript, Tailwind CSS, shadcn/ui,
 
 - Node.js 20.x or higher
 - pnpm 8.x or higher
+- Gitleaks (for secret scanning) - [Installation](#gitleaks-installation)
 
 ## 🛠️ Installation
 
@@ -162,6 +163,7 @@ export function Example() {
 ### Git Hooks
 
 - **Pre-commit**: Runs ESLint, Prettier, and TypeScript checks
+- **Pre-push**: Runs Gitleaks secret scanning
 - **Commit-msg**: Validates commit messages against Conventional Commits
 
 ## 📝 Commit Convention
@@ -239,6 +241,75 @@ NEXT_PUBLIC_API_URL=http://localhost:3000/api
 3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+## 🔐 Security
+
+### Secret Scanning
+
+This project uses [Gitleaks](https://github.com/gitleaks/gitleaks) to prevent secrets from being committed:
+
+- **Pre-push hook**: Automatically scans for secrets before pushing
+- **CI/CD**: Additional scanning in GitHub Actions
+- **Configuration**: See `.gitleaks.toml` for detection rules
+
+### Gitleaks Installation
+
+#### macOS
+
+```bash
+brew install gitleaks
+```
+
+#### Windows
+
+```bash
+# Using Chocolatey
+choco install gitleaks
+
+# Using Scoop
+scoop install gitleaks
+
+# Or download binary from GitHub releases
+```
+
+#### Linux
+
+```bash
+# Debian/Ubuntu
+sudo apt install gitleaks
+
+# Fedora/RHEL
+sudo dnf install gitleaks
+
+# Arch Linux (AUR)
+yay -S gitleaks
+
+# Or download binary from GitHub releases
+```
+
+#### Docker
+
+```bash
+docker pull zricethezav/gitleaks:latest
+docker run -v ${PWD}:/path zricethezav/gitleaks:latest detect --source="/path"
+```
+
+#### Manual Installation
+
+Download the latest binary from [Gitleaks Releases](https://github.com/gitleaks/gitleaks/releases) and add it to your PATH.
+
+### Running Secret Scans
+
+```bash
+# Scan entire repository
+gitleaks detect --config .gitleaks.toml
+
+# Scan staged changes only
+gitleaks protect --staged --config .gitleaks.toml
+
+# Verbose output for debugging
+gitleaks detect --verbose --config .gitleaks.toml
+```
 
 ## 📄 License
 

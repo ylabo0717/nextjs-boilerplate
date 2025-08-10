@@ -1,0 +1,50 @@
+rules:
+  - id: react-dangerouslysetinnerhtml-xss
+    pattern-either:
+      - pattern: |
+          <$EL dangerouslySetInnerHTML={{__html: $DATA}} />
+      - pattern: |
+          {dangerouslySetInnerHTML: {__html: $DATA}}
+    message: Potential XSS vulnerability with dangerouslySetInnerHTML
+    languages: [typescript, javascript]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: 'CWE-79'
+      owasp: 'A03:2021'
+
+  - id: nextjs-no-document-import-in-page
+    pattern: |
+      import {..., Document, ...} from 'next/document'
+    paths:
+      include:
+        - app/**/*.tsx
+        - app/**/*.ts
+    message: Document should only be used in pages/_document
+    languages: [typescript]
+    severity: WARNING
+
+  - id: no-eval-usage
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+    message: Avoid using eval() or Function constructor - security risk
+    languages: [typescript, javascript]
+    severity: ERROR
+
+  - id: no-hardcoded-secrets
+    pattern-regex: |
+      (api[_-]?key|apikey|secret|password|pwd|token|auth)['\"]?\s*[:=]\s*['\"][a-zA-Z0-9+/]{20,}['\"]
+    message: Potential hardcoded secret detected
+    languages: [typescript, javascript]
+    severity: ERROR
+
+  - id: sql-injection-risk
+    pattern-either:
+      - pattern: |
+          $QUERY = `... ${$USER_INPUT} ...`
+      - pattern: |
+          $QUERY = "..." + $USER_INPUT
+    message: Potential SQL injection vulnerability
+    languages: [typescript, javascript]
+    severity: ERROR

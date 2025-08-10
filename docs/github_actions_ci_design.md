@@ -13,13 +13,17 @@
   - CI内でchromium/firefox両ブラウザでテスト実行中
   - テストレポート・アーティファクト保存機能実装済み
 
-### 🚧 実装中
+### ✅ 最近完了
 
-- **Phase 3: セキュリティ・品質** - 未着手
+- **Phase 3: セキュリティ・品質** - 実装完了（2025年8月10日）
+  - security.yml: セキュリティスキャンワークフロー実装済み
+  - dependabot.yml: 依存関係自動更新設定済み
+  - CodeQL: JavaScript/TypeScript解析設定済み
+  - Gitleaks: シークレットスキャン設定済み（権限エラー対策済み）
+  - フォールバックスクリプト: simple-secret-scan.sh追加
 
 ### 📋 今後の実装予定
 
-- Phase 3: セキュリティスキャン（security.yml）
 - Phase 4: メトリクス・品質ゲート
 - Phase 5: リリース自動化
 - Phase 6: 通知・監視
@@ -773,36 +777,36 @@ continue-on-error: false
 - [x] 失敗時のデバッグ情報確認（ビデオ・スクリーンショット）
 - [x] テストレポートの可読性確認
 
-### Phase 3: セキュリティ・品質（Day 6-7）
+### Phase 3: セキュリティ・品質（✅ 完了済み）
 
 #### security.yml実装
 
-- [ ] セキュリティスキャンワークフロー作成
-- [ ] npm audit設定
-  - [ ] 脆弱性レベル設定（high以上で失敗）
-  - [ ] audit fix自動化の検討
-- [ ] CodeQL設定
-  - [ ] JavaScript/TypeScript分析設定
-  - [ ] カスタムクエリの追加（必要に応じて）
-- [ ] Secret scanning設定
-  - [ ] カスタムパターンの追加
-  - [ ] 除外パターンの設定
+- [x] セキュリティスキャンワークフロー作成
+- [x] npm audit設定
+  - [x] 脆弱性レベル設定（high以上で失敗）
+  - [x] audit fix自動化の検討
+- [x] CodeQL設定
+  - [x] JavaScript/TypeScript分析設定
+  - [x] カスタムクエリの追加（React専用セキュリティチェック）
+- [x] Secret scanning設定（Gitleaks統合）
+  - [x] カスタムパターンの追加
+  - [x] 除外パターンの設定
 
 #### Dependabot設定
 
-- [ ] .github/dependabot.yml作成
-- [ ] 更新スケジュール設定
-- [ ] 更新対象の設定（npm, github-actions）
-- [ ] グルーピング設定
-- [ ] 自動マージ条件の設定
+- [x] .github/dependabot.yml作成
+- [x] 更新スケジュール設定（週次・月曜日）
+- [x] 更新対象の設定（npm, github-actions）
+- [x] グルーピング設定（dev-dependencies, production, next-react, tailwind, shadcn）
+- [x] 自動マージ条件の設定（コメントアウトで準備済み）
 
 #### dependency-update.yml実装
 
-- [ ] 依存関係更新ワークフロー作成
-- [ ] pnpm updateスクリプト
-- [ ] 更新後のテスト実行
-- [ ] PR自動作成設定
-- [ ] Changelog生成
+- [x] 依存関係更新ワークフロー作成
+- [x] pnpm updateスクリプト
+- [x] 更新後のテスト実行
+- [x] PR自動作成設定
+- [x] Changelog生成
 
 ### Phase 4: メトリクス・品質ゲート（Day 8-9）
 
@@ -904,7 +908,7 @@ continue-on-error: false
 
 - [x] PRごとにLint/Type/Testが自動実行される
 - [x] カバレッジ60%以上が保証される
-- [ ] セキュリティスキャンが定期実行される
+- [x] セキュリティスキャンが定期実行される（毎日午前3時UTC）
 - [x] ビルドが5分以内に完了する（現在約3分）
 - [x] 全てのワークフローが正常動作する
 

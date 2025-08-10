@@ -1,0 +1,45 @@
+# CodeQL configuration for JavaScript/TypeScript analysis
+# This configuration file customizes the CodeQL analysis
+
+name: 'CodeQL Configuration'
+
+# Paths to include in the analysis
+paths:
+  - app
+  - components
+  - lib
+  - hooks
+  - services
+  - features
+
+# Paths to exclude from the analysis
+paths-ignore:
+  - node_modules
+  - .next
+  - coverage
+  - tests
+  - '**/*.test.ts'
+  - '**/*.test.tsx'
+  - '**/*.spec.ts'
+  - '**/*.spec.tsx'
+  - '**/*.d.ts'
+  - public
+  - docs
+
+# Query filters to run
+queries:
+  - uses: security-and-quality
+  - uses: security-extended
+  # Custom queries for React/Next.js specific issues
+  - name: React security queries
+    uses: ./.github/codeql/queries/react-security.ql
+
+# Query filters to exclude (if needed)
+# query-filters:
+#   - exclude:
+#       id: js/unused-local-variable
+
+# Additional settings
+packs:
+  # Use the latest JavaScript/TypeScript query pack
+  - codeql/javascript-queries

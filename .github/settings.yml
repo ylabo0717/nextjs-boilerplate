@@ -1,0 +1,101 @@
+# GitHub repository settings configuration
+# This file defines repository-wide settings including reviewers and maintainers
+# Documentation: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features
+
+# Repository configuration
+repository:
+  # Repository name and description are managed directly in GitHub
+
+  # Default branch
+  default_branch: main
+
+  # Repository features
+  has_issues: true
+  has_projects: false
+  has_wiki: false
+  has_downloads: false
+
+  # Merge button settings
+  allow_merge_commit: true
+  allow_squash_merge: true
+  allow_rebase_merge: true
+
+  # Auto-delete head branches after merge
+  delete_branch_on_merge: true
+
+  # Vulnerability alerts
+  enable_vulnerability_alerts: true
+  enable_automated_security_fixes: true
+
+# Branch protection rules
+branches:
+  - name: main
+    protection:
+      # Require PR reviews before merging
+      required_pull_request_reviews:
+        # Number of required reviewing approvals
+        required_approving_review_count: 1
+        # Dismiss stale reviews when new commits are pushed
+        dismiss_stale_reviews: true
+        # Require review from CODEOWNERS
+        require_code_owner_reviews: true
+        # Restrict who can dismiss PR reviews
+        dismissal_restrictions:
+          users: []
+          teams: []
+
+      # Require status checks to pass before merging
+      required_status_checks:
+        # Require branches to be up to date before merging
+        strict: true
+        # List of status checks that must pass
+        contexts:
+          - 'CI / Lint'
+          - 'CI / Type Check'
+          - 'CI / Build'
+
+      # Include administrators in these restrictions
+      enforce_admins: false
+
+      # Restrict who can push to this branch
+      restrictions: null
+
+# Labels configuration
+labels:
+  - name: dependencies
+    color: '0366d6'
+    description: 'Pull requests that update a dependency file'
+
+  - name: automated
+    color: '0e8a16'
+    description: 'Automated pull request or issue'
+
+  - name: security
+    color: 'ee0701'
+    description: 'Security vulnerability or update'
+
+  - name: patch-update
+    color: 'fbca04'
+    description: 'Patch version update'
+
+  - name: minor-update
+    color: 'fbca04'
+    description: 'Minor version update'
+
+  - name: major-update
+    color: 'b60205'
+    description: 'Major version update (breaking changes)'
+
+  - name: ci
+    color: 'bfd4f2'
+    description: 'Continuous Integration'
+# Teams and collaborators
+# Define teams at the organization level and reference them here
+# teams:
+#   - name: maintainers
+#     permission: maintain
+#   - name: developers
+#     permission: write
+
+# Note: Individual collaborators should be managed through GitHub UI or API
+# for security reasons (not in version control)

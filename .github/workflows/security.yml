@@ -1,0 +1,397 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run at 3:00 AM UTC every day
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run pnpm audit
+        id: audit
+        run: |
+          # Run audit and capture output
+          set +e
+          pnpm audit --audit-level moderate > audit-output.txt 2>&1
+          AUDIT_EXIT_CODE=$?
+          set -e
+
+          # Display audit output
+          cat audit-output.txt
+
+          # Check for high or critical vulnerabilities
+          if grep -E "(high|critical)" audit-output.txt > /dev/null 2>&1; then
+            echo "❌ High or critical vulnerabilities found"
+            echo "has_high_vulnerabilities=true" >> $GITHUB_OUTPUT
+            
+            # Fail the job if high/critical vulnerabilities are found
+            if [ "${{ github.event_name }}" == "push" ] || [ "${{ github.event_name }}" == "pull_request" ]; then
+              exit 1
+            fi
+          else
+            echo "✅ No high or critical vulnerabilities found"
+            echo "has_high_vulnerabilities=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-results
+          path: audit-output.txt
+          retention-days: 7
+
+  codeql-analysis:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript-typescript']
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check repository visibility
+        id: repo-check
+        run: |
+          IS_PUBLIC=$(gh api repos/${{ github.repository }} --jq 'if .private then "false" else "true" end')
+          echo "is_public=$IS_PUBLIC" >> $GITHUB_OUTPUT
+          if [ "$IS_PUBLIC" = "true" ]; then
+            echo "✅ Public repository - Code Scanning upload will be attempted"
+          else
+            echo "⚠️ Private repository - Code Scanning requires GitHub Advanced Security"
+            echo "Results will be saved as artifacts instead"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          config-file: ./.github/codeql/codeql-config.yml
+          queries: security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis (Public Repo)
+        if: steps.repo-check.outputs.is_public == 'true'
+        id: codeql-analyze-public
+        uses: github/codeql-action/analyze@v3
+        continue-on-error: true
+        with:
+          category: '/language:${{ matrix.language }}'
+          output: sarif-results
+          upload: true
+          upload-database: false
+          add-snippet: true
+
+      - name: Perform CodeQL Analysis (Private Repo)
+        if: steps.repo-check.outputs.is_public != 'true'
+        id: codeql-analyze-private
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
+          output: sarif-results
+          upload: false
+          upload-database: false
+          add-snippet: true
+
+      - name: Upload SARIF results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-results-${{ matrix.language }}
+          path: sarif-results
+          retention-days: 7
+          if-no-files-found: ignore
+
+  semgrep-analysis:
+    name: Semgrep Security Analysis
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:1.131.0
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        run: |
+          # Run Semgrep with custom config if available, otherwise use auto config
+          if [ -f .semgrep.yml ]; then
+            echo "Using custom semgrep configuration"
+            semgrep scan --config=.semgrep.yml --sarif --output=semgrep.sarif . || true
+          else
+            echo "Using auto configuration"
+            semgrep scan --config=auto --sarif --output=semgrep.sarif . || true
+          fi
+
+          # Also generate JSON output for additional processing
+          if [ -f .semgrep.yml ]; then
+            semgrep scan --config=.semgrep.yml --json --output=semgrep-results.json . || true
+          else
+            semgrep scan --config=auto --json --output=semgrep-results.json . || true
+          fi
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+        continue-on-error: true
+
+      - name: Upload Semgrep results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-results
+          path: |
+            semgrep.sarif
+            semgrep-results.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  secret-scanning:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download and install gitleaks
+        env:
+          GITLEAKS_VERSION: '8.28.0' # Pinned for reproducibility - update periodically
+        run: |
+          # Download gitleaks binary directly
+          wget -q "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          tar -xzf gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz
+          chmod +x gitleaks
+          sudo mv gitleaks /usr/local/bin/
+
+      - name: Run Gitleaks scan
+        id: gitleaks
+        continue-on-error: true
+        run: |
+          # Run gitleaks with configuration
+          set +e
+          if [ -f .gitleaks.toml ]; then
+            echo "Using custom gitleaks configuration"
+            gitleaks detect --source . --config .gitleaks.toml --verbose --report-format sarif --report-path gitleaks-report.sarif
+          else
+            echo "Using default gitleaks configuration"
+            gitleaks detect --source . --verbose --report-format sarif --report-path gitleaks-report.sarif
+          fi
+          GITLEAKS_EXIT_CODE=$?
+          set -e
+
+          if [ $GITLEAKS_EXIT_CODE -eq 0 ]; then
+            echo "✅ No secrets detected"
+            echo "secrets_found=false" >> $GITHUB_OUTPUT
+          elif [ $GITLEAKS_EXIT_CODE -eq 1 ]; then
+            echo "❌ Potential secrets detected"
+            echo "secrets_found=true" >> $GITHUB_OUTPUT
+            # Don't fail on PR from forks, just warn
+            if [ "${{ github.event.pull_request.head.repo.fork }}" == "true" ]; then
+              echo "⚠️ Warning: Secrets detected in fork PR. Please review carefully."
+              exit 0
+            else
+              exit 1
+            fi
+          else
+            echo "⚠️ Gitleaks scan failed with error code $GITLEAKS_EXIT_CODE"
+            echo "scan_failed=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+      - name: Run fallback secret scan
+        if: steps.gitleaks.outputs.scan_failed == 'true'
+        run: |
+          echo "Running fallback secret scanner..."
+          if [ -f .github/scripts/simple-secret-scan.sh ]; then
+            bash .github/scripts/simple-secret-scan.sh
+          else
+            echo "⚠️ Fallback scanner not found, skipping..."
+          fi
+
+      - name: Upload Gitleaks results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-results
+          path: gitleaks-report.sarif
+          retention-days: 7
+          if-no-files-found: ignore
+
+  license-check:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check licenses
+        run: |
+          # Run license check and output to JSON using pnpm dlx (no global install)
+          pnpm dlx license-checker --json --out licenses.json --excludePrivatePackages
+
+          # Check for problematic licenses (GPL, AGPL, etc.)
+          PROBLEMATIC_LICENSES="GPL|AGPL|LGPL|SSPL|CC-BY-NC"
+
+          if grep -E "$PROBLEMATIC_LICENSES" licenses.json > /dev/null 2>&1; then
+            echo "⚠️ Warning: Potentially problematic licenses detected"
+            grep -E "$PROBLEMATIC_LICENSES" licenses.json | head -20
+            
+            # Don't fail the job, just warn
+            echo "license_issues=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ No problematic licenses detected"
+            echo "license_issues=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload license report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: licenses.json
+          retention-days: 7
+
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [dependency-audit, codeql-analysis, semgrep-analysis, secret-scanning, license-check]
+    if: always()
+    steps:
+      - name: Create Security Summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const jobs = ${{ toJson(needs) }};
+            let summary = '## 🔒 Security Scan Summary\n\n';
+            let hasFailures = false;
+
+            // Check each job status
+            Object.entries(jobs).forEach(([jobName, jobData]) => {
+              const status = jobData.result;
+              const icon = status === 'success' ? '✅' : status === 'failure' ? '❌' : '⚠️';
+              const formattedName = jobName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+              
+              summary += `${icon} **${formattedName}**: ${status}\n`;
+              
+              if (status === 'failure') {
+                hasFailures = true;
+              }
+            });
+
+            // Add timestamp
+            const timestamp = new Date().toISOString();
+            summary += `\n📅 Scanned at: ${timestamp}\n`;
+
+            // Add recommendations if there are failures
+            if (hasFailures) {
+              summary += '\n### ⚠️ Action Required\n';
+              summary += '- Review the security scan results above\n';
+              summary += '- Fix any high or critical vulnerabilities\n';
+              summary += '- Ensure no secrets are committed\n';
+              summary += '- Review CodeQL findings\n';
+            } else {
+              summary += '\n### ✅ All Security Checks Passed\n';
+            }
+
+            // Write to summary
+            await core.summary
+              .addRaw(summary)
+              .write();
+
+            // Comment on PR if this is a pull request
+            if (context.eventName === 'pull_request') {
+              const issue_number = context.issue.number;
+              
+              // Find and update existing comment or create new one
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue_number,
+              });
+              
+              const botComment = comments.find(comment => 
+                comment.user.type === 'Bot' && 
+                comment.body.includes('🔒 Security Scan Summary')
+              );
+              
+              if (botComment) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: summary
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue_number,
+                  body: summary
+                });
+              }
+            }

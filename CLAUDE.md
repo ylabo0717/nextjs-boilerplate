@@ -248,6 +248,10 @@ When you encounter a new numeric value in tests:
    - A JSDoc comment explaining its purpose and unit
 4. **Import and use** the constant in your test files
 
+## GitHub Actions
+
+When implementing or modifying GitHub Actions workflows, refer to `docs/github-actions-best-practices.md`.
+
 ## Git Commit Convention
 
 This project uses **Conventional Commits** specification. All commit messages are validated by commitlint.

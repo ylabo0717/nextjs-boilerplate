@@ -30,6 +30,7 @@ jobs:
       matrix:
         browser: [chromium, firefox, webkit]
       fail-fast: false
+      max-parallel: 2 # Limit parallel execution to reduce resource usage
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -74,7 +75,17 @@ jobs:
       - name: Build application
         run: pnpm build
 
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-${{ matrix.browser }}-
+
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: |
           if [[ "${{ matrix.browser }}" == "webkit" ]]; then
             # WebKit requires additional dependencies
@@ -82,6 +93,10 @@ jobs:
           else
             pnpm exec playwright install --with-deps ${{ matrix.browser }}
           fi
+
+      - name: Install Playwright dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps ${{ matrix.browser }}
 
       - name: Run E2E tests
         id: test
@@ -138,7 +153,7 @@ jobs:
         with:
           name: playwright-report-scheduled-${{ matrix.browser }}-${{ github.run_number }}
           path: playwright-report/
-          retention-days: 30
+          retention-days: 7 # Reduced from 30 to 7 days for regular reports
 
       - name: Upload test videos and screenshots
         if: failure()
@@ -146,7 +161,7 @@ jobs:
         with:
           name: playwright-artifacts-scheduled-${{ matrix.browser }}-${{ github.run_number }}
           path: test-results/
-          retention-days: 30
+          retention-days: 14 # Keep failure artifacts for 14 days for debugging
 
   notify-failures:
     name: Notify Test Failures
@@ -179,14 +194,15 @@ jobs:
             *This issue was automatically created by the scheduled E2E test workflow.*`;
 
             // Check if an issue already exists for today
-            // Use since parameter to filter issues updated after today's date
-            const todayStart = new Date(date + 'T00:00:00Z').toISOString();
+            // Get all open issues with the automated label and filter by title
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               labels: 'e2e-failure,automated',
               state: 'open',
-              since: todayStart
+              per_page: 100,
+              sort: 'created',
+              direction: 'desc'
             });
 
             // Filter issues by title containing today's date
@@ -253,8 +269,22 @@ jobs:
       - name: Build application
         run: pnpm build
 
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-chromium-
+
       - name: Install Playwright
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install Playwright dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
 
       - name: Run performance tests
         run: node scripts/performance-test.js

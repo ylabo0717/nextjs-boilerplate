@@ -145,6 +145,14 @@ jobs:
         run: |
           if [ -f coverage/coverage-summary.json ]; then
             COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+            
+            # Check if jq command failed or COVERAGE is empty
+            if [ $? -ne 0 ] || [ -z "$COVERAGE" ]; then
+              echo "❌ Failed to parse coverage percentage from coverage/coverage-summary.json using jq."
+              echo "Please ensure the coverage report has the expected JSON structure."
+              exit 1
+            fi
+            
             echo "Coverage: ${COVERAGE}%"
             
             # Check minimum threshold (60%)

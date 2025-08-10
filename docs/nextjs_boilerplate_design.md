@@ -1714,7 +1714,7 @@ REDIS_URL=redis://...
 
 #### Phase 2: 品質・CI/CD基盤（1週間）
 
-- [ ] Vitest環境構築（単体テスト）
+- [x] Vitest環境構築（単体テスト）
 - [ ] GitHub Actions CI設定
 - [ ] Playwright環境構築（E2E）
 - [ ] コミット規約設定（Conventional Commits）

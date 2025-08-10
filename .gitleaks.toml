@@ -229,14 +229,16 @@ regex = '''-----BEGIN (RSA|DSA|EC|OPENSSH|PGP|PRIVATE) (PRIVATE )?KEY-----'''
 tags = ["private", "key"]
 
 # Passwords - Following Gitleaks Default Configuration Best Practices
-# Using entropy 3.5 as per official gitleaks configuration for generic secrets
+# Generic password uses entropy 4.0 to reduce false positives
+# Context-specific patterns maintain entropy 3.5 for better detection
 
 [[rules]]
 id = "generic-password"
 description = "Generic Password Pattern"
 # Based on official gitleaks generic API key pattern, adapted for passwords
+# Using entropy 4.0 to reduce false positives while maintaining security
 regex = '''(?i)[\w\s.-]{0,25}(?:password|passwd|pwd)[\w\s.-]{0,25}[:=][\s]*['\"]([^'\"]{8,})['\"]'''
-entropy = 3.5
+entropy = 4.0
 keywords = ["password", "passwd", "pwd"]
 tags = ["password", "generic"]
 

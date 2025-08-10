@@ -107,3 +107,13 @@ export const ANIMATION_DURATIONS = {
    */
   DROPDOWN: 200,
 } as const;
+
+/**
+ * Web server timeouts for Playwright configuration
+ */
+export const WEBSERVER_TIMEOUT = {
+  /**
+   * Timeout for web server startup (milliseconds)
+   */
+  STARTUP: 120000,
+} as const;

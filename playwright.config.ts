@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { TEST_TIMEOUTS, WEBSERVER_TIMEOUT } from './tests/constants/timeouts';
 
 /**
  * Read environment variables from file.
@@ -81,13 +82,13 @@ export default defineConfig({
     command: process.env.CI ? 'pnpm start' : 'pnpm dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    timeout: WEBSERVER_TIMEOUT.STARTUP,
   },
 
   /* Timeout settings */
-  timeout: 30 * 1000,
+  timeout: TEST_TIMEOUTS.DEFAULT,
   expect: {
-    timeout: 10 * 1000,
+    timeout: TEST_TIMEOUTS.QUICK,
   },
 
   /* Output folder for test artifacts */

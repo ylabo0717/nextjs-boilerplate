@@ -152,6 +152,39 @@ This project uses **Conventional Commits** specification. All commit messages ar
 <footer>
 ```
 
+#### Best Practices for Commit Messages
+
+1. **First Line (Header) - Keep it concise**
+   - Maximum 100 characters (enforced by commitlint)
+   - Format: `<type>(<scope>): <subject>`
+   - Should be a complete sentence that summarizes the change
+   - Use present tense ("add feature" not "added feature")
+
+2. **Message Body - Add details when needed**
+   - Separate from header with a blank line
+   - Explain **what** and **why** vs. how
+   - Wrap lines at 72 characters for better readability
+   - Use bullet points for multiple changes
+
+3. **When to use message body**
+   - Multiple related changes in one commit
+   - Complex changes that need explanation
+   - Breaking changes that affect users
+   - Performance improvements with metrics
+
+#### Example of a Well-Formatted Commit Message
+
+```text
+feat: enforce no magic numbers policy in test files
+
+- Renamed timeouts.ts to test-constants.ts for broader scope
+- Added constants for scroll positions, performance thresholds, viewport sizes
+- Updated all test files to use named constants
+- Updated CLAUDE.md with comprehensive policy documentation
+
+This improves code maintainability and makes test values self-documenting.
+```
+
 ### Commit Types
 
 - **feat**: A new feature

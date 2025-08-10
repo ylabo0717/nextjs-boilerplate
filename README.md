@@ -7,7 +7,7 @@ Run unit/integration tests with Vitest:
 ```bash
 pnpm test            # all (unit+integration)
 pnpm test:unit       # unit only
-pnpm test:integration# integration only
+pnpm test:integration # integration only
 pnpm test:coverage   # coverage for unit+integration
 ```
 

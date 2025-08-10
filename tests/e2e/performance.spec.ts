@@ -19,12 +19,18 @@ test.describe('Performance', () => {
 
     // Measure First Contentful Paint (FCP)
     const fcpMetric = await page.evaluate(
-      () =>
-        new Promise((resolve) => {
+      (timeout) =>
+        new Promise<number | null>((resolve) => {
+          // Set a timeout to prevent infinite waiting
+          const timeoutId = setTimeout(() => {
+            resolve(null);
+          }, timeout);
+
           new PerformanceObserver((list) => {
             const entries = list.getEntries();
             const fcp = entries.find((entry) => entry.name === 'first-contentful-paint');
             if (fcp) {
+              clearTimeout(timeoutId);
               resolve(fcp.startTime);
             }
           }).observe({ entryTypes: ['paint'] });
@@ -32,13 +38,19 @@ test.describe('Performance', () => {
           // Fallback if FCP already happened
           const existingFCP = performance.getEntriesByName('first-contentful-paint')[0];
           if (existingFCP) {
+            clearTimeout(timeoutId);
             resolve(existingFCP.startTime);
           }
-        })
+        }),
+      NETWORK_WAIT_TIMES.PAGE_LOAD
     );
 
+    // Ensure FCP metric was captured
+    expect(fcpMetric).not.toBeNull();
+    expect(fcpMetric).toBeDefined();
+
     // FCP should be less than 1.8 seconds (good threshold)
-    expect(Number(fcpMetric)).toBeLessThan(1800);
+    expect(fcpMetric as number).toBeLessThan(1800);
   });
 
   test('should not have memory leaks on navigation', async ({ page }) => {

@@ -117,6 +117,25 @@ export const WEBSERVER_TIMEOUT = {
    */
   STARTUP: 120000,
 } as const;
+/**
+ * Test data configuration for content generation in tests
+ */
+export const TEST_DATA = {
+  /** Number of content items to generate for scroll testing */
+  SCROLL_CONTENT_COUNT: 50,
+  /** Height of each generated element in pixels (without 'px' suffix) */
+  ELEMENT_HEIGHT: 50,
+  /** Height of each generated element as CSS string */
+  ELEMENT_HEIGHT_PX: '50px',
+} as const;
+
+/**
+ * Accessibility testing configuration
+ */
+export const ACCESSIBILITY_TEST = {
+  /** Maximum number of interactive elements to test in Tab navigation */
+  MAX_TAB_NAVIGATION_ELEMENTS: 5,
+} as const;
 
 /**
  * Scroll position constants for testing

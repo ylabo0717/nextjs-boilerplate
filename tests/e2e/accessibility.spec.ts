@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { ACCESSIBILITY_TEST } from '../constants/test-constants';
 import AxeBuilder from '@axe-core/playwright';
 import { SUPPORTED_LOCALES, isValidLanguageCode } from '@/constants';
 
@@ -97,7 +98,11 @@ test.describe('Accessibility', () => {
     expect(interactiveElements.length).toBeGreaterThan(0);
 
     // Test Tab key navigation
-    for (let i = 0; i < Math.min(interactiveElements.length, 5); i++) {
+    for (
+      let i = 0;
+      i < Math.min(interactiveElements.length, ACCESSIBILITY_TEST.MAX_TAB_NAVIGATION_ELEMENTS);
+      i++
+    ) {
       await page.keyboard.press('Tab');
 
       // Check that an element has focus

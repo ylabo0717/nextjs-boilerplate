@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { UI_WAIT_TIMES, SCROLL_POSITIONS } from '../constants/test-constants';
+import { UI_WAIT_TIMES, SCROLL_POSITIONS, TEST_DATA } from '../constants/test-constants';
 
 test.describe('Navigation', () => {
   test.beforeEach(async ({ page }) => {
@@ -32,17 +32,20 @@ test.describe('Navigation', () => {
 
   test('should maintain scroll position on navigation', async ({ page }) => {
     // Add more content to make page scrollable
-    await page.evaluate(() => {
-      const main = document.querySelector('main');
-      if (main) {
-        for (let i = 0; i < 50; i++) {
-          const div = document.createElement('div');
-          div.textContent = `Content ${i}`;
-          div.style.height = '50px';
-          main.appendChild(div);
+    await page.evaluate(
+      ({ contentCount, elementHeight }) => {
+        const main = document.querySelector('main');
+        if (main) {
+          for (let i = 0; i < contentCount; i++) {
+            const div = document.createElement('div');
+            div.textContent = `Content ${i}`;
+            div.style.height = elementHeight;
+            main.appendChild(div);
+          }
         }
-      }
-    });
+      },
+      { contentCount: TEST_DATA.SCROLL_CONTENT_COUNT, elementHeight: TEST_DATA.ELEMENT_HEIGHT_PX }
+    );
 
     // Wait for content to be rendered
     await page.waitForTimeout(UI_WAIT_TIMES.MINIMAL);

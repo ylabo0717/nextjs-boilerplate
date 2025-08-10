@@ -1,0 +1,84 @@
+# Gitleaks configuration for secret scanning
+# Documentation: https://github.com/gitleaks/gitleaks
+
+title = "Gitleaks Configuration"
+
+# Extend the base configuration
+[extend]
+useDefault = true
+
+# Additional custom rules for common secrets
+[[rules]]
+id = "jwt-token"
+description = "JWT Token"
+regex = '''eyJ[A-Za-z0-9-_]+\.eyJ[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+'''
+tags = ["jwt", "token"]
+
+[[rules]]
+id = "next-auth-secret"
+description = "NextAuth Secret"
+regex = '''(?i)(nextauth[_\-]?secret|auth[_\-]?secret)\s*[=:]\s*['\"]([^'\"]+)['\"]'''
+tags = ["nextauth", "secret"]
+
+[[rules]]
+id = "database-url"
+description = "Database Connection String"
+regex = '''(?i)(database[_\-]?url|db[_\-]?url|postgres[_\-]?url|mysql[_\-]?url|mongodb[_\-]?url)\s*[=:]\s*['\"]([^'\"]+)['\"]'''
+tags = ["database", "connection"]
+
+[[rules]]
+id = "api-endpoint"
+description = "API Endpoint with potential secrets"
+regex = '''(?i)(api[_\-]?key|api[_\-]?secret|api[_\-]?token)\s*[=:]\s*['\"]([^'\"]+)['\"]'''
+tags = ["api", "key"]
+
+# Allowlist for false positives
+[allowlist]
+description = "Global allowlist"
+paths = [
+  # Ignore test files
+  '''tests?\/.*''',
+  '''.*\.test\.(js|ts|jsx|tsx)$''',
+  '''.*\.spec\.(js|ts|jsx|tsx)$''',
+  # Ignore documentation
+  '''docs?\/.*''',
+  '''.*\.md$''',
+  # Ignore lock files
+  '''package-lock\.json''',
+  '''pnpm-lock\.yaml''',
+  '''yarn\.lock''',
+  # Ignore build output
+  '''\.next\/.*''',
+  '''dist\/.*''',
+  '''build\/.*''',
+  # Ignore node_modules
+  '''node_modules\/.*'''
+]
+
+# Allow example/dummy values
+regexes = [
+  '''example\.com''',
+  '''localhost''',
+  '''127\.0\.0\.1''',
+  '''your[_\-]?api[_\-]?key''',
+  '''xxx+''',
+  '''dummy''',
+  '''fake''',
+  '''placeholder''',
+  '''<.*>'''
+]
+
+# File patterns to include in scanning
+[[allowlist.commits]]
+files = [
+  '''.*\.(js|ts|jsx|tsx|json|env|env\..*|config|conf|cfg|ini|yaml|yml|toml)$'''
+]
+
+# Specific rules to ignore in certain paths
+[[rules.allowlist]]
+id = "generic-api-key"
+paths = [
+  '''.env\.example''',
+  '''.env\.template''',
+  '''.*\.example$'''
+]

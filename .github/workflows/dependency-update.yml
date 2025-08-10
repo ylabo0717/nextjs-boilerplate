@@ -1,0 +1,287 @@
+name: Dependency Update Check
+
+on:
+  schedule:
+    # Run every Monday at 1:00 AM UTC
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+    inputs:
+      update-type:
+        description: 'Type of update to perform'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - latest
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  check-updates:
+    name: Check for Updates
+    runs-on: ubuntu-latest
+    outputs:
+      has-updates: ${{ steps.check.outputs.has-updates }}
+      update-summary: ${{ steps.check.outputs.summary }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check for outdated packages
+        id: check
+        run: |
+          # Check for outdated packages
+          echo "📦 Checking for outdated packages..."
+
+          # Get outdated packages in JSON format
+          pnpm outdated --format json > outdated.json || true
+
+          # Parse and display outdated packages
+          if [ -s outdated.json ] && [ "$(cat outdated.json)" != "{}" ]; then
+            echo "has-updates=true" >> $GITHUB_OUTPUT
+            
+            # Create summary
+            SUMMARY="## 📦 Outdated Dependencies Found\n\n"
+            SUMMARY="${SUMMARY}| Package | Current | Wanted | Latest | Type |\n"
+            SUMMARY="${SUMMARY}|---------|---------|--------|--------|------|\n"
+            
+            # Parse JSON and create table (using jq if available, otherwise use node)
+            node -e "
+              const outdated = require('./outdated.json');
+              Object.entries(outdated).forEach(([name, info]) => {
+                const type = info.dependencyType || 'dependencies';
+                console.log(\`| \${name} | \${info.current} | \${info.wanted} | \${info.latest} | \${type} |\`);
+              });
+            " >> summary.md
+            
+            if [ -s summary.md ]; then
+              SUMMARY="${SUMMARY}$(cat summary.md)"
+            fi
+            
+            echo "summary<<EOF" >> $GITHUB_OUTPUT
+            echo "$SUMMARY" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            
+            # Display in logs
+            echo "$SUMMARY"
+          else
+            echo "has-updates=false" >> $GITHUB_OUTPUT
+            echo "✅ All dependencies are up to date!"
+          fi
+
+      - name: Upload outdated report
+        if: steps.check.outputs.has-updates == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: outdated-dependencies
+          path: outdated.json
+          retention-days: 7
+
+  update-dependencies:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+    needs: check-updates
+    if: needs.check-updates.outputs.has-updates == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Update dependencies
+        id: update
+        run: |
+          UPDATE_TYPE="${{ github.event.inputs.update-type || 'patch' }}"
+          echo "🔄 Performing $UPDATE_TYPE updates..."
+
+          # Store initial lock file
+          cp pnpm-lock.yaml pnpm-lock.yaml.bak
+
+          case "$UPDATE_TYPE" in
+            patch)
+              # Update patch versions only
+              pnpm update --recursive --prod
+              pnpm update --recursive --dev
+              ;;
+            minor)
+              # Update minor versions
+              pnpm update --recursive --prod --latest
+              pnpm update --recursive --dev --latest
+              ;;
+            major)
+              # Update major versions (interactive mode not available in CI)
+              echo "⚠️ Major updates require manual intervention"
+              # For major updates, we'll create a list instead
+              pnpm outdated > major-updates.txt || true
+              ;;
+            latest)
+              # Update to latest versions
+              pnpm update --recursive --latest
+              ;;
+          esac
+
+          # Check if lock file changed
+          if ! diff -q pnpm-lock.yaml pnpm-lock.yaml.bak > /dev/null 2>&1; then
+            echo "updates-made=true" >> $GITHUB_OUTPUT
+            
+            # Generate changelog
+            echo "## 📝 Update Summary" > update-summary.md
+            echo "" >> update-summary.md
+            echo "Update type: **$UPDATE_TYPE**" >> update-summary.md
+            echo "" >> update-summary.md
+            
+            # List updated packages (simplified)
+            echo "### Updated Packages:" >> update-summary.md
+            pnpm list --depth=0 >> update-summary.md
+          else
+            echo "updates-made=false" >> $GITHUB_OUTPUT
+            echo "No updates were necessary"
+          fi
+
+      - name: Run tests
+        if: steps.update.outputs.updates-made == 'true'
+        run: |
+          echo "🧪 Running tests after updates..."
+
+          # Run linting
+          pnpm lint || {
+            echo "⚠️ Linting failed after updates"
+            echo "lint-failed=true" >> $GITHUB_ENV
+          }
+
+          # Run type checking
+          pnpm typecheck || {
+            echo "⚠️ Type checking failed after updates"
+            echo "typecheck-failed=true" >> $GITHUB_ENV
+          }
+
+          # Run tests if they exist
+          if [ -f "vitest.config.ts" ]; then
+            pnpm test:unit || {
+              echo "⚠️ Tests failed after updates"
+              echo "test-failed=true" >> $GITHUB_ENV
+            }
+          fi
+
+          # Run build
+          pnpm build || {
+            echo "⚠️ Build failed after updates"
+            echo "build-failed=true" >> $GITHUB_ENV
+          }
+
+      - name: Create Pull Request
+        if: steps.update.outputs.updates-made == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(deps): update dependencies (${{ github.event.inputs.update-type || 'patch' }})"
+          title: "chore(deps): Automated dependency updates (${{ github.event.inputs.update-type || 'patch' }})"
+          body: |
+            ## 🤖 Automated Dependency Update
+
+            This PR was automatically created to update dependencies.
+
+            ${{ needs.check-updates.outputs.update-summary }}
+
+            ### ✅ Checks Performed
+            - [x] Dependencies updated
+            - [x] Lock file regenerated
+            - [ ] Lint check: ${{ env.lint-failed != 'true' && '✅ Passed' || '⚠️ Failed - manual fix required' }}
+            - [ ] Type check: ${{ env.typecheck-failed != 'true' && '✅ Passed' || '⚠️ Failed - manual fix required' }}
+            - [ ] Tests: ${{ env.test-failed != 'true' && '✅ Passed' || '⚠️ Failed - manual fix required' }}
+            - [ ] Build: ${{ env.build-failed != 'true' && '✅ Passed' || '⚠️ Failed - manual fix required' }}
+
+            ### 📋 Next Steps
+            1. Review the changes in the Files tab
+            2. Check the CI results
+            3. If all checks pass, merge the PR
+            4. If any checks fail, fix the issues and push to this branch
+
+            ---
+            *Generated by GitHub Actions Dependency Update workflow*
+          branch: deps/automated-update-${{ github.run_number }}
+          delete-branch: true
+          labels: |
+            dependencies
+            automated
+            ${{ github.event.inputs.update-type || 'patch' }}-update
+          reviewers: ylabo0717
+
+  vulnerability-check:
+    name: Vulnerability Check After Update
+    runs-on: ubuntu-latest
+    needs: update-dependencies
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run security audit
+        run: |
+          echo "🔒 Running security audit..."
+
+          # Run audit and check for vulnerabilities
+          pnpm audit --audit-level moderate || {
+            echo "⚠️ Security vulnerabilities found after update"
+            echo "Please review and fix before merging"
+          }
+
+      - name: Check licenses
+        run: |
+          echo "📜 Checking licenses..."
+
+          # Simple license check (you can enhance this)
+          pnpm licenses list || true

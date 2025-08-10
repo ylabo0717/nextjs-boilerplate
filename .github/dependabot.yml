@@ -1,0 +1,113 @@
+# Dependabot configuration for automated dependency updates
+# Documentation: https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+  # npm dependencies
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '03:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 10
+    # Update strategy
+    versioning-strategy: 'increase'
+    # Grouping related updates
+    groups:
+      # Group all development dependencies
+      dev-dependencies:
+        patterns:
+          - '@types/*'
+          - 'eslint*'
+          - 'prettier*'
+          - '@typescript-eslint/*'
+          - 'vitest*'
+          - '@vitest/*'
+          - 'playwright*'
+          - '@playwright/*'
+        dependency-type: 'development'
+        update-types:
+          - 'minor'
+          - 'patch'
+      # Group all production dependencies
+      production-dependencies:
+        dependency-type: 'production'
+        update-types:
+          - 'patch'
+      # Group Next.js and React updates
+      next-react:
+        patterns:
+          - 'next'
+          - 'react'
+          - 'react-dom'
+          - '@next/*'
+        update-types:
+          - 'minor'
+          - 'patch'
+      # Group Tailwind CSS related
+      tailwind:
+        patterns:
+          - 'tailwindcss*'
+          - 'autoprefixer'
+          - 'postcss*'
+        update-types:
+          - 'minor'
+          - 'patch'
+      # Group shadcn/ui related
+      shadcn:
+        patterns:
+          - '@radix-ui/*'
+          - 'class-variance-authority'
+          - 'clsx'
+          - 'tailwind-merge'
+          - 'lucide-react'
+        update-types:
+          - 'minor'
+          - 'patch'
+    # Commit message customization
+    commit-message:
+      prefix: 'chore'
+      prefix-development: 'chore'
+      include: 'scope'
+    # PR labels
+    labels:
+      - 'dependencies'
+      - 'automated'
+    # Reviewers and assignees
+    reviewers:
+      - 'ylabo0717' # Add your GitHub username or team
+    # Allow security updates
+    allow:
+      - dependency-type: 'all'
+    # Ignore specific dependencies if needed
+    ignore:
+      # Example: Ignore major updates for specific packages
+      # - dependency-name: "react"
+      #   update-types: ["version-update:semver-major"]
+    # Auto-merge settings (requires GitHub auto-merge to be enabled)
+    # Only auto-merge patch updates for production dependencies
+    # automerge:
+    #   - match:
+    #       dependency-type: "production"
+    #       update-type: "version-update:semver-patch"
+
+  # GitHub Actions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '03:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'ci'
+      include: 'scope'
+    labels:
+      - 'ci'
+      - 'dependencies'
+      - 'automated'
+    reviewers:
+      - 'ylabo0717' # Add your GitHub username or team

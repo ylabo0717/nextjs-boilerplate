@@ -11,7 +11,7 @@ UI フレームワーク、認証基盤、データ取得層、可観測性、�
 | 分類 | 採用技術 | 理由 |
 |------|----------|------|
 | **UI** | shadcn/ui + Tailwind CSS v4 | Tailwindとの完全互換・カスタマイズ性・バンドルサイズ最小・ベンダーロックインなし |
-| **認証/認可** | Keycloak + LDAP連携 (OIDC) + next-auth (httpOnly Cookie必須) | 社内LDAP利用・RBACが容易・OIDC標準対応・XSS対策 |
+| **認証/認可** | next-auth (httpOnly Cookie必須) | 柔軟なProvider対応・セッション管理・XSS対策 |
 | **データ取得** | TanStack Query + apiClient + Zod | 型安全・キャッシュ・エラー整形共通化 |
 | **フォーム** | React Hook Form + Zod | パフォーマンス・shadcn/ui formコンポーネントとの統合 |
 | **可観測性** | OpenTelemetry(10% sampling) + Tempo + Loki + Grafana | トレース・ログの統合管理、OSSベースでコスト抑制 |
@@ -25,21 +25,45 @@ UI フレームワーク、認証基盤、データ取得層、可観測性、�
 
 ## 3. 認証/認可設計
 
-### 3.1 構成
-- **IdP**: Keycloak
-- **ユーザーディレクトリ**: 社内LDAP
-- **プロトコル**: OIDC
-- **Next.js**: next-auth (JWTセッション)
+### 3.1 基本方針
+- **フレームワーク**: next-auth v5
+- **セッション管理**: JWT (httpOnly Cookie)
+- **Provider**: 柔軟に選択可能（OAuth、OIDC、Credentials等）
 
-### 3.2 RBAC設計
-| ロール | 権限概要 |
-|--------|----------|
-| admin  | 全機能管理、ユーザー管理 |
-| editor | データ編集、参照 |
-| viewer | データ参照のみ |
+### 3.2 実装時の考慮事項
 
-- Keycloak: LDAPグループ → ロールマッピング
-- OIDCトークン: `realm_access.roles` → next-auth session へ格納
+#### Provider選択例
+```typescript
+// プロジェクトに応じて選択
+// 例1: Google OAuth
+GoogleProvider({
+  clientId: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+})
+
+// 例2: Keycloak (OIDC)
+KeycloakProvider({
+  clientId: process.env.KEYCLOAK_CLIENT_ID,
+  clientSecret: process.env.KEYCLOAK_CLIENT_SECRET,
+  issuer: process.env.KEYCLOAK_ISSUER,
+})
+
+// 例3: 独自認証
+CredentialsProvider({
+  // カスタム認証ロジック
+})
+```
+
+#### ロール設計（実装例）
+プロジェクトごとにロールを定義：
+```typescript
+// 例: 基本的な3階層
+enum Role {
+  ADMIN = "admin",
+  USER = "user", 
+  GUEST = "guest"
+}
+```
 
 ### 3.3 next-auth 設定要件
 ```ts
@@ -322,7 +346,6 @@ export const env = envSchema.parse(process.env)
 ### 8.2 Compose構成
 - `app`: Next.js（dev/prod両対応）
 - `observability`: Tempo, Loki, Promtail, Grafana, OTel Collector
-- `keycloak`: 検証用Keycloak（本番は別管理）
 
 ---
 
@@ -1621,9 +1644,9 @@ REDIS_URL=redis://...
 - [ ] Zod スキーマ定義基盤
 
 #### Phase 5: 認証・セキュリティ（1週間）
-- [ ] Keycloak連携設定
-- [ ] next-auth実装
-- [ ] RBAC実装
+- [ ] next-auth基本実装
+- [ ] Provider設定（開発用モック認証）
+- [ ] セッション管理実装
 - [ ] CSP/セキュリティヘッダー設定
 - [ ] Rate Limiting実装
 
@@ -1648,8 +1671,7 @@ REDIS_URL=redis://...
 
 ### アカウント準備
 - [ ] GitHub組織アカウント
-- [ ] Keycloak管理者権限
-- [ ] 監視システムアクセス
+- [ ] 監視システムアクセス（必要に応じて）
 
 ### 初期設定
 - [ ] テンプレートからリポジトリ作成
@@ -1673,39 +1695,22 @@ REDIS_URL=redis://...
 
 ---
 
-## 12. 今後の拡張
+## 12. 今後の拡張（プロジェクトごとに検討）
+
+### ボイラープレート拡張候補
 - Sentry例外監視導入（eventId→ログ連携）
 - OpenAPI codegen CI組み込み
-- RBAC詳細化（フィールドレベル制御）
 - PIIマスキング（Pino redact設定）
+- MSW（Mock Service Worker）統合
+
+### プロジェクト固有の拡張
+- 特定IdPとの連携（Keycloak、Auth0、Azure AD等）
+- データベース層の追加（Prisma、Drizzle、TypeORM等）
+- 認可の詳細化（RBAC、ABAC、フィールドレベル制御）
+- ビジネス固有の機能実装
 
 ---
 
-## 13. OSS参考資料
-
-### 1. shadcn/ui
-Radix UIとTailwind CSSで構築された再利用可能なコンポーネント。コピー＆ペーストでプロジェクトに導入可能。
-https://ui.shadcn.com/
-
-### 2. next-auth-boilerplate（Zulmy‑Azhary）  
-Next.js 14 + next-auth v5 + PostgreSQL + Prisma + Zod を使った認証基盤のテンプレート。  
-https://github.com/zulmy-azhary/next-auth-boilerplate
-
-### 3. Next Auth v5 Boilerplate（xleron）  
-Next.js 14＋next-auth v5に特化。2FAやRole Gateなど認証機能が充実。  
-https://github.com/xleron/next-auth-v5-boilerplate
-
-### 4. Next-js-Boilerplate（ixartz）  
-App Router 対応の Next.js 15 テンプレート。TypeScript/Tailwind/Testing/Playwright/Sentry などが揃っており、開発体験とテスト導入の参考に。  
-https://github.com/ixartz/Next-js-Boilerplate
-
-### 5. Best Next.js Boilerplate（Maher Naija）  
-shadcn/ui + React Hook Form + Zod + Pino Logging / Better Stack などを備えたバランス型のBoilerplate。  
-https://medium.com/%40mahernaija/nextjs-best-boiler-plate-8a198a1aa90b
-
-### 6. Taxonomy (Vercel)
-Next.js 14 + Tailwind CSS + shadcn/ui を使った本番レベルのテンプレート。Vercel公式の実装例。
-https://github.com/shadcn-ui/taxonomy
 
 ---
 

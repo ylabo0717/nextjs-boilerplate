@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { VIEWPORT_SIZES } from '../constants/test-constants';
 
 test.describe('Home Page', () => {
   test('should display the home page', async ({ page }) => {
@@ -46,14 +47,14 @@ test.describe('Home Page', () => {
 
   test('should have responsive design', async ({ page }) => {
     // Test desktop view
-    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.setViewportSize(VIEWPORT_SIZES.DESKTOP);
     await page.goto('/');
 
     const mainContent = page.locator('main');
     await expect(mainContent).toBeVisible();
 
     // Test mobile view
-    await page.setViewportSize({ width: 375, height: 667 });
+    await page.setViewportSize(VIEWPORT_SIZES.MOBILE);
     await expect(mainContent).toBeVisible();
   });
 

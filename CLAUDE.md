@@ -67,29 +67,76 @@ This is a Next.js 15.4.6 application using the App Router architecture with Reac
 
 ## Testing Best Practices
 
-### Test Timeout Constants
+### No Magic Numbers Policy
 
-Always use predefined timeout constants from `/tests/constants/timeouts.ts` instead of magic numbers when writing tests:
+**Magic numbers are strictly prohibited in test files.** All numeric values should be defined as named constants in `/tests/constants/test-constants.ts` to improve code readability, maintainability, and consistency.
+
+#### Why No Magic Numbers?
+
+- **Clarity**: Named constants clearly express the intent and meaning of values
+- **Maintainability**: Values can be updated in one central location
+- **Consistency**: Ensures the same values are used across all test files
+- **Documentation**: Constants serve as self-documenting code
+
+#### How to Handle Numeric Values
 
 ```typescript
-import { UI_WAIT_TIMES, NETWORK_WAIT_TIMES } from '../constants/timeouts';
+// ❌ Bad - using magic numbers
+await page.waitForTimeout(500);
+await page.setViewportSize({ width: 1920, height: 1080 });
+expect(loadTime).toBeLessThan(3000);
+await page.evaluate(() => window.scrollTo(0, 500));
 
-// Good - using constants
-await page.waitForTimeout(UI_WAIT_TIMES.MINIMAL);
-await page.waitForLoadState('networkidle');
+// ✅ Good - using named constants
+import {
+  UI_WAIT_TIMES,
+  VIEWPORT_SIZES,
+  NETWORK_WAIT_TIMES,
+  SCROLL_POSITIONS,
+} from '../constants/test-constants';
 
-// Bad - using magic numbers
-await page.waitForTimeout(100);
-await page.waitForTimeout(1000);
+await page.waitForTimeout(UI_WAIT_TIMES.STANDARD);
+await page.setViewportSize(VIEWPORT_SIZES.DESKTOP);
+expect(loadTime).toBeLessThan(NETWORK_WAIT_TIMES.API_RESPONSE);
+await page.evaluate((scrollY) => window.scrollTo(0, scrollY), SCROLL_POSITIONS.STANDARD);
 ```
 
-Available timeout constants:
+#### Important Note for page.evaluate()
+
+When using constants inside `page.evaluate()`, you must pass them as arguments since the browser context cannot access external variables:
+
+```typescript
+// ❌ Wrong - constant not accessible in browser context
+await page.evaluate(() => window.scrollTo(0, SCROLL_POSITIONS.STANDARD));
+
+// ✅ Correct - pass constant as argument
+await page.evaluate((scrollY) => window.scrollTo(0, scrollY), SCROLL_POSITIONS.STANDARD);
+```
+
+### Available Test Constants
+
+All test constants are defined in `/tests/constants/test-constants.ts`:
 
 - **UI_WAIT_TIMES**: For UI interactions (MINIMAL: 100ms, SHORT: 300ms, STANDARD: 500ms, LONG: 1000ms, EXTRA_LONG: 2000ms)
 - **NETWORK_WAIT_TIMES**: For network operations (API_RESPONSE: 3000ms, PAGE_LOAD: 5000ms, NETWORK_IDLE: 2000ms)
 - **TEST_TIMEOUTS**: For test case timeouts (DEFAULT: 30s, EXTENDED: 60s, QUICK: 10s)
 - **RETRY_CONFIG**: For retry logic (MAX_RETRIES: 3, RETRY_DELAY: 1000ms)
 - **ANIMATION_DURATIONS**: For animations (TRANSITION: 300ms, MODAL: 400ms, DROPDOWN: 200ms)
+- **WEBSERVER_TIMEOUT**: For web server startup (STARTUP: 120s)
+- **SCROLL_POSITIONS**: For scroll testing (STANDARD: 500px)
+- **PERFORMANCE_THRESHOLDS**: For performance metrics (FCP_GOOD: 1800ms, MEMORY_INCREASE_MAX: 50MB)
+- **VIEWPORT_SIZES**: For responsive testing (DESKTOP: 1920x1080, MOBILE: 375x667)
+
+### Adding New Constants
+
+When you encounter a new numeric value in tests:
+
+1. **Identify the purpose** of the value
+2. **Choose an appropriate category** or create a new one if needed
+3. **Add the constant** to `/tests/constants/test-constants.ts` with:
+   - A descriptive name in UPPER_SNAKE_CASE
+   - A JSDoc comment explaining its purpose and unit
+4. **Import and use** the constant in your test files
 
 ## Git Commit Convention
 

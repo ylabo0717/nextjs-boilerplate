@@ -24,7 +24,8 @@
       "Bash(pnpm format:check:*)",
       "Bash(pnpm format:*)",
       "Bash(pnpm test:*)",
-      "Bash(pnpm eslint:*)"
+      "Bash(pnpm eslint:*)",
+      "mcp__serena__insert_after_symbol"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { NETWORK_WAIT_TIMES } from '../constants/timeouts';
+import { NETWORK_WAIT_TIMES, PERFORMANCE_THRESHOLDS } from '../constants/test-constants';
 
 test.describe('Performance', () => {
   test('should load the home page within acceptable time', async ({ page }) => {
@@ -50,7 +50,7 @@ test.describe('Performance', () => {
     expect(fcpMetric).toBeDefined();
 
     // FCP should be less than 1.8 seconds (good threshold)
-    expect(fcpMetric as number).toBeLessThan(1800);
+    expect(fcpMetric as number).toBeLessThan(PERFORMANCE_THRESHOLDS.FCP_GOOD);
   });
 
   test('should not have memory leaks on navigation', async ({ page }) => {
@@ -89,7 +89,7 @@ test.describe('Performance', () => {
     // Memory increase should be reasonable (not more than 50MB)
     if (initialMemory > 0 && finalMemory > 0) {
       const memoryIncrease = (finalMemory - initialMemory) / 1024 / 1024; // Convert to MB
-      expect(memoryIncrease).toBeLessThan(50);
+      expect(memoryIncrease).toBeLessThan(PERFORMANCE_THRESHOLDS.MEMORY_INCREASE_MAX);
     }
   });
 

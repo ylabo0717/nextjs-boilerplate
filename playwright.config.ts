@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { TEST_TIMEOUTS, WEBSERVER_TIMEOUT } from './tests/constants/timeouts';
+import { TEST_TIMEOUTS, WEBSERVER_TIMEOUT } from './tests/constants/test-constants';
 
 /**
  * Read environment variables from file.

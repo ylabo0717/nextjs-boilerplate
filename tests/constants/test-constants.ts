@@ -117,3 +117,43 @@ export const WEBSERVER_TIMEOUT = {
    */
   STARTUP: 120000,
 } as const;
+
+/**
+ * Scroll position constants for testing
+ */
+export const SCROLL_POSITIONS = {
+  /**
+   * Standard scroll position for testing (pixels)
+   */
+  STANDARD: 500,
+} as const;
+
+/**
+ * Performance metrics thresholds
+ */
+export const PERFORMANCE_THRESHOLDS = {
+  /**
+   * First Contentful Paint threshold (milliseconds)
+   */
+  FCP_GOOD: 1800,
+
+  /**
+   * Maximum acceptable memory increase (MB)
+   */
+  MEMORY_INCREASE_MAX: 50,
+} as const;
+
+/**
+ * Viewport sizes for responsive testing
+ */
+export const VIEWPORT_SIZES = {
+  /**
+   * Desktop viewport
+   */
+  DESKTOP: { width: 1920, height: 1080 },
+
+  /**
+   * Mobile viewport
+   */
+  MOBILE: { width: 375, height: 667 },
+} as const;

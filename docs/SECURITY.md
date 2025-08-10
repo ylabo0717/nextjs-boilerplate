@@ -37,6 +37,8 @@ Runs automatically on:
 - Scans for accidentally committed secrets
 - Custom patterns for JWT tokens, API keys, database URLs
 - Configurable via `.gitleaks.toml`
+- Fallback to simple script scanner if Gitleaks fails
+- Fork-friendly (warnings only for PRs from forks)
 
 ##### License Compliance
 
@@ -187,9 +189,60 @@ For security issues, please:
 3. Use GitHub's security advisory feature
 4. Allow time for patch before disclosure
 
+## Troubleshooting
+
+### Gitleaks Permission Error
+
+If you see "Resource not accessible by integration" error:
+
+- This typically occurs in PRs when the GitHub token lacks permissions
+- The workflow automatically falls back to a simple secret scanner
+- For fork PRs, only warnings are issued (not failures)
+
+### Secret Scan False Positives
+
+If legitimate code is flagged as a secret:
+
+1. Update `.gitleaks.toml` to add patterns to the allowlist
+2. Use environment variables instead of hardcoded values
+3. Add files to the ignore list in the configuration
+
+### Dependency Update Failures
+
+If automated dependency updates fail:
+
+- Check the logs in the GitHub Actions tab
+- Manually run `pnpm audit` locally to identify issues
+- Review breaking changes in major version updates
+
+## Implementation Notes
+
+### Secret Scanning Architecture
+
+The security workflow uses a two-tier approach for secret scanning:
+
+1. **Primary Scanner**: Gitleaks with custom configuration
+   - Downloads and runs Gitleaks binary directly
+   - Avoids GitHub Action permission issues
+   - Generates SARIF reports for GitHub Security tab
+
+2. **Fallback Scanner**: Simple bash script (`.github/scripts/simple-secret-scan.sh`)
+   - Basic pattern matching for common secrets
+   - Runs if Gitleaks fails or encounters errors
+   - Provides basic coverage without external dependencies
+
+### Fork PR Handling
+
+Special handling for PRs from forked repositories:
+
+- Secret scanning runs but doesn't fail the build
+- Issues warnings instead of errors
+- Allows maintainers to review potential issues manually
+
 ## Additional Resources
 
 - [GitHub Security Features](https://docs.github.com/en/code-security)
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [npm Security Best Practices](https://docs.npmjs.com/packages-and-modules/securing-your-code)
 - [Next.js Security Headers](https://nextjs.org/docs/app/api-reference/next-config-js/headers)
+- [Gitleaks Documentation](https://github.com/gitleaks/gitleaks)

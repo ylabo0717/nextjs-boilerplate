@@ -65,6 +65,79 @@ This is a Next.js 15.4.6 application using the App Router architecture with Reac
 - ESLint is configured with Next.js and TypeScript rules
 - The project is ready for Vercel deployment
 
+## Code Documentation Standards
+
+### JSDoc Comments
+
+All code should use JSDoc-style comments for better documentation and IDE support:
+
+#### For Constants and Variables
+
+```typescript
+/**
+ * Maximum number of retry attempts for API calls
+ */
+export const MAX_RETRIES = 3;
+```
+
+#### For Objects with Properties
+
+Use multi-line JSDoc comments for each property:
+
+```typescript
+export const CONFIG = {
+  /**
+   * API endpoint base URL
+   */
+  API_URL: 'https://api.example.com',
+
+  /**
+   * Request timeout in milliseconds
+   */
+  TIMEOUT: 5000,
+} as const;
+```
+
+#### For Functions and Methods
+
+```typescript
+/**
+ * Calculates the total price including tax
+ * @param price - The base price
+ * @param taxRate - The tax rate as a decimal (e.g., 0.08 for 8%)
+ * @returns The total price including tax
+ */
+function calculateTotal(price: number, taxRate: number): number {
+  return price * (1 + taxRate);
+}
+```
+
+#### For Classes and Interfaces
+
+```typescript
+/**
+ * Represents a user in the system
+ */
+interface User {
+  /** Unique identifier */
+  id: string;
+
+  /** User's display name */
+  name: string;
+
+  /** User's email address */
+  email: string;
+}
+```
+
+### Best Practices
+
+- Use JSDoc comments for all exported constants, functions, classes, and interfaces
+- Keep comments concise but informative
+- Include units of measurement where applicable (e.g., milliseconds, pixels)
+- Update comments when code changes
+- Avoid redundant comments that merely restate the code
+
 ## Testing Best Practices
 
 ### No Magic Numbers Policy

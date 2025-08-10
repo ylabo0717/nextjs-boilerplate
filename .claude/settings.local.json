@@ -28,7 +28,8 @@
       "Bash(pnpm format:check:*)",
       "Bash(pnpm format:*)",
       "Bash(pnpm test:*)",
-      "Bash(pnpm eslint:*)"
+      "Bash(pnpm eslint:*)",
+      "Bash(grep:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

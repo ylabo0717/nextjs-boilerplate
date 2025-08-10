@@ -98,6 +98,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check repository visibility
+        id: repo-check
+        run: |
+          IS_PUBLIC=$(gh api repos/${{ github.repository }} --jq '.private' | grep -q false && echo "true" || echo "false")
+          echo "is_public=$IS_PUBLIC" >> $GITHUB_OUTPUT
+          if [ "$IS_PUBLIC" = "true" ]; then
+            echo "✅ Public repository - Code Scanning upload will be attempted"
+          else
+            echo "⚠️ Private repository - Code Scanning requires GitHub Advanced Security"
+            echo "Results will be saved as artifacts instead"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
@@ -108,13 +122,28 @@ jobs:
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
 
-      - name: Perform CodeQL Analysis
+      - name: Perform CodeQL Analysis (Public Repo)
+        if: steps.repo-check.outputs.is_public == 'true'
+        id: codeql-analyze-public
         uses: github/codeql-action/analyze@v3
+        continue-on-error: true
         with:
           category: '/language:${{ matrix.language }}'
           output: sarif-results
           upload: true
           upload-database: false
+          add-snippet: true
+
+      - name: Perform CodeQL Analysis (Private Repo)
+        if: steps.repo-check.outputs.is_public != 'true'
+        id: codeql-analyze-private
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
+          output: sarif-results
+          upload: false
+          upload-database: false
+          add-snippet: true
 
       - name: Upload SARIF results
         if: always()
@@ -123,6 +152,45 @@ jobs:
           name: codeql-results-${{ matrix.language }}
           path: sarif-results
           retention-days: 7
+          if-no-files-found: ignore
+
+  semgrep-analysis:
+    name: Semgrep Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: .semgrep.yml
+          generateSarif: true
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+        continue-on-error: true
+
+      - name: Run Semgrep with auto config (fallback)
+        if: failure()
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/src" \
+            returntocorp/semgrep:latest \
+            --config=auto \
+            --config=.semgrep.yml \
+            --json \
+            --output=semgrep-results.json \
+            /src
+
+      - name: Upload Semgrep results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-results
+          path: |
+            semgrep.sarif
+            semgrep-results.json
+          retention-days: 7
+          if-no-files-found: ignore
 
   secret-scanning:
     name: Secret Scanning
@@ -250,7 +318,7 @@ jobs:
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs: [dependency-audit, codeql-analysis, secret-scanning, license-check]
+    needs: [dependency-audit, codeql-analysis, semgrep-analysis, secret-scanning, license-check]
     if: always()
     steps:
       - name: Create Security Summary

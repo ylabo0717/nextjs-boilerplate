@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { NETWORK_WAIT_TIMES } from '../constants/timeouts';
 
 test.describe('Performance', () => {
   test('should load the home page within acceptable time', async ({ page }) => {
@@ -6,8 +7,8 @@ test.describe('Performance', () => {
     await page.goto('/');
     const loadTime = Date.now() - startTime;
 
-    // Page should load within 3 seconds
-    expect(loadTime).toBeLessThan(3000);
+    // Page should load within acceptable time
+    expect(loadTime).toBeLessThan(NETWORK_WAIT_TIMES.API_RESPONSE);
   });
 
   test('should have good Web Vitals metrics', async ({ page }) => {

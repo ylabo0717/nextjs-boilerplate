@@ -65,6 +65,32 @@ This is a Next.js 15.4.6 application using the App Router architecture with Reac
 - ESLint is configured with Next.js and TypeScript rules
 - The project is ready for Vercel deployment
 
+## Testing Best Practices
+
+### Test Timeout Constants
+
+Always use predefined timeout constants from `/tests/constants/timeouts.ts` instead of magic numbers when writing tests:
+
+```typescript
+import { UI_WAIT_TIMES, NETWORK_WAIT_TIMES } from '../constants/timeouts';
+
+// Good - using constants
+await page.waitForTimeout(UI_WAIT_TIMES.MINIMAL);
+await page.waitForLoadState('networkidle');
+
+// Bad - using magic numbers
+await page.waitForTimeout(100);
+await page.waitForTimeout(1000);
+```
+
+Available timeout constants:
+
+- **UI_WAIT_TIMES**: For UI interactions (MINIMAL: 100ms, SHORT: 300ms, STANDARD: 500ms, LONG: 1000ms, EXTRA_LONG: 2000ms)
+- **NETWORK_WAIT_TIMES**: For network operations (API_RESPONSE: 3000ms, PAGE_LOAD: 5000ms, NETWORK_IDLE: 2000ms)
+- **TEST_TIMEOUTS**: For test case timeouts (DEFAULT: 30s, EXTENDED: 60s, QUICK: 10s)
+- **RETRY_CONFIG**: For retry logic (MAX_RETRIES: 3, RETRY_DELAY: 1000ms)
+- **ANIMATION_DURATIONS**: For animations (TRANSITION: 300ms, MODAL: 400ms, DROPDOWN: 200ms)
+
 ## Git Commit Convention
 
 This project uses **Conventional Commits** specification. All commit messages are validated by commitlint.

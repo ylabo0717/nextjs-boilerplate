@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { UI_WAIT_TIMES } from '../constants/timeouts';
 
 test.describe('Navigation', () => {
   test.beforeEach(async ({ page }) => {
@@ -44,13 +45,13 @@ test.describe('Navigation', () => {
     });
 
     // Wait for content to be rendered
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(UI_WAIT_TIMES.MINIMAL);
 
     // Scroll down
     await page.evaluate(() => window.scrollTo(0, 500));
 
     // Wait for scroll to complete
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(UI_WAIT_TIMES.MINIMAL);
 
     const scrollPosition = await page.evaluate(() => window.scrollY);
     expect(scrollPosition).toBeGreaterThan(0);

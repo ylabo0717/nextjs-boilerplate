@@ -261,6 +261,31 @@ async function startServerWithRetry() {
 /**
  * Ensure server cleanup on any exit
  */
+/**
+ * Force kill a server process
+ * @param {ChildProcess} serverProcess - The server process to kill
+ */
+function forceKillServerProcess(serverProcess) {
+  if (!serverProcess || serverProcess.killed) {
+    return;
+  }
+
+  try {
+    serverProcess.kill('SIGKILL');
+  } catch (killErr) {
+    console.error('Failed to force kill server:', killErr);
+
+    // Try using process.kill as fallback
+    if (serverProcess.pid) {
+      try {
+        process.kill(serverProcess.pid, 'SIGKILL');
+      } catch (pidErr) {
+        console.error('Failed to kill process by PID:', pidErr);
+      }
+    }
+  }
+}
+
 function cleanupServer() {
   if (server && !server.killed) {
     console.log('Cleaning up server process...');
@@ -272,19 +297,7 @@ function cleanupServer() {
       const forceKillTimer = setTimeout(() => {
         if (!server.killed) {
           console.log(`Force killing server process after ${SERVER_FORCE_KILL_TIMEOUT}ms...`);
-          try {
-            server.kill('SIGKILL');
-          } catch (killErr) {
-            console.error('Failed to force kill server:', killErr);
-            // Try using process.kill as fallback
-            if (server.pid) {
-              try {
-                process.kill(server.pid, 'SIGKILL');
-              } catch (pidErr) {
-                console.error('Failed to kill process by PID:', pidErr);
-              }
-            }
-          }
+          forceKillServerProcess(server);
         }
       }, SERVER_FORCE_KILL_TIMEOUT);
 
@@ -296,11 +309,7 @@ function cleanupServer() {
     } catch (err) {
       console.error('Error during server cleanup:', err);
       // Force kill as last resort
-      try {
-        server.kill('SIGKILL');
-      } catch (finalErr) {
-        console.error('Failed to kill server process:', finalErr);
-      }
+      forceKillServerProcess(server);
     }
   }
 }

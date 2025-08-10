@@ -8,7 +8,7 @@
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { chromium } = require('playwright');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const http = require('http');
 
 // Configuration
@@ -102,13 +102,50 @@ function waitForServerReady(url, timeoutMs = 30000, intervalMs = SERVER_POLLING_
 }
 
 /**
+ * Check if a command exists in the system PATH
+ * Works cross-platform (Windows, macOS, Linux)
+ */
+function commandExists(command) {
+  try {
+    const isWindows = process.platform === 'win32';
+    const checkCommand = isWindows ? `where ${command}` : `which ${command}`;
+    execSync(checkCommand, { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Start the server process
  */
 function startServer() {
   console.log('Starting server process...');
 
+  // Determine which package manager to use
+  let packageManager = 'pnpm';
+  let startCommand = ['start:test'];
+
+  if (!commandExists('pnpm')) {
+    console.warn('pnpm not found, checking for alternatives...');
+
+    if (commandExists('npm')) {
+      packageManager = 'npm';
+      startCommand = ['run', 'start:test'];
+      console.log('Using npm as fallback package manager');
+    } else if (commandExists('yarn')) {
+      packageManager = 'yarn';
+      startCommand = ['start:test'];
+      console.log('Using yarn as fallback package manager');
+    } else {
+      throw new Error('No package manager found (pnpm, npm, or yarn). Please install one of them.');
+    }
+  }
+
+  console.log(`Starting server with ${packageManager}...`);
+
   // Use spawn instead of exec for better security and control
-  server = spawn('pnpm', ['start:test'], {
+  server = spawn(packageManager, startCommand, {
     stdio: ['ignore', 'pipe', 'pipe'],
     shell: false, // Disable shell to prevent command injection
     env: { ...process.env, NODE_ENV: 'test' },

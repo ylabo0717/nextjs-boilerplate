@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -40,15 +39,13 @@ export default function ExamplePage() {
 
   return (
     <div className="container mx-auto py-10">
-      <h1 className="text-4xl font-bold mb-8">Next.js Boilerplate Example</h1>
-      
+      <h1 className="mb-8 text-4xl font-bold">Next.js Boilerplate Example</h1>
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>サンプルフォーム</CardTitle>
-            <CardDescription>
-              React Hook Form + Zod を使用したフォームの例
-            </CardDescription>
+            <CardDescription>React Hook Form + Zod を使用したフォームの例</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -75,9 +72,7 @@ export default function ExamplePage() {
                       <FormControl>
                         <Input type="email" placeholder="example@email.com" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        連絡先のメールアドレスを入力してください
-                      </FormDescription>
+                      <FormDescription>連絡先のメールアドレスを入力してください</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -91,9 +86,7 @@ export default function ExamplePage() {
         <Card>
           <CardHeader>
             <CardTitle>ボタンコンポーネント</CardTitle>
-            <CardDescription>
-              shadcn/ui のボタンバリエーション
-            </CardDescription>
+            <CardDescription>shadcn/ui のボタンバリエーション</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2">

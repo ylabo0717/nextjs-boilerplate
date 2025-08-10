@@ -342,3 +342,9 @@ The following checks run automatically on commit:
 4. **Commitlint** - Commit message validation
 
 If any of these checks fail, the commit will be aborted. Fix the issues and try again.
+
+## Important Instructions for Claude
+
+### Question Handling
+
+When the user asks a question (indicated by question marks or interrogative phrases), ONLY answer the question without making any code changes or file modifications. Do not proactively fix or modify anything unless explicitly requested. If the user wants changes made after your answer, they will explicitly ask for them.

@@ -11,15 +11,11 @@ import {
   calculateHealthScore,
   analyzeCodeQualityAsync as analyzeCodeQuality,
 } from '../../scripts/code-quality-analysis';
-import {
-  COMPLEXITY_LEVELS,
-  CODE_QUALITY_THRESHOLDS,
-} from '../../scripts/constants/quality-metrics';
 
 /**
  * コード品質分析機能のテストスイート
  * scripts/code-quality-analysis.tsの各機能が正しく動作することを検証
- * 複雑度、保守性、ファイルメトリクスに基づいたスコア計算をテスト
+ * SonarQube方式の技術的負債比率に基づいたスコア計算をテスト
  */
 describe('code-quality-analysis', () => {
   beforeEach(() => {
@@ -30,7 +26,9 @@ describe('code-quality-analysis', () => {
 
   /**
    * calculateHealthScore関数のテスト
-   * 様々なメトリクスに基づいてコードの健全性スコア（0-100）を算出
+   * SonarQube方式の技術的負債比率に基づいてコードの健全性スコア（0-100）を算出
+   * 技術的負債比率 = 修正時間 / 開発時間
+   * A: <5% (90-100点), B: <10% (75-90点), C: <20% (60-75点), D: <50% (40-60点), E: 50%+ (0-40点)
    */
   describe('calculateHealthScore', () => {
     /**
@@ -62,103 +60,122 @@ describe('code-quality-analysis', () => {
 
     /**
      * すべてのメトリクスが理想的な値の場合、スコア100を返すことを検証
-     * 複雑度低、保守性高、大きなファイルなしの理想的な状態
+     * 技術的負債がゼロの理想的な状態
      */
     it('should return 100 for perfect metrics', () => {
-      const metrics = createMetrics();
+      const metrics = createMetrics({
+        complexity: {
+          averageComplexity: 5, // 閾値10以下
+          maxComplexity: 10,
+          highComplexityFiles: [],
+        },
+        fileMetrics: {
+          totalFiles: 10,
+          avgLinesPerFile: 100,
+          maxLinesPerFile: 200,
+          largeFiles: [],
+        },
+      });
       const score = calculateHealthScore(metrics);
-      // 実装では、デフォルトでは100点から始まり、
-      // eslintComplexityとduplicationがundefinedの場合はペナルティが適用されない
-      expect(score).toBe(100);
+      // 技術的負債がほぼゼロなので100点に近い
+      expect(score).toBeGreaterThanOrEqual(95);
+      expect(score).toBeLessThanOrEqual(100);
     });
 
     /**
-     * コードの複雑度が高い場合、スコアが減点されることを検証
-     * GOODレベルを超える複雑度: 15点減点
-     * EXCELLENTレベルを超える複雑度: 5点減点
+     * コードの複雑度が高い場合、スコアが低下することを検証
+     * 複雑度が閾値を超えると技術的負債が増加
      */
-    it('should penalize high complexity - 15 points for exceeding GOOD level', () => {
+    it('should penalize high complexity when exceeding threshold', () => {
       const metrics = createMetrics({
         complexity: {
-          averageComplexity: COMPLEXITY_LEVELS.GOOD.maxValue + 1,
+          averageComplexity: 15, // 閾値10を超える
           maxComplexity: 20,
-          highComplexityFiles: [],
+          highComplexityFiles: [{ file: 'complex.ts', complexity: 20, functions: 5 }],
         },
       });
 
       const score = calculateHealthScore(metrics);
-      expect(score).toBe(85); // 100 - 15 = 85点
+      // 技術的負債が発生するのでスコアは低下
+      expect(score).toBeLessThan(90);
+      expect(score).toBeGreaterThan(0);
     });
 
-    it('should penalize moderate complexity - 5 points for exceeding EXCELLENT level', () => {
+    it('should handle moderate complexity below threshold', () => {
       const metrics = createMetrics({
         complexity: {
-          averageComplexity: COMPLEXITY_LEVELS.EXCELLENT.maxValue + 1,
+          averageComplexity: 8, // 閾値10以下なのでペナルティなし
           maxComplexity: 10,
           highComplexityFiles: [],
         },
       });
 
       const score = calculateHealthScore(metrics);
-      expect(score).toBe(95); // 100 - 5 = 95点
+      // 閾値以下なので高スコアを維持
+      expect(score).toBeGreaterThanOrEqual(90);
     });
 
     /**
-     * 保守性インデックスが低い場合、スコアが減点されることを検証
-     * インデックス < 70: 20点減点
-     * インデックス < GOOD(85): 10点減点
+     * 保守性インデックスが低い場合、技術的負債が増加することを検証
+     * 保守性が低いファイルは修正コストが高い
      */
-    it('should penalize low maintainability - 20 points for index below 70', () => {
+    it('should increase debt for low maintainability files', () => {
       const metrics = createMetrics({
         maintainability: {
           index: 60,
           rating: 'C' as const,
-          lowMaintainabilityFiles: [],
+          lowMaintainabilityFiles: [
+            { file: 'unmaintainable1.ts', maintainability: 50 },
+            { file: 'unmaintainable2.ts', maintainability: 40 },
+          ],
         },
       });
 
       const score = calculateHealthScore(metrics);
-      expect(score).toBe(80); // 100 - 20 = 80点
+      // 保守性の低いファイルがあるとスコア低下
+      expect(score).toBeLessThan(90);
+      expect(score).toBeGreaterThan(0);
     });
 
-    it('should penalize moderate maintainability - 10 points for index below GOOD', () => {
+    it('should handle good maintainability with no penalty', () => {
       const metrics = createMetrics({
         maintainability: {
-          index: CODE_QUALITY_THRESHOLDS.MAINTAINABILITY.GOOD - 1,
-          rating: 'B' as const,
-          lowMaintainabilityFiles: [],
+          index: 90,
+          rating: 'A' as const,
+          lowMaintainabilityFiles: [], // 保守性の低いファイルなし
         },
       });
 
       const score = calculateHealthScore(metrics);
-      expect(score).toBe(90); // 100 - 10 = 90点
+      // 保守性が高いので高スコア維持
+      expect(score).toBeGreaterThanOrEqual(90);
     });
 
     /**
-     * 大きなファイルが存在する場合、スコアが減点されることを検証
-     * 大きなファイル1つにつき2点減点（最大10点まで）
-     * 3ファイルの場合: 3 × 2 = 6点減点
+     * 大きなファイルが存在する場合、技術的負債が増加することを検証
+     * 大きなファイルは保守コストが高い
      */
-    it('should penalize large files - 2 points per file up to 10 points max', () => {
+    it('should increase debt for large files', () => {
       const metrics = createMetrics({
         fileMetrics: {
           totalFiles: 10,
           avgLinesPerFile: 100,
           maxLinesPerFile: 500,
-          largeFiles: ['file1.ts', 'file2.ts', 'file3.ts'],
+          largeFiles: ['file1.ts', 'file2.ts', 'file3.ts'], // 3つの大きなファイル
         },
       });
 
       const score = calculateHealthScore(metrics);
-      expect(score).toBe(94); // 100 - 6 = 94点
+      // 大きなファイルがあるとスコア低下
+      expect(score).toBeLessThan(100);
+      expect(score).toBeGreaterThanOrEqual(40); // 技術的負債が発生するが極端ではない
     });
 
     /**
-     * ESLintの複雑度関連の問題がある場合、スコアが減点されることを検証
-     * 全問題数分だけ減点（最大15点まで）
-     * 5 + 3 + 2 = 10問題 → 10点減点
+     * ESLintの複雑度問題は現在のSonarQube実装では直接考慮されないことを検証
+     * （複雑度メトリクスとして間接的に影響する）
      */
-    it('should penalize ESLint issues - 1 point per issue up to 15 points max', () => {
+    it('should not directly factor ESLint issues in SonarQube calculation', () => {
       const metrics = createMetrics({
         eslintComplexity: {
           cognitiveComplexity: 5,
@@ -168,52 +185,66 @@ describe('code-quality-analysis', () => {
       });
 
       const score = calculateHealthScore(metrics);
-      expect(score).toBe(90); // 100 - 10 = 90点
+      // ESLint問題は直接的な負債計算には含まれない
+      expect(score).toBeGreaterThanOrEqual(90);
     });
 
     /**
-     * コードの重複率が高い場合、スコアが減点されることを検証
-     * 重複率が10%を超える場合: 10点減点
+     * コードの重複率が高い場合、技術的負債が増加することを検証
+     * 重複率が閾値3%を超えると修正コストが発生
      */
-    it('should penalize code duplication - 10 points for duplication over 10%', () => {
+    it('should increase debt for high code duplication', () => {
       const metrics = createMetrics({
         duplication: {
-          percentage: 15,
-          duplicates: [],
+          percentage: 15, // 閾値3%を大幅に超える
+          blocks: 10,
         },
       });
 
       const score = calculateHealthScore(metrics);
-      expect(score).toBe(90); // 100 - 10 = 90点
+      // 重複率15%は閾値3%を大幅に超えるため、技術的負債が大きい
+      expect(score).toBeLessThan(90);
+      expect(score).toBeGreaterThanOrEqual(0);
     });
 
     /**
-     * 複数の問題が同時に存在する場合、スコアが累積的に減点されることを検証
-     * 複雑度がGOODを超える: -15点、保守性60: -20点、大きなファイル1: -2点
-     * 合計: 100 - 15 - 20 - 2 = 63点
+     * 複数の問題が同時に存在する場合、技術的負債が累積することを検証
+     * 各カテゴリの負債が合算されて総負債となる
      */
-    it('should handle multiple penalties', () => {
+    it('should accumulate debt from multiple issues', () => {
       const metrics = createMetrics({
         complexity: {
-          averageComplexity: COMPLEXITY_LEVELS.GOOD.maxValue + 5, // > GOOD → -15点
-          maxComplexity: 20,
-          highComplexityFiles: [],
+          averageComplexity: 20, // 閾値10を大幅に超える
+          maxComplexity: 30,
+          highComplexityFiles: [
+            { file: 'complex1.ts', complexity: 30, functions: 10 },
+            { file: 'complex2.ts', complexity: 25, functions: 8 },
+          ],
         },
         maintainability: {
-          index: 60, // < 70 → -20点
-          rating: 'C' as const,
-          lowMaintainabilityFiles: [],
+          index: 50,
+          rating: 'D' as const,
+          lowMaintainabilityFiles: [
+            { file: 'bad1.ts', maintainability: 40 },
+            { file: 'bad2.ts', maintainability: 30 },
+          ],
         },
         fileMetrics: {
           totalFiles: 10,
-          avgLinesPerFile: 100,
-          maxLinesPerFile: 500,
-          largeFiles: ['file1.ts'], // 1ファイル → -2点
+          avgLinesPerFile: 200,
+          maxLinesPerFile: 800,
+          largeFiles: ['large1.ts', 'large2.ts', 'large3.ts'],
+        },
+        duplication: {
+          percentage: 20,
+          blocks: 15,
         },
       });
 
       const score = calculateHealthScore(metrics);
-      expect(score).toBe(63); // 100 - 15 - 20 - 2 = 63点
+      // 複数の問題で技術的負債が大きい
+      expect(score).toBeLessThan(60); // Grade C以下
+      expect(score).toBeGreaterThanOrEqual(0);
     });
 
     /**
@@ -223,34 +254,41 @@ describe('code-quality-analysis', () => {
     it('should not return negative scores', () => {
       const metrics = createMetrics({
         complexity: {
-          averageComplexity: 30,
-          maxComplexity: 50,
-          highComplexityFiles: [],
+          averageComplexity: 50, // 極めて高い複雑度
+          maxComplexity: 100,
+          highComplexityFiles: Array(20)
+            .fill(null)
+            .map((_, i) => ({
+              file: `complex${i}.ts`,
+              complexity: 50 + i,
+              functions: 10,
+            })),
         },
         maintainability: {
-          index: 40,
+          index: 20,
           rating: 'F' as const,
-          lowMaintainabilityFiles: [],
+          lowMaintainabilityFiles: Array(20)
+            .fill(null)
+            .map((_, i) => ({
+              file: `bad${i}.ts`,
+              maintainability: 20,
+            })),
         },
         fileMetrics: {
-          totalFiles: 10,
-          avgLinesPerFile: 100,
-          maxLinesPerFile: 500,
-          largeFiles: Array(10).fill('file.ts'),
-        },
-        eslintComplexity: {
-          cognitiveComplexity: 50,
-          duplicateStrings: 50,
-          otherIssues: 50,
+          totalFiles: 50,
+          avgLinesPerFile: 500,
+          maxLinesPerFile: 2000,
+          largeFiles: Array(30).fill('file.ts'),
         },
         duplication: {
-          percentage: 50,
-          duplicates: [],
+          percentage: 80, // 極めて高い重複率
+          blocks: 100,
         },
       });
 
       const score = calculateHealthScore(metrics);
       expect(score).toBeGreaterThanOrEqual(0);
+      expect(score).toBeLessThanOrEqual(40); // Grade E範囲
     });
 
     /**

@@ -45,7 +45,8 @@
       "Bash(node:*)",
       "Bash(pnpm tsx:*)",
       "Bash(rm:*)",
-      "Bash(pnpm precommit:fix:*)"
+      "Bash(pnpm precommit:fix:*)",
+      "Bash(pnpm precommit:check:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

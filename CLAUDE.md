@@ -22,6 +22,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Guidelines
 
+### IMPORTANT: Pre-commit Checks
+
+**コミット前に必ず以下のチェックを実行すること:**
+
+1. **ESLintチェック**を実行
+
+   ```bash
+   pnpm lint
+   ```
+
+2. **Prettierフォーマット**を実行
+
+   ```bash
+   pnpm format
+   ```
+
+3. **TypeScript型チェック**を実行
+
+   ```bash
+   pnpm typecheck
+   ```
+
+4. **すべてのpre-commitチェック**をまとめて実行（推奨）
+   ```bash
+   pnpm precommit:check
+   ```
+   問題がある場合は自動修正を試みる:
+   ```bash
+   pnpm precommit:fix
+   ```
+
+これらのチェックをコミット前に実行することで、コミット時のpre-commit hookでの失敗を防ぐことができます。特にESLintとTypeScriptのエラーは必ず解決してからコミットすること。
+
 ### IMPORTANT: Verify Latest Versions and Best Practices
 
 **Before implementing any feature or using any library/tool:**

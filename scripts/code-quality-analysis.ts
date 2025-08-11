@@ -13,9 +13,75 @@ import {
   ESLINTCC_RANKS,
   ESLINT_COMPLEXITY_RULES,
   COMPLEXITY_LEVELS,
-  CODE_QUALITY_THRESHOLDS,
   SCORE_RATINGS,
 } from './constants/quality-metrics';
+
+/**
+ * SonarQubeの評価グレード
+ */
+const SONARQUBE_RATINGS = {
+  A: { maxDebtRatio: 0.05, label: 'A', color: '🟢' },
+  B: { maxDebtRatio: 0.1, label: 'B', color: '🟡' },
+  C: { maxDebtRatio: 0.2, label: 'C', color: '🟠' },
+  D: { maxDebtRatio: 0.5, label: 'D', color: '🔴' },
+  E: { maxDebtRatio: Infinity, label: 'E', color: '⚫' },
+} as const;
+
+/**
+ * SonarQubeのデフォルト修正コスト（分）
+ */
+const REMEDIATION_COSTS = {
+  /** 複雑度が閾値を超えた場合の1ポイントあたりの修正時間 */
+  COMPLEXITY_PER_POINT: 30,
+  /** 重複コード1ブロックあたりの修正時間 */
+  DUPLICATION_PER_BLOCK: 120,
+  /** カバレッジ不足1%あたりの修正時間 */
+  COVERAGE_PER_PERCENT: 10,
+  /** 大きなファイル1つあたりの修正時間 */
+  LARGE_FILE: 60,
+  /** 保守性が低いファイル1つあたりの修正時間 */
+  LOW_MAINTAINABILITY: 90,
+} as const;
+
+/**
+ * SonarQubeの品質ゲート閾値
+ */
+const QUALITY_GATE_THRESHOLDS = {
+  /** 循環的複雑度の閾値 */
+  COMPLEXITY: 10,
+  /** 認知的複雑度の閾値 */
+  COGNITIVE_COMPLEXITY: 15,
+  /** 重複率の閾値（%） */
+  DUPLICATION: 3,
+  /** カバレッジの最小値（%） */
+  COVERAGE: 80,
+  /** 1ファイルの最大行数 */
+  FILE_LINES: 500,
+  /** 1関数の最大行数 */
+  FUNCTION_LINES: 50,
+} as const;
+
+/**
+ * 技術的負債の情報
+ */
+interface TechnicalDebt {
+  /** 総修正時間（分） */
+  totalMinutes: number;
+  /** カテゴリ別の負債 */
+  byCategory: {
+    complexity: number;
+    duplication: number;
+    coverage: number;
+    fileSize: number;
+    maintainability: number;
+  };
+  /** 開発コスト（分） */
+  developmentCost: number;
+  /** 技術的負債比率 */
+  debtRatio: number;
+  /** 評価 */
+  rating: 'A' | 'B' | 'C' | 'D' | 'E';
+}
 
 /**
  * Code quality metrics
@@ -75,6 +141,8 @@ interface CodeQualityMetrics {
     /** Number of duplicate blocks */
     blocks: number;
   };
+  /** Test coverage percentage */
+  coverage?: number;
 }
 
 /**
@@ -444,47 +512,148 @@ function analyzeDuplication(files: string[]): CodeQualityMetrics['duplication'] 
 }
 
 /**
- * Calculate overall health score
+ * 開発コストを推定（ファイル数 × 行数から概算）
+ * SonarQubeのデフォルト: 1行 = 0.06日 = 28.8分
  */
-function calculateHealthScore(metrics: CodeQualityMetrics): number {
-  let score = 100;
+function estimateDevelopmentCost(totalFiles: number, avgLinesPerFile: number): number {
+  const MINUTES_PER_LINE = 0.48; // 28.8分 / 60行（1時間で60行書く想定）
+  return totalFiles * avgLinesPerFile * MINUTES_PER_LINE;
+}
 
-  // Complexity penalty
-  if (metrics.complexity.averageComplexity > COMPLEXITY_LEVELS.GOOD.maxValue) {
-    score -= 15;
-  } else if (metrics.complexity.averageComplexity > COMPLEXITY_LEVELS.EXCELLENT.maxValue) {
-    score -= 5;
-  }
+/**
+ * 複雑度による技術的負債を計算
+ */
+function calculateComplexityDebt(metrics: CodeQualityMetrics): number {
+  let debt = 0;
 
-  // Maintainability penalty
-  if (metrics.maintainability.index < 70) {
-    score -= 20;
-  } else if (metrics.maintainability.index < CODE_QUALITY_THRESHOLDS.MAINTAINABILITY.GOOD) {
-    score -= 10;
-  }
-
-  // File size penalty
-  if (metrics.fileMetrics.largeFiles.length > 0) {
-    score -= Math.min(10, metrics.fileMetrics.largeFiles.length * 2);
-  }
-
-  // ESLint issues penalty
-  if (metrics.eslintComplexity) {
-    const totalIssues =
-      metrics.eslintComplexity.cognitiveComplexity +
-      metrics.eslintComplexity.duplicateStrings +
-      metrics.eslintComplexity.otherIssues;
-    if (totalIssues > 0) {
-      score -= Math.min(15, totalIssues);
+  // 高複雑度ファイルごとに負債を計算
+  const highComplexityFiles = metrics.complexity?.highComplexityFiles || [];
+  for (const file of highComplexityFiles) {
+    if (file.complexity > QUALITY_GATE_THRESHOLDS.COMPLEXITY) {
+      const excess = file.complexity - QUALITY_GATE_THRESHOLDS.COMPLEXITY;
+      // 各ファイルの超過分に対して修正コストを計算
+      debt += excess * REMEDIATION_COSTS.COMPLEXITY_PER_POINT;
     }
   }
 
-  // Duplication penalty
-  if (metrics.duplication && metrics.duplication.percentage > 10) {
-    score -= 10;
+  return debt;
+}
+
+/**
+ * 重複による技術的負債を計算
+ */
+function calculateDuplicationDebt(metrics: CodeQualityMetrics): number {
+  const duplicationPercentage = metrics.duplication?.percentage || 0;
+
+  if (duplicationPercentage > QUALITY_GATE_THRESHOLDS.DUPLICATION) {
+    // 重複ブロック数を推定（重複率から概算）
+    const estimatedBlocks = Math.ceil(
+      (duplicationPercentage - QUALITY_GATE_THRESHOLDS.DUPLICATION) / 2
+    );
+    return estimatedBlocks * REMEDIATION_COSTS.DUPLICATION_PER_BLOCK;
   }
 
-  return Math.max(0, Math.min(100, score));
+  return 0;
+}
+
+/**
+ * カバレッジ不足による技術的負債を計算
+ */
+function calculateCoverageDebt(coverage: number | undefined): number {
+  if (coverage === undefined) return 0;
+
+  if (coverage < QUALITY_GATE_THRESHOLDS.COVERAGE) {
+    const deficit = QUALITY_GATE_THRESHOLDS.COVERAGE - coverage;
+    return deficit * REMEDIATION_COSTS.COVERAGE_PER_PERCENT;
+  }
+
+  return 0;
+}
+
+/**
+ * ファイルサイズによる技術的負債を計算
+ */
+function calculateFileSizeDebt(metrics: CodeQualityMetrics): number {
+  const largeFiles = metrics.fileMetrics?.largeFiles || [];
+  return largeFiles.length * REMEDIATION_COSTS.LARGE_FILE;
+}
+
+/**
+ * 保守性による技術的負債を計算
+ */
+function calculateMaintainabilityDebt(metrics: CodeQualityMetrics): number {
+  const lowMaintainabilityFiles = metrics.maintainability?.lowMaintainabilityFiles || [];
+  return lowMaintainabilityFiles.length * REMEDIATION_COSTS.LOW_MAINTAINABILITY;
+}
+
+/**
+ * SonarQube方式で技術的負債を計算
+ */
+function calculateTechnicalDebt(metrics: CodeQualityMetrics): TechnicalDebt {
+  // カテゴリ別の負債を計算
+  const byCategory = {
+    complexity: calculateComplexityDebt(metrics),
+    duplication: calculateDuplicationDebt(metrics),
+    coverage: calculateCoverageDebt(metrics.coverage),
+    fileSize: calculateFileSizeDebt(metrics),
+    maintainability: calculateMaintainabilityDebt(metrics),
+  };
+
+  // 総負債を計算
+  const totalMinutes = Object.values(byCategory).reduce((sum, debt) => sum + debt, 0);
+
+  // 開発コストを推定
+  const developmentCost = estimateDevelopmentCost(
+    metrics.fileMetrics?.totalFiles || 0,
+    metrics.fileMetrics?.avgLinesPerFile || 0
+  );
+
+  // 技術的負債比率を計算
+  const debtRatio = developmentCost > 0 ? totalMinutes / developmentCost : 0;
+
+  // 評価を決定
+  let rating: 'A' | 'B' | 'C' | 'D' | 'E' = 'E';
+  for (const [grade, config] of Object.entries(SONARQUBE_RATINGS)) {
+    if (debtRatio <= config.maxDebtRatio) {
+      rating = grade as typeof rating;
+      break;
+    }
+  }
+
+  return {
+    totalMinutes,
+    byCategory,
+    developmentCost,
+    debtRatio,
+    rating,
+  };
+}
+
+/**
+ * SonarQube方式でスコアを計算（0-100）
+ * 技術的負債比率から逆算
+ */
+function calculateHealthScore(metrics: CodeQualityMetrics): number {
+  const debt = calculateTechnicalDebt(metrics);
+
+  // 負債比率をスコアに変換（逆相関）
+  // A (0-5%) -> 90-100
+  // B (5-10%) -> 75-90
+  // C (10-20%) -> 60-75
+  // D (20-50%) -> 40-60
+  // E (50%+) -> 0-40
+
+  if (debt.debtRatio <= 0.05) {
+    return Math.round(90 + (1 - debt.debtRatio / 0.05) * 10);
+  } else if (debt.debtRatio <= 0.1) {
+    return Math.round(75 + (1 - (debt.debtRatio - 0.05) / 0.05) * 15);
+  } else if (debt.debtRatio <= 0.2) {
+    return Math.round(60 + (1 - (debt.debtRatio - 0.1) / 0.1) * 15);
+  } else if (debt.debtRatio <= 0.5) {
+    return Math.round(40 + (1 - (debt.debtRatio - 0.2) / 0.3) * 20);
+  } else {
+    return Math.round(Math.max(0, 40 - (debt.debtRatio - 0.5) * 40));
+  }
 }
 
 /**
@@ -565,18 +734,37 @@ function displaySummary(metrics: CodeQualityMetrics) {
 
   console.log('\n' + '='.repeat(60));
 
-  // Overall health
+  // SonarQube方式の評価
+  const debt = calculateTechnicalDebt(metrics);
   const healthScore = calculateHealthScore(metrics);
-  console.log(`\n🎯 OVERALL HEALTH SCORE: ${healthScore}/100`);
 
-  if (healthScore >= 80) {
-    console.log('✅ Excellent code quality!');
+  console.log('\n📊 SONARQUBE QUALITY ASSESSMENT');
+  console.log(`  Overall Rating: ${SONARQUBE_RATINGS[debt.rating].color} ${debt.rating}`);
+  console.log(`  Quality Score: ${healthScore}/100`);
+  console.log(`  Technical Debt Ratio: ${(debt.debtRatio * 100).toFixed(2)}%`);
+
+  console.log('\n📈 TECHNICAL DEBT BREAKDOWN:');
+  console.log(`  Total: ${(debt.totalMinutes / 60).toFixed(1)} hours`);
+  console.log(`  - Complexity: ${(debt.byCategory.complexity / 60).toFixed(1)} hours`);
+  console.log(`  - Duplication: ${(debt.byCategory.duplication / 60).toFixed(1)} hours`);
+  console.log(`  - Coverage: ${(debt.byCategory.coverage / 60).toFixed(1)} hours`);
+  console.log(`  - File Size: ${(debt.byCategory.fileSize / 60).toFixed(1)} hours`);
+  console.log(`  - Maintainability: ${(debt.byCategory.maintainability / 60).toFixed(1)} hours`);
+
+  console.log(
+    `\n📐 Estimated Development Cost: ${(debt.developmentCost / 60 / 8).toFixed(1)} days`
+  );
+
+  if (healthScore >= 90) {
+    console.log('\n✅ Excellent code quality! (SonarQube Grade A)');
+  } else if (healthScore >= 75) {
+    console.log('\n🟡 Good code quality (SonarQube Grade B)');
   } else if (healthScore >= 60) {
-    console.log('⚠️  Good quality with room for improvement');
+    console.log('\n🟠 Fair code quality, improvements needed (SonarQube Grade C)');
   } else if (healthScore >= 40) {
-    console.log('🟠 Significant improvements recommended');
+    console.log('\n🔴 Poor code quality, significant improvements required (SonarQube Grade D)');
   } else {
-    console.log('🔴 Code quality needs immediate attention');
+    console.log('\n⚫ Very poor code quality, immediate action required (SonarQube Grade E)');
   }
 
   console.log('='.repeat(60) + '\n');

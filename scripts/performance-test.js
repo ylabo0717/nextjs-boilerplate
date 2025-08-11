@@ -97,7 +97,26 @@ async function runPerformanceTest() {
     if (!Array.isArray(perfEntries) || perfEntries.length === 0) {
       // Fallback: legacy Navigation Timing (Level 1)
       const t = perf?.timing;
-      if (t && t.navigationStart > 0) {
+      // Ensure required legacy timing fields are valid
+      if (
+        t &&
+        typeof t.loadEventEnd === 'number' &&
+        t.loadEventEnd > 0 &&
+        typeof t.fetchStart === 'number' &&
+        t.fetchStart > 0
+      ) {
+        // Order check: fetchStart should be <= loadEventEnd
+        if (t.fetchStart > t.loadEventEnd) {
+          console.warn(
+            'Invalid legacy timing order: fetchStart is greater than loadEventEnd. Returning safe zeros.'
+          );
+          return {
+            domContentLoaded: 0,
+            loadComplete: 0,
+            totalTime: 0,
+            error: 'Invalid legacy timing order',
+          };
+        }
         const domContentLoaded = Math.max(
           0,
           (t.domContentLoadedEventEnd ?? 0) - (t.domContentLoadedEventStart ?? 0)
@@ -122,6 +141,33 @@ async function runPerformanceTest() {
     }
 
     const perfData = perfEntries[0];
+    // Ensure required fields on NavigationTiming are valid
+    if (
+      typeof perfData.loadEventEnd !== 'number' ||
+      typeof perfData.fetchStart !== 'number' ||
+      perfData.loadEventEnd <= 0 ||
+      perfData.fetchStart <= 0
+    ) {
+      console.warn('Invalid navigation timing numeric values. Returning safe zeros.');
+      return {
+        domContentLoaded: 0,
+        loadComplete: 0,
+        totalTime: 0,
+        error: 'Invalid navigation timing numeric values',
+      };
+    }
+
+    if (perfData.fetchStart > perfData.loadEventEnd) {
+      console.warn(
+        'Invalid navigation timing order: fetchStart is greater than loadEventEnd. Returning safe zeros.'
+      );
+      return {
+        domContentLoaded: 0,
+        loadComplete: 0,
+        totalTime: 0,
+        error: 'Invalid navigation timing order',
+      };
+    }
     const domContentLoaded = Math.max(
       0,
       (perfData.domContentLoadedEventEnd ?? 0) - (perfData.domContentLoadedEventStart ?? 0)

@@ -6,23 +6,22 @@
  * Do not use with untrusted input or in production environments.
  */
 
-/* eslint-disable @typescript-eslint/no-require-imports */
-const { chromium } = require('playwright');
-const { spawn, execSync } = require('child_process');
-const http = require('http');
+import { chromium } from 'playwright';
+import { spawn, execSync, type ChildProcess } from 'child_process';
+import * as http from 'http';
+import { PERFORMANCE_THRESHOLDS, RETRY_CONFIG } from '../tests/constants/test-constants';
 
 // Configuration
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 /**
  * Helper function to safely parse integer environment variables
- * @param {string} varName - The environment variable name
- * @param {number} defaultValue - The default value if parsing fails
- * @param {Object} options - Optional validation options
- * @param {number} options.min - Minimum allowed value
- * @param {number} options.max - Maximum allowed value
- * @returns {number} The parsed integer or default value
  */
-function parseEnvInt(varName, defaultValue, options = {}) {
+function parseEnvInt(
+  varName: string,
+  defaultValue: number,
+  options: { min?: number; max?: number } = {}
+): number {
+  // eslint-disable-next-line security/detect-object-injection
   const value = process.env[varName];
 
   // If undefined or empty, use default
@@ -61,10 +60,26 @@ function parseEnvInt(varName, defaultValue, options = {}) {
 }
 
 // Parse environment variables with error handling and validation
-const SERVER_START_RETRIES = parseEnvInt('SERVER_START_RETRIES', 3, { min: 1, max: 10 });
-const SERVER_START_RETRY_DELAY = parseEnvInt('SERVER_START_RETRY_DELAY', 5000, { min: 100 });
-const SERVER_POLLING_INTERVAL = parseEnvInt('SERVER_POLLING_INTERVAL', 1000, { min: 100 });
-const SERVER_FORCE_KILL_TIMEOUT = parseEnvInt('SERVER_FORCE_KILL_TIMEOUT', 5000, { min: 1000 });
+const SERVER_START_RETRIES = parseEnvInt(
+  'SERVER_START_RETRIES',
+  RETRY_CONFIG.SERVER_START_RETRIES,
+  { min: 1, max: 10 }
+);
+const SERVER_START_RETRY_DELAY = parseEnvInt(
+  'SERVER_START_RETRY_DELAY',
+  RETRY_CONFIG.SERVER_START_RETRY_DELAY,
+  { min: 100 }
+);
+const SERVER_POLLING_INTERVAL = parseEnvInt(
+  'SERVER_POLLING_INTERVAL',
+  RETRY_CONFIG.SERVER_POLLING_INTERVAL,
+  { min: 100 }
+);
+const SERVER_FORCE_KILL_TIMEOUT = parseEnvInt(
+  'SERVER_FORCE_KILL_TIMEOUT',
+  RETRY_CONFIG.SERVER_FORCE_KILL_TIMEOUT,
+  { min: 1000 }
+);
 // Grace period before exiting the process to allow cleanup to run
 const EXIT_CLEANUP_GRACE_PERIOD = parseEnvInt('EXIT_CLEANUP_GRACE_PERIOD', 1000, { min: 0 });
 
@@ -72,7 +87,7 @@ const EXIT_CLEANUP_GRACE_PERIOD = parseEnvInt('EXIT_CLEANUP_GRACE_PERIOD', 1000,
  * Server process variable
  * Will be initialized in the main execution block for proper error handling
  */
-let server = null;
+let server: ChildProcess | null = null;
 // Guard flags to avoid double cleanup/exit
 let isCleaningUp = false;
 let exitScheduled = false;
@@ -91,7 +106,9 @@ async function runPerformanceTest() {
   // Collect performance metrics
   const metrics = await page.evaluate(() => {
     const perf = window.performance;
-    const perfEntries = perf?.getEntriesByType?.('navigation');
+    const perfEntries = perf?.getEntriesByType?.('navigation') as
+      | PerformanceNavigationTiming[]
+      | undefined;
 
     // Check if navigation performance data is available (and is an Array)
     if (!Array.isArray(perfEntries) || perfEntries.length === 0) {
@@ -140,7 +157,7 @@ async function runPerformanceTest() {
       };
     }
 
-    const perfData = perfEntries[0];
+    const perfData = perfEntries[0] as PerformanceNavigationTiming;
     // Ensure required fields on NavigationTiming are valid
     if (
       typeof perfData.loadEventEnd !== 'number' ||
@@ -180,8 +197,14 @@ async function runPerformanceTest() {
   console.log('Performance Metrics:', JSON.stringify(metrics, null, 2));
 
   // Check thresholds (configurable via environment variables)
-  const MAX_TOTAL_TIME = parseEnvInt('MAX_TOTAL_TIME', 3000, { min: 0 });
-  const MAX_DOM_CONTENT_LOADED = parseEnvInt('MAX_DOM_CONTENT_LOADED', 1500, { min: 0 });
+  const MAX_TOTAL_TIME = parseEnvInt('MAX_TOTAL_TIME', PERFORMANCE_THRESHOLDS.PAGE_LOAD_TIME, {
+    min: 0,
+  });
+  const MAX_DOM_CONTENT_LOADED = parseEnvInt(
+    'MAX_DOM_CONTENT_LOADED',
+    PERFORMANCE_THRESHOLDS.DOM_CONTENT_LOADED_TIME,
+    { min: 0 }
+  );
 
   const failed = [];
   if (metrics.totalTime > MAX_TOTAL_TIME) {
@@ -207,7 +230,11 @@ async function runPerformanceTest() {
 /**
  * Wait for server to be ready by polling the endpoint
  */
-function waitForServerReady(url, timeoutMs = 30000, intervalMs = SERVER_POLLING_INTERVAL) {
+function waitForServerReady(
+  url: string,
+  timeoutMs = 30000,
+  intervalMs = SERVER_POLLING_INTERVAL
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const start = Date.now();
     function check() {
@@ -237,7 +264,7 @@ function waitForServerReady(url, timeoutMs = 30000, intervalMs = SERVER_POLLING_
  * Check if a command exists in the system PATH
  * Works cross-platform (Windows, macOS, Linux)
  */
-function commandExists(command) {
+function commandExists(command: string): boolean {
   try {
     const isWindows = process.platform === 'win32';
     const checkCommand = isWindows ? `where ${command}` : `which ${command}`;
@@ -251,7 +278,7 @@ function commandExists(command) {
 /**
  * Start the server process
  */
-function startServer() {
+function startServer(): ChildProcess {
   console.log('Starting server process...');
 
   // Determine which package manager to use
@@ -284,13 +311,17 @@ function startServer() {
   });
 
   // Capture server output for debugging
-  server.stdout.on('data', (data) => {
-    console.log(`[Server]: ${data.toString().trim()}`);
-  });
+  if (server.stdout) {
+    server.stdout.on('data', (data) => {
+      console.log(`[Server]: ${data.toString().trim()}`);
+    });
+  }
 
-  server.stderr.on('data', (data) => {
-    console.error(`[Server Error]: ${data.toString().trim()}`);
-  });
+  if (server.stderr) {
+    server.stderr.on('data', (data) => {
+      console.error(`[Server Error]: ${data.toString().trim()}`);
+    });
+  }
 
   server.on('error', (error) => {
     console.error(`Failed to start server process: ${error.message}`);
@@ -302,7 +333,7 @@ function startServer() {
 /**
  * Start server with retry logic
  */
-async function startServerWithRetry() {
+async function startServerWithRetry(): Promise<void> {
   let retries = SERVER_START_RETRIES;
   let lastError;
 
@@ -311,7 +342,9 @@ async function startServerWithRetry() {
     try {
       startServer();
     } catch (error) {
-      throw new Error(`Failed to start server process: ${error.message}`);
+      throw new Error(
+        `Failed to start server process: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -338,7 +371,7 @@ async function startServerWithRetry() {
   }
 
   throw new Error(
-    `Failed to start server after ${SERVER_START_RETRIES} attempts: ${lastError.message}`
+    `Failed to start server after ${SERVER_START_RETRIES} attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`
   );
 }
 
@@ -347,9 +380,8 @@ async function startServerWithRetry() {
  */
 /**
  * Force kill a server process
- * @param {ChildProcess} serverProcess - The server process to kill
  */
-function forceKillServerProcess(serverProcess) {
+function forceKillServerProcess(serverProcess: ChildProcess | null): void {
   if (!serverProcess || serverProcess.killed) {
     return;
   }
@@ -370,7 +402,7 @@ function forceKillServerProcess(serverProcess) {
   }
 }
 
-function cleanupServer() {
+function cleanupServer(): void {
   if (isCleaningUp) {
     return;
   }
@@ -384,17 +416,19 @@ function cleanupServer() {
 
       // Force kill after timeout if still running
       const forceKillTimer = setTimeout(() => {
-        if (!server.killed) {
+        if (server && !server.killed) {
           console.log(`Force killing server process after ${SERVER_FORCE_KILL_TIMEOUT}ms...`);
           forceKillServerProcess(server);
         }
       }, SERVER_FORCE_KILL_TIMEOUT);
 
       // Clear timer if process exits before timeout
-      server.on('exit', () => {
-        clearTimeout(forceKillTimer);
-        console.log('Server process exited gracefully');
-      });
+      if (server) {
+        server.on('exit', () => {
+          clearTimeout(forceKillTimer);
+          console.log('Server process exited gracefully');
+        });
+      }
     } catch (err) {
       console.error('Error during server cleanup:', err);
       // Force kill as last resort
@@ -404,7 +438,7 @@ function cleanupServer() {
 }
 
 // Centralized exit scheduler to avoid double cleanup/exit
-function scheduleExit(code = 0) {
+function scheduleExit(code = 0): void {
   if (exitScheduled) return;
   exitScheduled = true;
   cleanupServer();

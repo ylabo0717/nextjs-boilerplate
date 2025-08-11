@@ -14,6 +14,11 @@ vi.spyOn(process, 'exit').mockImplementation((code) => {
 // Import after mocks
 import { measureMetrics } from '../../scripts/measure-metrics';
 
+/**
+ * メトリクス測定機能のテストスイート
+ * scripts/measure-metrics.tsのmeasureMetrics関数が
+ * ビルド時間、テスト実行時間、バンドルサイズの測定を正しく行うことを検証
+ */
 describe('measure-metrics', () => {
   const PNPM_BUILD_COMMAND = 'pnpm build';
   const PNPM_TEST_COMMAND = 'pnpm test';
@@ -27,6 +32,10 @@ describe('measure-metrics', () => {
   });
 
   describe('measureMetrics', () => {
+    /**
+     * すべてのメトリクス測定が正常に完了するケースを検証
+     * ビルド、テスト、バンドルサイズを測定し、metricsフォルダに保存されることを確認
+     */
     it('should successfully measure all metrics', async () => {
       // Mock successful build output
       const buildOutput = `
@@ -64,6 +73,10 @@ describe('measure-metrics', () => {
       expect(fs.writeFileSync).toHaveBeenCalled();
     });
 
+    /**
+     * ビルドコマンドが失敗した場合のエラーハンドリングを検証
+     * process.exit(1)が呼ばれ、適切なエラーメッセージが出力されることを確認
+     */
     it('should handle build failure', async () => {
       vi.mocked(execSync).mockImplementation(() => {
         throw new Error('Build failed');
@@ -75,6 +88,10 @@ describe('measure-metrics', () => {
       expect(console.error).toHaveBeenCalledWith('❌ Error measuring metrics:', expect.any(Error));
     });
 
+    /**
+     * --buildフラグ指定時、ビルド時間のみを測定することを検証
+     * テストやバンドルサイズの測定はスキップされることを確認
+     */
     it('should measure only build time with --build flag', async () => {
       process.argv = ['node', 'test.js', '--build'];
 
@@ -103,6 +120,10 @@ describe('measure-metrics', () => {
       );
     });
 
+    /**
+     * --testフラグ指定時、テスト実行時間のみを測定することを検証
+     * ビルドやバンドルサイズの測定はスキップされることを確認
+     */
     it('should measure only test time with --test flag', async () => {
       process.argv = ['node', 'test.js', '--test'];
 
@@ -123,6 +144,10 @@ describe('measure-metrics', () => {
       expect(execSync).toHaveBeenCalledWith(PNPM_TEST_COMMAND, expect.any(Object));
     });
 
+    /**
+     * --bundleフラグ指定時、バンドルサイズのみを測定することを検証
+     * .nextフォルダ内のファイルサイズを再帰的に計算することを確認
+     */
     it('should measure bundle size with --bundle flag', async () => {
       process.argv = ['node', 'test.js', '--bundle'];
 

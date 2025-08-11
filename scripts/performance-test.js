@@ -65,12 +65,17 @@ const SERVER_START_RETRIES = parseEnvInt('SERVER_START_RETRIES', 3, { min: 1, ma
 const SERVER_START_RETRY_DELAY = parseEnvInt('SERVER_START_RETRY_DELAY', 5000, { min: 100 });
 const SERVER_POLLING_INTERVAL = parseEnvInt('SERVER_POLLING_INTERVAL', 1000, { min: 100 });
 const SERVER_FORCE_KILL_TIMEOUT = parseEnvInt('SERVER_FORCE_KILL_TIMEOUT', 5000, { min: 1000 });
+// Grace period before exiting the process to allow cleanup to run
+const EXIT_CLEANUP_GRACE_PERIOD = parseEnvInt('EXIT_CLEANUP_GRACE_PERIOD', 1000, { min: 0 });
 
 /**
  * Server process variable
  * Will be initialized in the main execution block for proper error handling
  */
 let server = null;
+// Guard flags to avoid double cleanup/exit
+let isCleaningUp = false;
+let exitScheduled = false;
 
 /**
  * Run performance tests against the application
@@ -320,6 +325,11 @@ function forceKillServerProcess(serverProcess) {
 }
 
 function cleanupServer() {
+  if (isCleaningUp) {
+    return;
+  }
+  isCleaningUp = true;
+
   if (server && !server.killed) {
     console.log('Cleaning up server process...');
     try {
@@ -347,20 +357,37 @@ function cleanupServer() {
   }
 }
 
-// Register cleanup handlers
-process.on('exit', cleanupServer);
-process.on('SIGINT', () => {
+// Centralized exit scheduler to avoid double cleanup/exit
+function scheduleExit(code = 0) {
+  if (exitScheduled) return;
+  exitScheduled = true;
   cleanupServer();
-  process.exit(130);
+  // Give cleanup time to complete
+  setTimeout(() => {
+    process.exit(code);
+  }, EXIT_CLEANUP_GRACE_PERIOD);
+}
+
+// Register cleanup handlers
+// Keep the exit handler minimal: async work (timers) won't run in 'exit' phase
+process.on('exit', () => {
+  if (server && !server.killed) {
+    try {
+      server.kill('SIGKILL');
+    } catch {}
+  }
+});
+process.on('SIGINT', () => {
+  console.error('Received SIGINT');
+  scheduleExit(130);
 });
 process.on('SIGTERM', () => {
-  cleanupServer();
-  process.exit(143);
+  console.error('Received SIGTERM');
+  scheduleExit(143);
 });
 process.on('uncaughtException', (err) => {
   console.error('Uncaught exception:', err);
-  cleanupServer();
-  process.exit(1);
+  scheduleExit(1);
 });
 
 // Main execution
@@ -376,10 +403,6 @@ process.on('uncaughtException', (err) => {
     console.error('Performance test failed:', error);
     exitCode = 1;
   } finally {
-    cleanupServer();
-    // Give cleanup time to complete
-    setTimeout(() => {
-      process.exit(exitCode);
-    }, 1000);
+    scheduleExit(exitCode);
   }
 })();

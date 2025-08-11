@@ -194,7 +194,7 @@ function checkLintIssues(): { errors: number; warnings: number } {
 
     return { errors: totalErrors, warnings: totalWarnings };
   } catch (error) {
-    // ESLintがエラーを返した場合
+    // If ESLint returns an error
     const execError = error as ExecError;
     const output = execError.stdout?.toString() || '[]';
     try {

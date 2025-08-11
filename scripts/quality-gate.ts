@@ -136,7 +136,7 @@ const DEFAULT_THRESHOLDS: QualityThresholds = {
   },
   bundleSize: {
     maximum: PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_MAX,
-    warning: 52428800, // 50MB
+    warning: PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_WARNING, // 50MB
   },
   firstLoadJS: {
     excellent: 100, // 100KB

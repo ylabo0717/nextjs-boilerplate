@@ -34,6 +34,10 @@ export const PERFORMANCE_THRESHOLDS = {
    */
   BUNDLE_SIZE_MAX: 104857600,
   /**
+   * Warning threshold for total bundle size in bytes (50MB)
+   */
+  BUNDLE_SIZE_WARNING: 52428800,
+  /**
    * Target (recommended) total bundle size in bytes (5MB)
    * Used for displaying ✅/⚠️ in reports
    */

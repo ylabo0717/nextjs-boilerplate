@@ -147,7 +147,7 @@ jobs:
         with:
           name: playwright-report-scheduled-${{ matrix.browser }}-${{ github.run_number }}
           path: playwright-report/
-          retention-days: 7 # Reduced from 30 to 7 days for regular reports
+          retention-days: 7 # Standard retention period for reports (consistent with other workflows)
 
       - name: Upload test videos and screenshots
         if: failure()

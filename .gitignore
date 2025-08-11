@@ -46,6 +46,7 @@ next-env.d.ts
 # metrics
 /metrics/
 
+
 # Serena MCP
 .serena/
 # However, share the project settings

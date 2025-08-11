@@ -1,0 +1,204 @@
+name: Code Quality Analysis
+
+on:
+  # Run weekly on Monday at 00:00 UTC
+  schedule:
+    - cron: '0 0 * * 1'
+  # Allow manual trigger
+  workflow_dispatch:
+  # Run on PR to main/develop
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'eslint.config.mjs'
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  analyze:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run code quality analysis
+        id: quality
+        run: |
+          echo "### Running comprehensive code quality analysis..."
+          pnpm quality:analyze || true
+        continue-on-error: true
+
+      - name: Generate unified report
+        id: report
+        run: |
+          echo "### Generating unified quality report..."
+          pnpm quality:report
+        continue-on-error: true
+
+      - name: Upload metrics
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-metrics-${{ github.sha }}
+          path: |
+            metrics/code-quality-*.json
+            metrics/unified-report.*
+          retention-days: 30
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // Read the markdown report
+            const reportPath = path.join(process.cwd(), 'metrics', 'unified-report.md');
+            if (!fs.existsSync(reportPath)) {
+              console.log('Report not found');
+              return;
+            }
+
+            const report = fs.readFileSync(reportPath, 'utf-8');
+
+            // Post or update comment
+            const identifier = '<!-- code-quality-report -->';
+            const body = `${identifier}\n${report}`;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existingComment = comments.find(c => c.body.includes(identifier));
+
+            if (existingComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body,
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Create issue for critical problems
+        if: github.event_name == 'schedule' && steps.report.outputs.health_score < 60
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // Read the JSON report
+            const reportPath = path.join(process.cwd(), 'metrics', 'unified-report.json');
+            if (!fs.existsSync(reportPath)) {
+              return;
+            }
+
+            const report = JSON.parse(fs.readFileSync(reportPath, 'utf-8'));
+
+            if (report.healthScore < 60) {
+              const title = `⚠️ Code Quality Alert: Health Score ${report.healthScore}/100`;
+              const body = `
+              ## Code Quality Issues Detected
+              
+              The automated code quality analysis has detected issues that need attention.
+              
+              **Health Score:** ${report.healthScore}/100
+              
+              ### Recommendations:
+              ${report.recommendations.map(r => `- ${r}`).join('\n')}
+              
+              ### Actions Required:
+              1. Review the [full report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+              2. Address critical issues first
+              3. Run \`pnpm quality:full\` locally to verify fixes
+              
+              ---
+              *This issue was automatically created by the Code Quality workflow*
+              `;
+              
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['quality', 'automated'],
+              });
+            }
+
+      - name: Generate summary
+        if: always()
+        run: |
+          if [ -f "metrics/unified-report.json" ]; then
+            HEALTH_SCORE=$(jq -r '.healthScore' metrics/unified-report.json)
+            echo "## 📊 Code Quality Analysis Complete" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Health Score:** $HEALTH_SCORE/100" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "$HEALTH_SCORE" -ge 80 ]; then
+              echo "✅ Excellent code quality!" >> $GITHUB_STEP_SUMMARY
+            elif [ "$HEALTH_SCORE" -ge 60 ]; then
+              echo "⚠️ Good quality with room for improvement" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "🔴 Quality needs immediate attention" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "- [Plato Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+            echo "- [Quality Metrics](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          fi

@@ -34,7 +34,8 @@
       "Bash(gh run view:*)",
       "Bash(gh workflow:*)",
       "WebFetch(domain:docs.github.com)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(pnpm quality:report:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

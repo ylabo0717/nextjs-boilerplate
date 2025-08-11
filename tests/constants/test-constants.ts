@@ -86,6 +86,36 @@ export const RETRY_CONFIG = {
    * Wait between retries to prevent rate limiting and allow recovery (unit: ms)
    */
   RETRY_DELAY: 1000,
+
+  /**
+   * Server startup retry attempts for performance tests (unit: count)
+   */
+  SERVER_START_RETRIES: 3,
+
+  /**
+   * Delay between server startup retries (unit: ms)
+   */
+  SERVER_START_RETRY_DELAY: 5000,
+
+  /**
+   * Polling interval for server health checks (unit: ms)
+   */
+  SERVER_POLLING_INTERVAL: 1000,
+
+  /**
+   * Timeout before force killing unresponsive server process (unit: ms)
+   */
+  SERVER_FORCE_KILL_TIMEOUT: 5000,
+
+  /**
+   * Grace period before exiting the process to allow cleanup to run (unit: ms)
+   */
+  EXIT_CLEANUP_GRACE_PERIOD: 1000,
+
+  /**
+   * Maximum time to wait for server to become ready (unit: ms)
+   */
+  SERVER_READY_TIMEOUT: 30000,
 } as const;
 
 /**
@@ -170,6 +200,16 @@ export const PERFORMANCE_THRESHOLDS = {
    * Memory leak detection threshold to prevent excessive RAM usage (unit: MB)
    */
   MEMORY_INCREASE_MAX: 50,
+
+  /**
+   * Maximum acceptable page load time (unit: ms)
+   */
+  PAGE_LOAD_TIME: 3000,
+
+  /**
+   * Maximum acceptable DOM content loaded time (unit: ms)
+   */
+  DOM_CONTENT_LOADED_TIME: 1500,
 } as const;
 
 /**

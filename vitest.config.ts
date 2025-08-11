@@ -50,7 +50,9 @@ export default defineConfig({
         'src/app/**/template.tsx',
         'src/app/**/global-error.tsx',
         'src/app/**/*.css',
-        'src/components/**',
+        // Exclude UI components (shadcn/ui and layout components typically don't need testing)
+        'src/components/ui/**',
+        'src/components/layout/**',
         'src/types/**',
         'src/constants/**',
         '**/*.config.*',

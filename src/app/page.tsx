@@ -17,7 +17,7 @@ export default function Home() {
           <li className="mb-2 tracking-[-.01em]">
             Get started by editing{' '}
             <code className="rounded bg-black/[.05] px-1 py-0.5 font-mono font-semibold dark:bg-white/[.06]">
-              app/page.tsx
+              src/app/page.tsx
             </code>
             .
           </li>

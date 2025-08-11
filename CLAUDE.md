@@ -46,6 +46,45 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Look for migration guides when tools are deprecated
    - Replace deprecated dependencies proactively
 
+### Single Source of Truth Principle
+
+**All configuration values, constants, and thresholds should have a single, authoritative source.**
+
+This principle is critical for maintainability and consistency across the codebase:
+
+1. **Constants and Configuration**
+   - Define all numeric constants in centralized files (`/constants/` for app constants, `/tests/constants/test-constants.ts` for test constants)
+   - Never duplicate values across multiple files
+   - Use imports rather than hardcoding values
+
+2. **Environment-Specific Values**
+   - Use environment variables only for deployment-specific configuration (URLs, API keys)
+   - Avoid using environment variables to override constants that should be consistent
+
+3. **Benefits**
+   - **Consistency**: Same values used everywhere
+   - **Maintainability**: Update in one place, effect everywhere
+   - **Clarity**: Clear where each value comes from
+   - **Type Safety**: TypeScript ensures correct usage
+
+4. **Example**
+
+   ```typescript
+   // ❌ Bad - duplicated values
+   // scripts/performance-test.ts
+   const TIMEOUT = 3000;
+   // tests/e2e/test.spec.ts
+   const TIMEOUT = 3000;
+
+   // ✅ Good - single source
+   // tests/constants/test-constants.ts
+   export const PERFORMANCE_THRESHOLDS = {
+     PAGE_LOAD_TIME: 3000,
+   };
+   // scripts/performance-test.ts
+   import { PERFORMANCE_THRESHOLDS } from '../tests/constants/test-constants';
+   ```
+
 ### Examples of Required Verification
 
 - **GitHub Actions:** Always check the latest version and verify if the action is still maintained

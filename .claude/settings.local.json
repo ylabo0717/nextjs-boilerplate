@@ -1,4 +1,10 @@
 {
+  "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": "900000",
+    "BASH_MAX_TIMEOUT_MS": "900000",
+    "MCP_TIMEOUT": "900000",
+    "MCP_TOOL_TIMEOUT": "900000"
+  },
   "permissions": {
     "allow": [
       "mcp__serena__activate_project",
@@ -47,6 +53,13 @@
       "Bash(rm:*)",
       "Bash(pnpm precommit:fix:*)",
       "Bash(pnpm precommit:check:*)"
+    ],
+    "deny": [
+      "Bash(sudo *)",
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf ~/*)",
+      "Bash(rm -rf /*)"
     ]
   },
   "enableAllProjectMcpServers": true,

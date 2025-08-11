@@ -95,20 +95,26 @@ pnpm typecheck    # Run TypeScript type checking
 
 ```
 nextjs-boilerplate/
-├── app/                  # Next.js App Router
-│   ├── layout.tsx       # Root layout with providers
-│   ├── page.tsx         # Home page
-│   └── example/         # Example page with form demo
-├── components/
-│   └── ui/              # shadcn/ui components
-├── lib/
-│   └── utils.ts         # Utility functions (cn, etc.)
-├── hooks/               # Custom React hooks
-├── services/            # Business logic and API services
-├── features/            # Feature-based modules
-├── types/               # TypeScript type definitions
-├── constants/           # Application constants
-├── public/              # Static assets
+├── src/                  # Application source code
+│   ├── app/              # Next.js App Router
+│   │   ├── layout.tsx    # Root layout with providers
+│   │   ├── page.tsx      # Home page
+│   │   └── globals.css   # Global styles
+│   ├── components/       # React components
+│   │   ├── ui/           # shadcn/ui base components
+│   │   ├── layout/       # Layout components (header, footer, etc.)
+│   │   └── features/     # Feature-specific components
+│   ├── lib/              # Complex business logic
+│   ├── utils/            # Pure utility functions
+│   │   └── cn.ts         # Class name utility
+│   ├── hooks/            # Custom React hooks
+│   ├── services/         # Business logic and API services
+│   ├── features/         # Feature-based modules
+│   ├── types/            # TypeScript type definitions
+│   ├── constants/        # Application constants
+│   ├── stores/           # State management
+│   └── repositories/     # Data access layer
+├── public/               # Static assets
 └── docs/                # Documentation
 ```
 

@@ -100,15 +100,24 @@ This is a Next.js 15.4.6 application using the App Router architecture with Reac
 
 **Key directories:**
 
-- `/app/` - Next.js App Router pages and layouts
-- `/lib/` - Utility functions including the `cn()` class name utility
-- `/components/` - React components (will be created when adding shadcn/ui components)
+- `/src/` - All application source code
+  - `/app/` - Next.js App Router pages and layouts
+  - `/components/` - React components
+    - `/ui/` - shadcn/ui base components
+    - `/layout/` - Layout components (header, footer, etc.)
+    - `/features/` - Feature-specific components
+  - `/lib/` - Complex business logic and external service integrations
+  - `/utils/` - Pure utility functions (side-effect free)
+  - `/hooks/` - Custom React hooks
+  - `/services/` - Business logic and API services
+  - `/features/` - Feature-based modules
+  - `/types/` - TypeScript type definitions
+  - `/constants/` - Application constants
+  - `/stores/` - State management
+  - `/repositories/` - Data access layer
 - `/public/` - Static assets
-- `/hooks/` - Custom React hooks
-- `/services/` - Business logic and API services
-- `/features/` - Feature-based modules
-- `/types/` - TypeScript type definitions
-- `/constants/` - Application constants
+- `/tests/` - Test files (unit and E2E)
+- `/docs/` - Documentation
 
 ### Technology Stack
 
@@ -122,8 +131,8 @@ This is a Next.js 15.4.6 application using the App Router architecture with Reac
 
 ### Key Patterns
 
-1. **Path Aliases:** Use `@/` for imports from root (e.g., `@/lib/utils`)
-2. **Styling:** Use Tailwind utility classes with the `cn()` utility from `@/lib/utils` for conditional classes
+1. **Path Aliases:** Use `@/` for imports from src directory (e.g., `@/utils/cn`, `@/components/ui/button`)
+2. **Styling:** Use Tailwind utility classes with the `cn()` utility from `@/utils/cn` for conditional classes
 3. **Components:** shadcn/ui is configured - use their CLI to add components: `pnpm dlx shadcn@latest add [component-name]`
 4. **CSS Variables:** The project uses CSS custom properties for theming with light/dark mode support
 
@@ -132,7 +141,7 @@ This is a Next.js 15.4.6 application using the App Router architecture with Reac
 - Style: "new-york"
 - Base color: zinc
 - CSS variables enabled
-- Components will be added to `/components/ui/`
+- Components will be added to `/src/components/ui/`
 
 ### Development Notes
 

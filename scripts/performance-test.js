@@ -85,10 +85,28 @@ async function runPerformanceTest() {
 
   // Collect performance metrics
   const metrics = await page.evaluate(() => {
-    const perfEntries = performance.getEntriesByType('navigation');
+    const perf = window.performance;
+    const perfEntries = perf?.getEntriesByType?.('navigation');
 
-    // Check if navigation performance data is available
-    if (!perfEntries || perfEntries.length === 0) {
+    // Check if navigation performance data is available (and is an Array)
+    if (!Array.isArray(perfEntries) || perfEntries.length === 0) {
+      // Fallback: legacy Navigation Timing (Level 1)
+      const t = perf?.timing;
+      if (t && t.navigationStart > 0) {
+        const domContentLoaded = Math.max(
+          0,
+          (t.domContentLoadedEventEnd ?? 0) - (t.domContentLoadedEventStart ?? 0)
+        );
+        const loadComplete = Math.max(0, (t.loadEventEnd ?? 0) - (t.loadEventStart ?? 0));
+        const totalTime = Math.max(0, (t.loadEventEnd ?? 0) - (t.fetchStart ?? 0));
+        return {
+          domContentLoaded,
+          loadComplete,
+          totalTime,
+          warning: 'Used legacy performance.timing fallback',
+        };
+      }
+
       console.warn('No navigation performance data available');
       return {
         domContentLoaded: 0,
@@ -99,11 +117,13 @@ async function runPerformanceTest() {
     }
 
     const perfData = perfEntries[0];
-    return {
-      domContentLoaded: perfData.domContentLoadedEventEnd - perfData.domContentLoadedEventStart,
-      loadComplete: perfData.loadEventEnd - perfData.loadEventStart,
-      totalTime: perfData.loadEventEnd - perfData.fetchStart,
-    };
+    const domContentLoaded = Math.max(
+      0,
+      (perfData.domContentLoadedEventEnd ?? 0) - (perfData.domContentLoadedEventStart ?? 0)
+    );
+    const loadComplete = Math.max(0, (perfData.loadEventEnd ?? 0) - (perfData.loadEventStart ?? 0));
+    const totalTime = Math.max(0, (perfData.loadEventEnd ?? 0) - (perfData.fetchStart ?? 0));
+    return { domContentLoaded, loadComplete, totalTime };
   });
 
   console.log('Performance Metrics:', JSON.stringify(metrics, null, 2));

@@ -109,8 +109,8 @@ async function runPerformanceTest() {
   console.log('Performance Metrics:', JSON.stringify(metrics, null, 2));
 
   // Check thresholds (configurable via environment variables)
-  const MAX_TOTAL_TIME = parseInt(process.env.MAX_TOTAL_TIME || '3000', 10);
-  const MAX_DOM_CONTENT_LOADED = parseInt(process.env.MAX_DOM_CONTENT_LOADED || '1500', 10);
+  const MAX_TOTAL_TIME = parseEnvInt('MAX_TOTAL_TIME', 3000, { min: 0 });
+  const MAX_DOM_CONTENT_LOADED = parseEnvInt('MAX_DOM_CONTENT_LOADED', 1500, { min: 0 });
 
   const failed = [];
   if (metrics.totalTime > MAX_TOTAL_TIME) {

@@ -39,7 +39,8 @@
       "Bash(pnpm metrics:build:*)",
       "Bash(pnpm quality:check:*)",
       "Bash(pnpm quality:analyze:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "WebFetch(domain:github.com)"
     ]
   },
   "enableAllProjectMcpServers": true,

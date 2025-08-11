@@ -50,7 +50,7 @@ const eslintConfig = [
       'security/detect-no-csrf-before-method-override': 'error',
       'security/detect-possible-timing-attacks': 'error',
       'no-secrets/no-secrets': 'warn',
-      
+
       // SonarJS rules - Code quality and complexity
       'sonarjs/cognitive-complexity': ['warn', 15], // Start with warning, tighten later
       'sonarjs/no-duplicate-string': ['warn', { threshold: 3 }],
@@ -60,14 +60,14 @@ const eslintConfig = [
       'sonarjs/no-redundant-jump': 'error',
       'sonarjs/no-unused-collection': 'error',
       'sonarjs/no-use-of-empty-return-value': 'error',
-      
+
       // JSDoc rules - Documentation quality
       'jsdoc/require-description': 'off', // Optional, enable for stricter docs
       'jsdoc/require-param-description': 'warn',
       'jsdoc/require-returns-description': 'warn',
       'jsdoc/check-alignment': 'warn',
       'jsdoc/check-param-names': 'error',
-      
+
       // Unicorn rules - Best practices
       'unicorn/filename-case': [
         'error',

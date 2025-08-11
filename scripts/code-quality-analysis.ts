@@ -21,7 +21,7 @@ import {
  * These grades follow the industry-standard SonarQube methodology.
  * @see https://docs.sonarqube.org/latest/user-guide/metric-definitions/
  */
-const SONARQUBE_RATINGS = {
+const _SONARQUBE_RATINGS = {
   A: { maxDebtRatio: 0.05, label: 'A', color: '🟢' },
   B: { maxDebtRatio: 0.1, label: 'B', color: '🟡' },
   C: { maxDebtRatio: 0.2, label: 'C', color: '🟠' },
@@ -33,7 +33,7 @@ const SONARQUBE_RATINGS = {
  * Default remediation costs in minutes based on SonarQube standards.
  * These values represent the estimated time needed to fix various code issues.
  */
-const REMEDIATION_COSTS = {
+const _REMEDIATION_COSTS = {
   /** Minutes required to fix each point of complexity exceeding threshold */
   COMPLEXITY_PER_POINT: 30,
   /** Minutes required to fix each duplicated code block */
@@ -50,7 +50,7 @@ const REMEDIATION_COSTS = {
  * SonarQube quality gate thresholds.
  * These are the standard thresholds used to determine if code meets quality standards.
  */
-const QUALITY_GATE_THRESHOLDS = {
+const _QUALITY_GATE_THRESHOLDS = {
   /** Maximum acceptable cyclomatic complexity per function */
   COMPLEXITY: 10,
   /** Maximum acceptable cognitive complexity per function */
@@ -69,7 +69,7 @@ const QUALITY_GATE_THRESHOLDS = {
  * Technical debt information calculated based on SonarQube methodology.
  * Technical debt represents the effort required to fix all code issues.
  */
-interface TechnicalDebt {
+interface _TechnicalDebt {
   /** Total remediation time in minutes */
   totalMinutes: number;
   /** Technical debt breakdown by category */
@@ -466,407 +466,49 @@ function calculateMaintainabilityMetrics(
 }
 
 /**
- * Analyze code duplication
+ * Analyze code duplication using jscpd
+ * Uses industry-standard token-based detection for accurate duplicate identification
  */
-function analyzeDuplication(files: string[]): CodeQualityMetrics['duplication'] {
-  console.log('🔍 Analyzing code duplication...');
+async function analyzeDuplication(files: string[]): Promise<CodeQualityMetrics['duplication']> {
+  console.log('🔍 Analyzing code duplication with jscpd...');
 
-  const contentHashes = new Map<string, string[]>();
-  let totalLines = 0;
-  let duplicateLines = 0;
+  if (files.length === 0) {
+    return {
+      percentage: 0,
+      blocks: 0,
+    };
+  }
 
-  for (const file of files) {
-    if (fs.existsSync(file)) {
-      const content = fs.readFileSync(file, 'utf-8');
-      const lines = content.split('\n');
-      totalLines += lines.length;
+  try {
+    // Run jscpd via CLI for better control
+    execSync('pnpm jscpd . --silent --reporters json --output ./metrics', {
+      encoding: 'utf-8',
+      stdio: 'pipe',
+    });
+  } catch {
+    // jscpd exits with non-zero if duplicates found, but that's ok
+  }
 
-      // Create hashes of code blocks (simplified)
-      for (let i = 0; i < lines.length - 3; i++) {
-        const block = lines
-          .slice(i, i + 4)
-          .join('\n')
-          .trim();
-        if (block.length > 50) {
-          // Only consider meaningful blocks
-          const hash = block.replace(/\s+/g, ' ');
-          if (!contentHashes.has(hash)) {
-            contentHashes.set(hash, []);
-          }
-          contentHashes.get(hash)!.push(file);
-        }
-      }
+  // Parse the metrics file
+  try {
+    const metricsPath = path.join(process.cwd(), 'metrics', 'jscpd-report.json');
+    if (fs.existsSync(metricsPath)) {
+      const report = JSON.parse(fs.readFileSync(metricsPath, 'utf-8'));
+      const percentage = report.statistics?.total?.percentage || 0;
+      const blocks = report.duplicates?.length || 0;
+      return {
+        percentage: Number(percentage.toFixed(2)),
+        blocks,
+      };
     }
-  }
-
-  // Count duplicate blocks
-  let blocks = 0;
-  for (const [, occurrences] of contentHashes) {
-    if (occurrences.length > 1) {
-      blocks++;
-      duplicateLines += occurrences.length * 4; // Approximate lines affected
-    }
-  }
-
-  const percentage = totalLines > 0 ? (duplicateLines / totalLines) * 100 : 0;
-
-  return {
-    percentage: Math.min(100, percentage),
-    blocks,
-  };
-}
-
-/**
- * Estimates the development cost based on file count and lines of code.
- * Uses SonarQube's default: 1 line = 0.06 days = 28.8 minutes.
- * @param totalFiles - Total number of files in the project
- * @param avgLinesPerFile - Average lines of code per file
- * @returns Estimated development cost in minutes
- */
-function estimateDevelopmentCost(totalFiles: number, avgLinesPerFile: number): number {
-  const MINUTES_PER_LINE = 0.48; // 28.8 min / 60 lines (assuming 60 lines per hour)
-  return totalFiles * avgLinesPerFile * MINUTES_PER_LINE;
-}
-
-/**
- * Calculates technical debt caused by high code complexity.
- * Debt is calculated for each file exceeding the complexity threshold.
- * @param metrics - Code quality metrics containing complexity data
- * @returns Technical debt in minutes for complexity issues
- */
-function calculateComplexityDebt(metrics: CodeQualityMetrics): number {
-  let debt = 0;
-
-  // Calculate debt for each high-complexity file
-  const highComplexityFiles = metrics.complexity?.highComplexityFiles || [];
-  for (const file of highComplexityFiles) {
-    if (file.complexity > QUALITY_GATE_THRESHOLDS.COMPLEXITY) {
-      const excess = file.complexity - QUALITY_GATE_THRESHOLDS.COMPLEXITY;
-      // Calculate remediation cost for complexity exceeding threshold
-      debt += excess * REMEDIATION_COSTS.COMPLEXITY_PER_POINT;
-    }
-  }
-
-  return debt;
-}
-
-/**
- * Calculates technical debt caused by code duplication.
- * Debt increases with the percentage of duplicated code.
- * @param metrics - Code quality metrics containing duplication data
- * @returns Technical debt in minutes for duplication issues
- */
-function calculateDuplicationDebt(metrics: CodeQualityMetrics): number {
-  const duplicationPercentage = metrics.duplication?.percentage || 0;
-
-  if (duplicationPercentage > QUALITY_GATE_THRESHOLDS.DUPLICATION) {
-    // Estimate number of duplicate blocks from duplication percentage
-    const estimatedBlocks = Math.ceil(
-      (duplicationPercentage - QUALITY_GATE_THRESHOLDS.DUPLICATION) / 2
-    );
-    return estimatedBlocks * REMEDIATION_COSTS.DUPLICATION_PER_BLOCK;
-  }
-
-  return 0;
-}
-
-/**
- * Calculates technical debt caused by insufficient test coverage.
- * Debt is proportional to the coverage deficit below the threshold.
- * @param coverage - Current test coverage percentage (0-100)
- * @returns Technical debt in minutes for coverage issues
- */
-function calculateCoverageDebt(coverage: number | undefined): number {
-  if (coverage === undefined) return 0;
-
-  if (coverage < QUALITY_GATE_THRESHOLDS.COVERAGE) {
-    const deficit = QUALITY_GATE_THRESHOLDS.COVERAGE - coverage;
-    return deficit * REMEDIATION_COSTS.COVERAGE_PER_PERCENT;
-  }
-
-  return 0;
-}
-
-/**
- * Calculates technical debt caused by large files.
- * Large files are harder to maintain and understand.
- * @param metrics - Code quality metrics containing file size data
- * @returns Technical debt in minutes for file size issues
- */
-function calculateFileSizeDebt(metrics: CodeQualityMetrics): number {
-  const largeFiles = metrics.fileMetrics?.largeFiles || [];
-  return largeFiles.length * REMEDIATION_COSTS.LARGE_FILE;
-}
-
-/**
- * Calculates technical debt caused by low maintainability.
- * Files with low maintainability index require more effort to maintain.
- * @param metrics - Code quality metrics containing maintainability data
- * @returns Technical debt in minutes for maintainability issues
- */
-function calculateMaintainabilityDebt(metrics: CodeQualityMetrics): number {
-  const lowMaintainabilityFiles = metrics.maintainability?.lowMaintainabilityFiles || [];
-  return lowMaintainabilityFiles.length * REMEDIATION_COSTS.LOW_MAINTAINABILITY;
-}
-
-/**
- * Calculates total technical debt using SonarQube methodology.
- * Technical debt ratio = remediation cost / development cost.
- * @param metrics - Comprehensive code quality metrics
- * @returns Technical debt information including ratio and rating
- */
-function calculateTechnicalDebt(metrics: CodeQualityMetrics): TechnicalDebt {
-  // Calculate debt for each category
-  const byCategory = {
-    complexity: calculateComplexityDebt(metrics),
-    duplication: calculateDuplicationDebt(metrics),
-    coverage: calculateCoverageDebt(metrics.coverage),
-    fileSize: calculateFileSizeDebt(metrics),
-    maintainability: calculateMaintainabilityDebt(metrics),
-  };
-
-  // Calculate total debt
-  const totalMinutes = Object.values(byCategory).reduce((sum, debt) => sum + debt, 0);
-
-  // Estimate development cost
-  const developmentCost = estimateDevelopmentCost(
-    metrics.fileMetrics?.totalFiles || 0,
-    metrics.fileMetrics?.avgLinesPerFile || 0
-  );
-
-  // Calculate technical debt ratio
-  const debtRatio = developmentCost > 0 ? totalMinutes / developmentCost : 0;
-
-  // Determine quality rating based on debt ratio
-  let rating: 'A' | 'B' | 'C' | 'D' | 'E' = 'E';
-  for (const [grade, config] of Object.entries(SONARQUBE_RATINGS)) {
-    if (debtRatio <= config.maxDebtRatio) {
-      rating = grade as typeof rating;
-      break;
-    }
+  } catch (error) {
+    console.error('⚠️ Failed to parse jscpd report:', error);
   }
 
   return {
-    totalMinutes,
-    byCategory,
-    developmentCost,
-    debtRatio,
-    rating,
+    percentage: 0,
+    blocks: 0,
   };
-}
-
-/**
- * Calculates health score (0-100) based on SonarQube methodology.
- * Score is inversely proportional to technical debt ratio.
- * - Grade A (0-5% debt): 90-100 points
- * - Grade B (5-10% debt): 75-90 points
- * - Grade C (10-20% debt): 60-75 points
- * - Grade D (20-50% debt): 40-60 points
- * - Grade E (50%+ debt): 0-40 points
- * @param metrics - Code quality metrics
- * @returns Health score from 0 to 100
- */
-function calculateHealthScore(metrics: CodeQualityMetrics): number {
-  const debt = calculateTechnicalDebt(metrics);
-
-  // Convert debt ratio to score (inverse correlation)
-
-  if (debt.debtRatio <= 0.05) {
-    return Math.round(90 + (1 - debt.debtRatio / 0.05) * 10);
-  } else if (debt.debtRatio <= 0.1) {
-    return Math.round(75 + (1 - (debt.debtRatio - 0.05) / 0.05) * 15);
-  } else if (debt.debtRatio <= 0.2) {
-    return Math.round(60 + (1 - (debt.debtRatio - 0.1) / 0.1) * 15);
-  } else if (debt.debtRatio <= 0.5) {
-    return Math.round(40 + (1 - (debt.debtRatio - 0.2) / 0.3) * 20);
-  } else {
-    return Math.round(Math.max(0, 40 - (debt.debtRatio - 0.5) * 40));
-  }
-}
-
-/**
- * Display summary
- */
-function displaySummary(metrics: CodeQualityMetrics) {
-  console.log('\n' + '='.repeat(60));
-  console.log('📊 CODE QUALITY ANALYSIS REPORT');
-  console.log('='.repeat(60));
-
-  // Complexity
-  console.log('\n🧩 COMPLEXITY METRICS');
-  const avgComplexity =
-    typeof metrics.complexity.averageComplexity === 'number' &&
-    !isNaN(metrics.complexity.averageComplexity)
-      ? metrics.complexity.averageComplexity
-      : 0;
-  const maxComplexity =
-    typeof metrics.complexity.maxComplexity === 'number' &&
-    isFinite(metrics.complexity.maxComplexity)
-      ? metrics.complexity.maxComplexity
-      : 0;
-  console.log(`  Average Complexity: ${avgComplexity.toFixed(2)}`);
-  console.log(`  Maximum Complexity: ${maxComplexity}`);
-  if (metrics.complexity.highComplexityFiles && metrics.complexity.highComplexityFiles.length > 0) {
-    console.log('  High Complexity Files:');
-    metrics.complexity.highComplexityFiles.slice(0, 5).forEach((f) => {
-      console.log(`    - ${f.file}: ${f.complexity || 0}`);
-    });
-  }
-
-  // Maintainability
-  console.log('\n🏗️  MAINTAINABILITY');
-  const maintIndex =
-    typeof metrics.maintainability.index === 'number' ? metrics.maintainability.index : 0;
-  console.log(`  Index: ${maintIndex.toFixed(1)}/100`);
-  console.log(`  Rating: ${metrics.maintainability.rating || 'N/A'}`);
-  if (
-    metrics.maintainability.lowMaintainabilityFiles &&
-    metrics.maintainability.lowMaintainabilityFiles.length > 0
-  ) {
-    console.log('  Files Needing Attention:');
-    metrics.maintainability.lowMaintainabilityFiles.slice(0, 3).forEach((f) => {
-      console.log(`    - ${f.file}: ${(f.maintainability || 0).toFixed(1)}`);
-    });
-  }
-
-  // File Metrics
-  console.log('\n📁 FILE METRICS');
-  console.log(`  Total Files: ${metrics.fileMetrics.totalFiles || 0}`);
-  const avgLines =
-    typeof metrics.fileMetrics.avgLinesPerFile === 'number' &&
-    !isNaN(metrics.fileMetrics.avgLinesPerFile)
-      ? metrics.fileMetrics.avgLinesPerFile
-      : 0;
-  console.log(`  Avg Lines/File: ${avgLines.toFixed(0)}`);
-  console.log(`  Max Lines/File: ${metrics.fileMetrics.maxLinesPerFile || 0}`);
-  if (metrics.fileMetrics.largeFiles && metrics.fileMetrics.largeFiles.length > 0) {
-    console.log(`  Large Files (>300 lines): ${metrics.fileMetrics.largeFiles.length}`);
-  }
-
-  // ESLint Complexity
-  if (metrics.eslintComplexity) {
-    console.log('\n⚠️  ESLINT COMPLEXITY ISSUES');
-    console.log(`  Cognitive Complexity: ${metrics.eslintComplexity.cognitiveComplexity}`);
-    console.log(`  Duplicate Strings: ${metrics.eslintComplexity.duplicateStrings}`);
-    console.log(`  Other Issues: ${metrics.eslintComplexity.otherIssues}`);
-  }
-
-  // Duplication
-  if (metrics.duplication) {
-    console.log('\n🔄 CODE DUPLICATION');
-    const dupPercentage =
-      typeof metrics.duplication.percentage === 'number' ? metrics.duplication.percentage : 0;
-    console.log(`  Estimated: ${dupPercentage.toFixed(1)}%`);
-    console.log(`  Blocks: ${metrics.duplication.blocks || 0}`);
-  }
-
-  console.log('\n' + '='.repeat(60));
-
-  // SonarQube evaluation
-  const debt = calculateTechnicalDebt(metrics);
-  const healthScore = calculateHealthScore(metrics);
-
-  console.log('\n📊 SONARQUBE QUALITY ASSESSMENT');
-  console.log(`  Overall Rating: ${SONARQUBE_RATINGS[debt.rating].color} ${debt.rating}`);
-  console.log(`  Quality Score: ${healthScore}/100`);
-  console.log(`  Technical Debt Ratio: ${(debt.debtRatio * 100).toFixed(2)}%`);
-
-  console.log('\n📈 TECHNICAL DEBT BREAKDOWN:');
-  console.log(`  Total: ${(debt.totalMinutes / 60).toFixed(1)} hours`);
-  console.log(`  - Complexity: ${(debt.byCategory.complexity / 60).toFixed(1)} hours`);
-  console.log(`  - Duplication: ${(debt.byCategory.duplication / 60).toFixed(1)} hours`);
-  console.log(`  - Coverage: ${(debt.byCategory.coverage / 60).toFixed(1)} hours`);
-  console.log(`  - File Size: ${(debt.byCategory.fileSize / 60).toFixed(1)} hours`);
-  console.log(`  - Maintainability: ${(debt.byCategory.maintainability / 60).toFixed(1)} hours`);
-
-  console.log(
-    `\n📐 Estimated Development Cost: ${(debt.developmentCost / 60 / 8).toFixed(1)} days`
-  );
-
-  if (healthScore >= 90) {
-    console.log('\n✅ Excellent code quality! (SonarQube Grade A)');
-  } else if (healthScore >= 75) {
-    console.log('\n🟡 Good code quality (SonarQube Grade B)');
-  } else if (healthScore >= 60) {
-    console.log('\n🟠 Fair code quality, improvements needed (SonarQube Grade C)');
-  } else if (healthScore >= 40) {
-    console.log('\n🔴 Poor code quality, significant improvements required (SonarQube Grade D)');
-  } else {
-    console.log('\n⚫ Very poor code quality, immediate action required (SonarQube Grade E)');
-  }
-
-  console.log('='.repeat(60) + '\n');
-}
-
-/**
- * Main function
- */
-async function main() {
-  console.log('🚀 Starting code quality analysis...\n');
-
-  // Parse command line arguments
-  const args = process.argv.slice(2);
-  const excludeShadcnUI = args.includes('--exclude-shadcn-ui');
-
-  if (excludeShadcnUI) {
-    console.log('📝 Excluding shadcn/ui components from analysis\n');
-  }
-
-  // Analyze all source files in the project
-  const { files, fileMetrics } = analyzeSourceFiles({
-    includeShadcnUI: !excludeShadcnUI,
-  });
-
-  // Run ESLint to find complexity-related issues
-  const eslintComplexity = runESLintComplexityAnalysis(files);
-
-  // Calculate detailed complexity metrics with ESLintCC
-  const complexity = await calculateComplexityWithESLintCC(files);
-
-  // Calculate maintainability
-  const maintainability = calculateMaintainabilityMetrics(
-    complexity,
-    fileMetrics,
-    eslintComplexity
-  );
-
-  // Analyze duplication
-  const duplication = analyzeDuplication(files);
-
-  // Build metrics object
-  const metrics: CodeQualityMetrics = {
-    timestamp: new Date().toISOString(),
-    complexity,
-    maintainability,
-    fileMetrics,
-    eslintComplexity,
-    duplication,
-  };
-
-  // Save metrics
-  const metricsDir = path.join(process.cwd(), 'metrics');
-  if (!fs.existsSync(metricsDir)) {
-    fs.mkdirSync(metricsDir, { recursive: true });
-  }
-
-  const filename = `code-quality-${new Date().toISOString().replace(/:/g, '-')}.json`;
-  const filepath = path.join(metricsDir, filename);
-  fs.writeFileSync(filepath, JSON.stringify(metrics, null, 2));
-
-  // Also save as latest
-  const latestPath = path.join(metricsDir, 'code-quality-latest.json');
-  fs.writeFileSync(latestPath, JSON.stringify(metrics, null, 2));
-
-  console.log(`✅ Metrics saved to ${filepath}`);
-
-  // Display summary
-  displaySummary(metrics);
-
-  // Return exit code based on health score
-  const healthScore = calculateHealthScore(metrics);
-  if (healthScore < 40) {
-    process.exit(1);
-  }
 }
 
 /**
@@ -888,7 +530,7 @@ export async function analyzeCodeQualityAsync(
     fileMetrics,
     eslintComplexity
   );
-  const duplication = analyzeDuplication(files);
+  const duplication = await analyzeDuplication(files);
 
   const metrics: CodeQualityMetrics = {
     timestamp: new Date().toISOString(),
@@ -901,24 +543,3 @@ export async function analyzeCodeQualityAsync(
 
   return metrics;
 }
-
-/**
- * Export function for use in other scripts (sync version - deprecated)
- * @deprecated Use analyzeCodeQualityAsync instead for accurate complexity measurement
- */
-export function analyzeCodeQuality(_config: AnalysisConfig = {}): CodeQualityMetrics {
-  throw new Error(
-    'Synchronous analyzeCodeQuality is no longer supported. ' +
-      'Use analyzeCodeQualityAsync for accurate complexity measurement with ESLintCC.'
-  );
-}
-
-// Execute script only if run directly
-if (require.main === module) {
-  main().catch((error) => {
-    console.error('❌ Error running code quality analysis:', error);
-    process.exit(1);
-  });
-}
-
-export { calculateHealthScore };

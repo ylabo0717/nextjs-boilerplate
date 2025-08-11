@@ -85,7 +85,20 @@ async function runPerformanceTest() {
 
   // Collect performance metrics
   const metrics = await page.evaluate(() => {
-    const perfData = performance.getEntriesByType('navigation')[0];
+    const perfEntries = performance.getEntriesByType('navigation');
+
+    // Check if navigation performance data is available
+    if (!perfEntries || perfEntries.length === 0) {
+      console.warn('No navigation performance data available');
+      return {
+        domContentLoaded: 0,
+        loadComplete: 0,
+        totalTime: 0,
+        error: 'No navigation performance data available',
+      };
+    }
+
+    const perfData = perfEntries[0];
     return {
       domContentLoaded: perfData.domContentLoadedEventEnd - perfData.domContentLoadedEventStart,
       loadComplete: perfData.loadEventEnd - perfData.loadEventStart,

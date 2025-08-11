@@ -106,6 +106,44 @@ function loadCodeQualityMetrics(): UnifiedQualityReport['advancedQuality'] {
 }
 
 /**
+ * Execute a command and always return stdout as string.
+ * Works for both success and error exit codes, returning empty string if none.
+ */
+function runCmdGetStdout(cmd: string): string {
+  try {
+    return execSync(cmd, { stdio: 'pipe' }).toString();
+  } catch (e: unknown) {
+    return (e as { stdout?: Buffer | string }).stdout?.toString() ?? '';
+  }
+}
+
+/**
+ * Safely sum ESLint counts from a JSON string.
+ * Returns 0-safe totals on parse failure or unexpected shapes.
+ */
+interface EslintJsonReportEntry {
+  errorCount?: number;
+  warningCount?: number;
+}
+
+function sumEslintCounts(json: string): { errors: number; warnings: number } {
+  try {
+    const parsed = JSON.parse(json);
+    if (!Array.isArray(parsed)) return { errors: 0, warnings: 0 };
+
+    let errors = 0;
+    let warnings = 0;
+    for (const r of parsed as EslintJsonReportEntry[]) {
+      errors += Number(r?.errorCount ?? 0);
+      warnings += Number(r?.warningCount ?? 0);
+    }
+    return { errors, warnings };
+  } catch {
+    return { errors: 0, warnings: 0 };
+  }
+}
+
+/**
  * Run basic quality checks
  */
 function runBasicQualityChecks(): UnifiedQualityReport['basicQuality'] {
@@ -124,26 +162,11 @@ function runBasicQualityChecks(): UnifiedQualityReport['basicQuality'] {
   }
 
   // Check ESLint issues
-  try {
-    const result = execSync('pnpm lint --format json', { stdio: 'pipe' }).toString();
-    const reports = JSON.parse(result);
-
-    for (const report of reports) {
-      quality.lintErrors += report.errorCount || 0;
-      quality.lintWarnings += report.warningCount || 0;
-    }
-  } catch (error: unknown) {
-    const output = (error as { stdout?: Buffer | string }).stdout?.toString() || '[]';
-    try {
-      const reports = JSON.parse(output);
-      // 取得した配列をその場で畳み込み、未使用コレクションの作成を避ける
-      for (const r of reports) {
-        quality.lintErrors += r.errorCount || 0;
-        quality.lintWarnings += r.warningCount || 0;
-      }
-    } catch {
-      // Ignore parse errors
-    }
+  {
+    const out = runCmdGetStdout('pnpm lint --format json');
+    const { errors, warnings } = sumEslintCounts(out);
+    quality.lintErrors += errors;
+    quality.lintWarnings += warnings;
   }
 
   // Check coverage if available

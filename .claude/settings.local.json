@@ -33,7 +33,8 @@
       "Bash(gitleaks detect:*)",
       "Bash(gh run view:*)",
       "Bash(gh workflow:*)",
-      "WebFetch(domain:docs.github.com)"
+      "WebFetch(domain:docs.github.com)",
+      "Bash(mv:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

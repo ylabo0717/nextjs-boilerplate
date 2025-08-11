@@ -17,6 +17,7 @@ export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 // Validation function for language codes
 export const isValidLanguageCode = (code: string): boolean => {
   // Basic ISO 639-1 (2-letter) or ISO 639-1 with region (e.g., en-US)
+  // eslint-disable-next-line security/detect-unsafe-regex
   const languageCodePattern = /^[a-z]{2}(-[A-Z]{2})?$/;
   return languageCodePattern.test(code);
 };

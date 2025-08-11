@@ -1817,20 +1817,31 @@ REDIS_URL=redis://...
 
 ```text
 src/
-  app/
+  app/                  # Next.js App Router
     api/auth/[...nextauth]/
     layout.tsx
+    page.tsx
+    globals.css
   components/
-    ui/               # shadcn/uiコンポーネント
+    ui/                 # shadcn/uiコンポーネント
       button.tsx
       form.tsx
       dialog.tsx
       ...
-  hooks/
-  lib/
+    layout/             # レイアウトコンポーネント
+    features/           # 機能固有コンポーネント
+  utils/                # 純粋なユーティリティ関数
+    cn.ts               # クラス名結合ユーティリティ
+  lib/                  # 複雑なビジネスロジック
     apiClient.ts
     rbac.ts
-    utils.ts          # shadcn/ui用ユーティリティ
+  hooks/                # カスタムReact hooks
+  services/             # ビジネスロジック・API
+  features/             # 機能ベースモジュール
+  types/                # TypeScript型定義
+  constants/            # アプリケーション定数
+  stores/               # 状態管理
+  repositories/         # データアクセス層
 deploy/
   compose/
     app/

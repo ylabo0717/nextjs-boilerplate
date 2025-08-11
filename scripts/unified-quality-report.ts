@@ -240,41 +240,51 @@ function calculateHealthScore(report: UnifiedQualityReport): number {
 /**
  * Generate recommendations based on metrics
  */
+function addBasicRecommendations(
+  b: UnifiedQualityReport['basicQuality'] | undefined,
+  recs: string[]
+): void {
+  if (!b) return;
+  if (b.typeErrors > 0) recs.push(`${STATUS.ERROR} Fix TypeScript errors immediately`);
+  if (b.lintErrors > 0) recs.push(`${STATUS.ERROR} Resolve ESLint errors`);
+  if (b.lintWarnings > THRESHOLDS.LINT_WARN_MAX) recs.push(`${STATUS.WARN} Reduce ESLint warnings`);
+  if (b.coverage !== undefined && b.coverage < THRESHOLDS.COVERAGE_MIN)
+    recs.push(`${STATUS.WARN} Increase test coverage to at least ${THRESHOLDS.COVERAGE_MIN}%`);
+}
+
+function addPerformanceRecommendations(
+  p: UnifiedQualityReport['performance'] | undefined,
+  recs: string[]
+): void {
+  if (!p) return;
+  if (p.buildTime && p.buildTime > PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX)
+    recs.push(`${STATUS.WARN} Optimize build time (currently > 5 minutes)`);
+  if (p.bundleSize && p.bundleSize.total > PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET) {
+    const targetMB = (PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET / 1024 / 1024).toFixed(0);
+    recs.push(`${STATUS.WARN} Reduce bundle size (currently > ${targetMB}MB)`);
+  }
+}
+
+function addAdvancedRecommendations(
+  a: UnifiedQualityReport['advancedQuality'] | undefined,
+  recs: string[]
+): void {
+  if (!a) return;
+  if (a.complexity.average > THRESHOLDS.COMPLEXITY_AVG_MAX)
+    recs.push('🟠 Refactor complex functions to improve readability');
+  if (a.complexity.max > THRESHOLDS.COMPLEXITY_MAX_MAX)
+    recs.push(`${STATUS.ERROR} Critical: Some functions are too complex (>20)`);
+  if (a.maintainability.index < THRESHOLDS.MAINTAINABILITY_MIN)
+    recs.push('🟠 Improve code maintainability');
+  if (a.duplication.percentage > THRESHOLDS.DUPLICATION_MAX)
+    recs.push(`${STATUS.WARN} Extract duplicated code into shared functions`);
+}
+
 function generateRecommendations(report: UnifiedQualityReport): string[] {
   const recs: string[] = [];
-
-  const b = report.basicQuality;
-  if (b) {
-    if (b.typeErrors > 0) recs.push(`${STATUS.ERROR} Fix TypeScript errors immediately`);
-    if (b.lintErrors > 0) recs.push(`${STATUS.ERROR} Resolve ESLint errors`);
-    if (b.lintWarnings > THRESHOLDS.LINT_WARN_MAX)
-      recs.push(`${STATUS.WARN} Reduce ESLint warnings`);
-    if (b.coverage !== undefined && b.coverage < THRESHOLDS.COVERAGE_MIN)
-      recs.push(`${STATUS.WARN} Increase test coverage to at least ${THRESHOLDS.COVERAGE_MIN}%`);
-  }
-
-  const p = report.performance;
-  if (p) {
-    if (p.buildTime && p.buildTime > PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX)
-      recs.push(`${STATUS.WARN} Optimize build time (currently > 5 minutes)`);
-    if (p.bundleSize && p.bundleSize.total > PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET) {
-      const targetMB = (PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET / 1024 / 1024).toFixed(0);
-      recs.push(`${STATUS.WARN} Reduce bundle size (currently > ${targetMB}MB)`);
-    }
-  }
-
-  const a = report.advancedQuality;
-  if (a) {
-    if (a.complexity.average > THRESHOLDS.COMPLEXITY_AVG_MAX)
-      recs.push('🟠 Refactor complex functions to improve readability');
-    if (a.complexity.max > THRESHOLDS.COMPLEXITY_MAX_MAX)
-      recs.push(`${STATUS.ERROR} Critical: Some functions are too complex (>20)`);
-    if (a.maintainability.index < THRESHOLDS.MAINTAINABILITY_MIN)
-      recs.push('🟠 Improve code maintainability');
-    if (a.duplication.percentage > THRESHOLDS.DUPLICATION_MAX)
-      recs.push(`${STATUS.WARN} Extract duplicated code into shared functions`);
-  }
-
+  addBasicRecommendations(report.basicQuality, recs);
+  addPerformanceRecommendations(report.performance, recs);
+  addAdvancedRecommendations(report.advancedQuality, recs);
   if (recs.length === 0)
     recs.push(`${STATUS.OK} Code quality is excellent! Keep up the good work!`);
   return recs;

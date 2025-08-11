@@ -11,7 +11,10 @@ import {
   calculateHealthScore,
   analyzeCodeQualityAsync as analyzeCodeQuality,
 } from '../../scripts/code-quality-analysis';
-import { COMPLEXITY_LEVELS } from '../../scripts/constants/quality-metrics';
+import {
+  COMPLEXITY_LEVELS,
+  CODE_QUALITY_THRESHOLDS,
+} from '../../scripts/constants/quality-metrics';
 
 /**
  * コード品質分析機能のテストスイート
@@ -71,9 +74,10 @@ describe('code-quality-analysis', () => {
 
     /**
      * コードの複雑度が高い場合、スコアが減点されることを検証
-     * GOODレベルを超える複雑度は保守性の問題を示唆
+     * GOODレベルを超える複雑度: 15点減点
+     * EXCELLENTレベルを超える複雑度: 5点減点
      */
-    it('should penalize high complexity', () => {
+    it('should penalize high complexity - 15 points for exceeding GOOD level', () => {
       const metrics = createMetrics({
         complexity: {
           averageComplexity: COMPLEXITY_LEVELS.GOOD.maxValue + 1,
@@ -83,15 +87,28 @@ describe('code-quality-analysis', () => {
       });
 
       const score = calculateHealthScore(metrics);
-      expect(score).toBeLessThan(100);
-      expect(score).toBeGreaterThanOrEqual(75); // 実装では15点減点される
+      expect(score).toBe(85); // 100 - 15 = 85点
+    });
+
+    it('should penalize moderate complexity - 5 points for exceeding EXCELLENT level', () => {
+      const metrics = createMetrics({
+        complexity: {
+          averageComplexity: COMPLEXITY_LEVELS.EXCELLENT.maxValue + 1,
+          maxComplexity: 10,
+          highComplexityFiles: [],
+        },
+      });
+
+      const score = calculateHealthScore(metrics);
+      expect(score).toBe(95); // 100 - 5 = 95点
     });
 
     /**
      * 保守性インデックスが低い場合、スコアが減点されることを検証
-     * 保守性グレードC（インデックス60）の場合、20点減点される
+     * インデックス < 70: 20点減点
+     * インデックス < GOOD(85): 10点減点
      */
-    it('should penalize low maintainability', () => {
+    it('should penalize low maintainability - 20 points for index below 70', () => {
       const metrics = createMetrics({
         maintainability: {
           index: 60,
@@ -101,14 +118,28 @@ describe('code-quality-analysis', () => {
       });
 
       const score = calculateHealthScore(metrics);
-      expect(score).toBe(80);
+      expect(score).toBe(80); // 100 - 20 = 80点
+    });
+
+    it('should penalize moderate maintainability - 10 points for index below GOOD', () => {
+      const metrics = createMetrics({
+        maintainability: {
+          index: CODE_QUALITY_THRESHOLDS.MAINTAINABILITY.GOOD - 1,
+          rating: 'B' as const,
+          lowMaintainabilityFiles: [],
+        },
+      });
+
+      const score = calculateHealthScore(metrics);
+      expect(score).toBe(90); // 100 - 10 = 90点
     });
 
     /**
      * 大きなファイルが存在する場合、スコアが減点されることを検証
-     * 大きなファイルはコードの理解やテストを困難にする
+     * 大きなファイル1つにつき2点減点（最大10点まで）
+     * 3ファイルの場合: 3 × 2 = 6点減点
      */
-    it('should penalize large files', () => {
+    it('should penalize large files - 2 points per file up to 10 points max', () => {
       const metrics = createMetrics({
         fileMetrics: {
           totalFiles: 10,
@@ -119,14 +150,15 @@ describe('code-quality-analysis', () => {
       });
 
       const score = calculateHealthScore(metrics);
-      expect(score).toBe(94);
+      expect(score).toBe(94); // 100 - 6 = 94点
     });
 
     /**
      * ESLintの複雑度関連の問題がある場合、スコアが減点されることを検証
-     * 認知的複雑度、重複文字列、その他の問題をチェック
+     * 全問題数分だけ減点（最大15点まで）
+     * 5 + 3 + 2 = 10問題 → 10点減点
      */
-    it('should penalize ESLint issues', () => {
+    it('should penalize ESLint issues - 1 point per issue up to 15 points max', () => {
       const metrics = createMetrics({
         eslintComplexity: {
           cognitiveComplexity: 5,
@@ -136,14 +168,14 @@ describe('code-quality-analysis', () => {
       });
 
       const score = calculateHealthScore(metrics);
-      expect(score).toBe(90);
+      expect(score).toBe(90); // 100 - 10 = 90点
     });
 
     /**
      * コードの重複率が高い場合、スコアが減点されることを検証
-     * DRY原則に反するコードは保守性を低下させる
+     * 重複率が10%を超える場合: 10点減点
      */
-    it('should penalize code duplication', () => {
+    it('should penalize code duplication - 10 points for duplication over 10%', () => {
       const metrics = createMetrics({
         duplication: {
           percentage: 15,
@@ -152,22 +184,23 @@ describe('code-quality-analysis', () => {
       });
 
       const score = calculateHealthScore(metrics);
-      expect(score).toBe(90);
+      expect(score).toBe(90); // 100 - 10 = 90点
     });
 
     /**
      * 複数の問題が同時に存在する場合、スコアが累積的に減点されることを検証
-     * 各問題の減点が適切に合算されることを確認
+     * 複雑度がGOODを超える: -15点、保守性60: -20点、大きなファイル1: -2点
+     * 合計: 100 - 15 - 20 - 2 = 63点
      */
     it('should handle multiple penalties', () => {
       const metrics = createMetrics({
         complexity: {
-          averageComplexity: 15,
+          averageComplexity: COMPLEXITY_LEVELS.GOOD.maxValue + 5, // > GOOD → -15点
           maxComplexity: 20,
           highComplexityFiles: [],
         },
         maintainability: {
-          index: 60,
+          index: 60, // < 70 → -20点
           rating: 'C' as const,
           lowMaintainabilityFiles: [],
         },
@@ -175,12 +208,12 @@ describe('code-quality-analysis', () => {
           totalFiles: 10,
           avgLinesPerFile: 100,
           maxLinesPerFile: 500,
-          largeFiles: ['file1.ts'],
+          largeFiles: ['file1.ts'], // 1ファイル → -2点
         },
       });
 
       const score = calculateHealthScore(metrics);
-      expect(score).toBeLessThan(70);
+      expect(score).toBe(63); // 100 - 15 - 20 - 2 = 63点
     });
 
     /**

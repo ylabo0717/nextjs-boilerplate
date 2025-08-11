@@ -207,9 +207,14 @@ function generateReport(current: Metrics, base: Metrics): string {
 
   // Bundle size
   if (current.bundleSize) {
-    const bundleStatus = current.bundleSize.total < 5242880 ? '✅' : '⚠️';
+    const bundleStatus =
+      current.bundleSize.total < PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET ? '✅' : '⚠️';
     lines.push(
-      `| Bundle Size (Total) | ${formatDiff(current.bundleSize.total, base.bundleSize?.total, 'size')} | < 5MB | ${bundleStatus} |`
+      `| Bundle Size (Total) | ${formatDiff(current.bundleSize.total, base.bundleSize?.total, 'size')} | < ${(
+        PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET /
+        1024 /
+        1024
+      ).toFixed(0)}MB | ${bundleStatus} |`
     );
     lines.push(
       `| ├─ JavaScript | ${formatDiff(current.bundleSize.javascript, base.bundleSize?.javascript, 'size')} | - | - |`

@@ -181,7 +181,11 @@ function calculateHealthScore(report: UnifiedQualityReport): number {
       report.performance.buildTime > PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX
     )
       score -= 5;
-    if (report.performance.bundleSize && report.performance.bundleSize.total > 5242880) score -= 10;
+    if (
+      report.performance.bundleSize &&
+      report.performance.bundleSize.total > PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET
+    )
+      score -= 10;
   }
 
   // Advanced quality penalties
@@ -224,8 +228,17 @@ function generateRecommendations(report: UnifiedQualityReport): string[] {
     ) {
       recommendations.push('🟡 Optimize build time (currently > 5 minutes)');
     }
-    if (report.performance.bundleSize && report.performance.bundleSize.total > 5242880) {
-      recommendations.push('🟡 Reduce bundle size (currently > 5MB)');
+    if (
+      report.performance.bundleSize &&
+      report.performance.bundleSize.total > PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET
+    ) {
+      recommendations.push(
+        `🟡 Reduce bundle size (currently > ${(
+          PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET /
+          1024 /
+          1024
+        ).toFixed(0)}MB)`
+      );
     }
   }
 
@@ -297,7 +310,10 @@ function generateMarkdownReport(report: UnifiedQualityReport): string {
 
     if (report.performance.bundleSize) {
       const sizeMB = (report.performance.bundleSize.total / 1024 / 1024).toFixed(2);
-      const status = report.performance.bundleSize.total < 5242880 ? '✅' : '⚠️';
+      const status =
+        report.performance.bundleSize.total < PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET
+          ? '✅'
+          : '⚠️';
       lines.push(`| Bundle Size | ${sizeMB} MB | ${status} |`);
     }
 

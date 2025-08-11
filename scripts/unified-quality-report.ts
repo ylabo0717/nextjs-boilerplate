@@ -240,6 +240,11 @@ function calculateHealthScore(report: UnifiedQualityReport): number {
 /**
  * Generate recommendations based on metrics
  */
+/**
+ * Add recommendations based on basic quality metrics.
+ * @param b - Basic quality metrics (type/lint/coverage) or undefined when unavailable
+ * @param recs - Mutable array to push recommendation strings into
+ */
 function addBasicRecommendations(
   b: UnifiedQualityReport['basicQuality'] | undefined,
   recs: string[]
@@ -252,6 +257,11 @@ function addBasicRecommendations(
     recs.push(`${STATUS.WARN} Increase test coverage to at least ${THRESHOLDS.COVERAGE_MIN}%`);
 }
 
+/**
+ * Add recommendations based on performance metrics.
+ * @param p - Performance metrics or undefined when unavailable
+ * @param recs - Mutable array to push recommendation strings into
+ */
 function addPerformanceRecommendations(
   p: UnifiedQualityReport['performance'] | undefined,
   recs: string[]
@@ -265,6 +275,11 @@ function addPerformanceRecommendations(
   }
 }
 
+/**
+ * Add recommendations based on advanced code quality metrics.
+ * @param a - Advanced quality metrics (complexity/maintainability/duplication) or undefined
+ * @param recs - Mutable array to push recommendation strings into
+ */
 function addAdvancedRecommendations(
   a: UnifiedQualityReport['advancedQuality'] | undefined,
   recs: string[]
@@ -280,6 +295,11 @@ function addAdvancedRecommendations(
     recs.push(`${STATUS.WARN} Extract duplicated code into shared functions`);
 }
 
+/**
+ * Generate all recommendations from the report.
+ * @param report - Combined quality report
+ * @returns Array of human-readable recommendation strings
+ */
 function generateRecommendations(report: UnifiedQualityReport): string[] {
   const recs: string[] = [];
   addBasicRecommendations(report.basicQuality, recs);
@@ -337,6 +357,11 @@ const TABLE_HEADER: readonly string[] = [
   '|--------|-------|--------|',
 ];
 
+/**
+ * Render performance metrics section as Markdown lines.
+ * @param report - Combined quality report
+ * @returns Markdown lines (possibly empty) for the performance section
+ */
 function renderPerformanceSection(report: UnifiedQualityReport): string[] {
   if (!report.performance) return [];
   const out: string[] = ['## ⚡ Performance Metrics', '', ...TABLE_HEADER];
@@ -360,6 +385,11 @@ function renderPerformanceSection(report: UnifiedQualityReport): string[] {
   return out;
 }
 
+/**
+ * Render basic code quality section as Markdown lines.
+ * @param report - Combined quality report
+ * @returns Markdown lines (possibly empty) for the code quality section
+ */
 function renderCodeQualitySection(report: UnifiedQualityReport): string[] {
   const b = report.basicQuality;
   if (!b) return [];
@@ -378,6 +408,11 @@ function renderCodeQualitySection(report: UnifiedQualityReport): string[] {
   return out;
 }
 
+/**
+ * Render advanced metrics section as Markdown lines.
+ * @param report - Combined quality report
+ * @returns Markdown lines (possibly empty) for the advanced metrics section
+ */
 function renderAdvancedSection(report: UnifiedQualityReport): string[] {
   const a = report.advancedQuality;
   if (!a) return [];
@@ -399,7 +434,10 @@ function renderAdvancedSection(report: UnifiedQualityReport): string[] {
 }
 
 /**
- * Main function
+ * Main entrypoint for generating the unified report.
+ * Reads latest metrics, computes health score, writes JSON/Markdown, and sets CI outputs.
+ * Exits with non-zero status when health score is below threshold.
+ * @returns Promise<void>
  */
 async function main() {
   console.log('🚀 Generating unified quality report...\n');

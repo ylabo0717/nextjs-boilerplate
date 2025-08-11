@@ -241,6 +241,10 @@ function measureBundleSize(): { total: number; javascript: number; css: number }
    * Recursively walks through directory to calculate file sizes
    * @param dir - Directory path to walk through
    */
+  /**
+   * Depth-first traversal to accumulate file sizes.
+   * @param dir - Directory to walk
+   */
   function walkDir(dir: string) {
     const files = fs.readdirSync(dir);
     for (const file of files) {

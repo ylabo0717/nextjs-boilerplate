@@ -178,11 +178,21 @@ function analyzeSourceFiles(config: AnalysisConfig = {}): {
     ...(config.excludePaths || []),
   ];
 
+  /**
+   * Determine whether a path should be excluded from analysis.
+   * @param filePath - File path relative to project root
+   * @returns true when the path matches any exclude pattern
+   */
   function shouldExclude(filePath: string): boolean {
     const normalizedPath = filePath.replace(/\\/g, '/');
     return excludePaths.some((excludePath) => normalizedPath.includes(excludePath));
   }
 
+  /**
+   * Recursively walk a directory and collect candidate source files.
+   * Also records line counts and large files for file metrics.
+   * @param dir - Absolute directory path to traverse
+   */
   function walkDir(dir: string) {
     const items = fs.readdirSync(dir);
 

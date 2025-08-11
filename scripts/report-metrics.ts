@@ -291,6 +291,11 @@ function generateReport(current: Metrics, base: Metrics): string {
  * Posts the metrics report as a comment on the GitHub PR
  * @param report - The formatted report to post
  */
+/**
+ * Post a Markdown report as a PR comment using GitHub CLI (gh).
+ * No-op when PR number isn't available in env.
+ * @param report - Report body in Markdown
+ */
 function postComment(report: string) {
   const prNumber = process.env.GITHUB_PR_NUMBER || process.env.PR_NUMBER;
 
@@ -333,6 +338,10 @@ function postComment(report: string) {
  * Outputs the report to GitHub Actions job summary
  * @param report - The formatted report to output
  */
+/**
+ * Write the report to GitHub Actions job summary file when available.
+ * @param report - Report body in Markdown
+ */
 function outputToSummary(report: string) {
   if (process.env.GITHUB_STEP_SUMMARY) {
     fs.writeFileSync(process.env.GITHUB_STEP_SUMMARY, report);
@@ -343,6 +352,9 @@ function outputToSummary(report: string) {
 /**
  * Main function that orchestrates the metrics reporting process
  * Retrieves metrics, generates report, and posts to PR/summary
+ */
+/**
+ * CLI entrypoint: load metrics, generate report, print and publish to CI.
  */
 async function main() {
   console.log('📊 Generating metrics report...\n');

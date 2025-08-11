@@ -13,79 +13,6 @@ import { PERFORMANCE_THRESHOLDS, RETRY_CONFIG } from '../tests/constants/test-co
 
 // Configuration
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-/**
- * Helper function to safely parse integer environment variables
- */
-function parseEnvInt(
-  varName: string,
-  defaultValue: number,
-  options: { min?: number; max?: number } = {}
-): number {
-  // eslint-disable-next-line security/detect-object-injection
-  const value = process.env[varName];
-
-  // If undefined or empty, use default
-  if (value === undefined || value === '') {
-    return defaultValue;
-  }
-
-  const parsed = parseInt(value, 10);
-
-  // Check for NaN
-  if (isNaN(parsed)) {
-    console.warn(
-      `⚠️  Warning: Environment variable ${varName} is set to a non-numeric value ("${value}"). Using default (${defaultValue}).`
-    );
-    return defaultValue;
-  }
-
-  // Optional range validation
-  const { min, max } = options;
-
-  if (min !== undefined && parsed < min) {
-    console.warn(
-      `⚠️  Warning: ${varName}=${parsed} is below minimum (${min}). Using default (${defaultValue}).`
-    );
-    return defaultValue;
-  }
-
-  if (max !== undefined && parsed > max) {
-    console.warn(
-      `⚠️  Warning: ${varName}=${parsed} exceeds maximum (${max}). Using default (${defaultValue}).`
-    );
-    return defaultValue;
-  }
-
-  return parsed;
-}
-
-// Parse environment variables with error handling and validation
-const SERVER_START_RETRIES = parseEnvInt(
-  'SERVER_START_RETRIES',
-  RETRY_CONFIG.SERVER_START_RETRIES,
-  { min: 1, max: 10 }
-);
-const SERVER_START_RETRY_DELAY = parseEnvInt(
-  'SERVER_START_RETRY_DELAY',
-  RETRY_CONFIG.SERVER_START_RETRY_DELAY,
-  { min: 100 }
-);
-const SERVER_POLLING_INTERVAL = parseEnvInt(
-  'SERVER_POLLING_INTERVAL',
-  RETRY_CONFIG.SERVER_POLLING_INTERVAL,
-  { min: 100 }
-);
-const SERVER_FORCE_KILL_TIMEOUT = parseEnvInt(
-  'SERVER_FORCE_KILL_TIMEOUT',
-  RETRY_CONFIG.SERVER_FORCE_KILL_TIMEOUT,
-  { min: 1000 }
-);
-// Grace period before exiting the process to allow cleanup to run
-const EXIT_CLEANUP_GRACE_PERIOD = parseEnvInt(
-  'EXIT_CLEANUP_GRACE_PERIOD',
-  RETRY_CONFIG.EXIT_CLEANUP_GRACE_PERIOD,
-  { min: 0 }
-);
 
 /**
  * Server process variable
@@ -200,15 +127,9 @@ async function runPerformanceTest() {
 
   console.log('Performance Metrics:', JSON.stringify(metrics, null, 2));
 
-  // Check thresholds (configurable via environment variables)
-  const MAX_TOTAL_TIME = parseEnvInt('MAX_TOTAL_TIME', PERFORMANCE_THRESHOLDS.PAGE_LOAD_TIME, {
-    min: 0,
-  });
-  const MAX_DOM_CONTENT_LOADED = parseEnvInt(
-    'MAX_DOM_CONTENT_LOADED',
-    PERFORMANCE_THRESHOLDS.DOM_CONTENT_LOADED_TIME,
-    { min: 0 }
-  );
+  // Check thresholds using centralized constants
+  const MAX_TOTAL_TIME = PERFORMANCE_THRESHOLDS.PAGE_LOAD_TIME;
+  const MAX_DOM_CONTENT_LOADED = PERFORMANCE_THRESHOLDS.DOM_CONTENT_LOADED_TIME;
 
   const failed = [];
   if (metrics.totalTime > MAX_TOTAL_TIME) {
@@ -237,7 +158,7 @@ async function runPerformanceTest() {
 function waitForServerReady(
   url: string,
   timeoutMs = RETRY_CONFIG.SERVER_READY_TIMEOUT,
-  intervalMs = SERVER_POLLING_INTERVAL
+  intervalMs = RETRY_CONFIG.SERVER_POLLING_INTERVAL
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const start = Date.now();
@@ -338,7 +259,7 @@ function startServer(): ChildProcess {
  * Start server with retry logic
  */
 async function startServerWithRetry(): Promise<void> {
-  let retries = SERVER_START_RETRIES;
+  let retries = RETRY_CONFIG.SERVER_START_RETRIES;
   let lastError;
 
   // Start the server process once
@@ -356,7 +277,7 @@ async function startServerWithRetry(): Promise<void> {
   while (retries > 0) {
     try {
       console.log(
-        `Checking server readiness (attempt ${SERVER_START_RETRIES - retries + 1}/${SERVER_START_RETRIES})...`
+        `Checking server readiness (attempt ${RETRY_CONFIG.SERVER_START_RETRIES - retries + 1}/${RETRY_CONFIG.SERVER_START_RETRIES})...`
       );
       await waitForServerReady(BASE_URL);
       console.log('Server is ready');
@@ -367,15 +288,15 @@ async function startServerWithRetry(): Promise<void> {
 
       if (retries > 0) {
         console.log(
-          `Server not ready, retrying in ${SERVER_START_RETRY_DELAY}ms... (${retries} retries left)`
+          `Server not ready, retrying in ${RETRY_CONFIG.SERVER_START_RETRY_DELAY}ms... (${retries} retries left)`
         );
-        await new Promise((resolve) => setTimeout(resolve, SERVER_START_RETRY_DELAY));
+        await new Promise((resolve) => setTimeout(resolve, RETRY_CONFIG.SERVER_START_RETRY_DELAY));
       }
     }
   }
 
   throw new Error(
-    `Failed to start server after ${SERVER_START_RETRIES} attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`
+    `Failed to start server after ${RETRY_CONFIG.SERVER_START_RETRIES} attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`
   );
 }
 
@@ -421,10 +342,12 @@ function cleanupServer(): void {
       // Force kill after timeout if still running
       const forceKillTimer = setTimeout(() => {
         if (server && !server.killed) {
-          console.log(`Force killing server process after ${SERVER_FORCE_KILL_TIMEOUT}ms...`);
+          console.log(
+            `Force killing server process after ${RETRY_CONFIG.SERVER_FORCE_KILL_TIMEOUT}ms...`
+          );
           forceKillServerProcess(server);
         }
-      }, SERVER_FORCE_KILL_TIMEOUT);
+      }, RETRY_CONFIG.SERVER_FORCE_KILL_TIMEOUT);
 
       // Clear timer if process exits before timeout
       if (server) {
@@ -449,7 +372,7 @@ function scheduleExit(code = 0): void {
   // Give cleanup time to complete
   setTimeout(() => {
     process.exit(code);
-  }, EXIT_CLEANUP_GRACE_PERIOD);
+  }, RETRY_CONFIG.EXIT_CLEANUP_GRACE_PERIOD);
 }
 
 // Register cleanup handlers

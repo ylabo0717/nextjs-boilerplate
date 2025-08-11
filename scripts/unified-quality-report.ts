@@ -10,6 +10,22 @@ import * as path from 'node:path';
 import { execSync } from 'node:child_process';
 import { TIME_UNITS, PERFORMANCE_THRESHOLDS } from './constants/quality-metrics';
 
+// Status symbols and shared thresholds
+const STATUS = {
+  OK: '✅',
+  WARN: '⚠️',
+  ERROR: '🔴',
+} as const;
+
+const THRESHOLDS = {
+  COVERAGE_MIN: 60,
+  LINT_WARN_MAX: 10,
+  COMPLEXITY_AVG_MAX: 10,
+  COMPLEXITY_MAX_MAX: 20,
+  MAINTAINABILITY_MIN: 70,
+  DUPLICATION_MAX: 10,
+} as const;
+
 /**
  * Combined quality metrics from all sources
  */
@@ -187,37 +203,37 @@ function runBasicQualityChecks(): UnifiedQualityReport['basicQuality'] {
  * Calculate overall health score
  */
 function calculateHealthScore(report: UnifiedQualityReport): number {
-  let score = 100;
+  const basicPenalty = (() => {
+    const b = report.basicQuality;
+    if (!b) return 0;
+    let p = 0;
+    if (b.typeErrors > 0) p += 20;
+    if (b.lintErrors > 0) p += 15;
+    if (b.lintWarnings > THRESHOLDS.LINT_WARN_MAX) p += 5;
+    if (b.coverage !== undefined && b.coverage < THRESHOLDS.COVERAGE_MIN) p += 10;
+    return p;
+  })();
 
-  // Basic quality penalties
-  if (report.basicQuality) {
-    if (report.basicQuality.typeErrors > 0) score -= 20;
-    if (report.basicQuality.lintErrors > 0) score -= 15;
-    if (report.basicQuality.lintWarnings > 10) score -= 5;
-    if (report.basicQuality.coverage && report.basicQuality.coverage < 60) score -= 10;
-  }
+  const perfPenalty = (() => {
+    const p = report.performance;
+    if (!p) return 0;
+    let pen = 0;
+    if (p.buildTime && p.buildTime > PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX) pen += 5;
+    if (p.bundleSize && p.bundleSize.total > PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET) pen += 10;
+    return pen;
+  })();
 
-  // Performance penalties
-  if (report.performance) {
-    if (
-      report.performance.buildTime &&
-      report.performance.buildTime > PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX
-    )
-      score -= 5;
-    if (
-      report.performance.bundleSize &&
-      report.performance.bundleSize.total > PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET
-    )
-      score -= 10;
-  }
+  const advPenalty = (() => {
+    const a = report.advancedQuality;
+    if (!a) return 0;
+    let p = 0;
+    if (a.complexity.average > THRESHOLDS.COMPLEXITY_AVG_MAX) p += 10;
+    if (a.maintainability.index < THRESHOLDS.MAINTAINABILITY_MIN) p += 15;
+    if (a.duplication.percentage > THRESHOLDS.DUPLICATION_MAX) p += 5;
+    return p;
+  })();
 
-  // Advanced quality penalties
-  if (report.advancedQuality) {
-    if (report.advancedQuality.complexity.average > 10) score -= 10;
-    if (report.advancedQuality.maintainability.index < 70) score -= 15;
-    if (report.advancedQuality.duplication.percentage > 10) score -= 5;
-  }
-
+  const score = 100 - basicPenalty - perfPenalty - advPenalty;
   return Math.max(0, Math.min(100, score));
 }
 
@@ -225,67 +241,43 @@ function calculateHealthScore(report: UnifiedQualityReport): number {
  * Generate recommendations based on metrics
  */
 function generateRecommendations(report: UnifiedQualityReport): string[] {
-  const recommendations: string[] = [];
+  const recs: string[] = [];
 
-  // Basic quality recommendations
-  if (report.basicQuality) {
-    if (report.basicQuality.typeErrors > 0) {
-      recommendations.push('🔴 Fix TypeScript errors immediately');
-    }
-    if (report.basicQuality.lintErrors > 0) {
-      recommendations.push('🔴 Resolve ESLint errors');
-    }
-    if (report.basicQuality.lintWarnings > 10) {
-      recommendations.push('🟡 Reduce ESLint warnings');
-    }
-    if (report.basicQuality.coverage && report.basicQuality.coverage < 60) {
-      recommendations.push('🟡 Increase test coverage to at least 60%');
+  const b = report.basicQuality;
+  if (b) {
+    if (b.typeErrors > 0) recs.push(`${STATUS.ERROR} Fix TypeScript errors immediately`);
+    if (b.lintErrors > 0) recs.push(`${STATUS.ERROR} Resolve ESLint errors`);
+    if (b.lintWarnings > THRESHOLDS.LINT_WARN_MAX)
+      recs.push(`${STATUS.WARN} Reduce ESLint warnings`);
+    if (b.coverage !== undefined && b.coverage < THRESHOLDS.COVERAGE_MIN)
+      recs.push(`${STATUS.WARN} Increase test coverage to at least ${THRESHOLDS.COVERAGE_MIN}%`);
+  }
+
+  const p = report.performance;
+  if (p) {
+    if (p.buildTime && p.buildTime > PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX)
+      recs.push(`${STATUS.WARN} Optimize build time (currently > 5 minutes)`);
+    if (p.bundleSize && p.bundleSize.total > PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET) {
+      const targetMB = (PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET / 1024 / 1024).toFixed(0);
+      recs.push(`${STATUS.WARN} Reduce bundle size (currently > ${targetMB}MB)`);
     }
   }
 
-  // Performance recommendations
-  if (report.performance) {
-    if (
-      report.performance.buildTime &&
-      report.performance.buildTime > PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX
-    ) {
-      recommendations.push('🟡 Optimize build time (currently > 5 minutes)');
-    }
-    if (
-      report.performance.bundleSize &&
-      report.performance.bundleSize.total > PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET
-    ) {
-      recommendations.push(
-        `🟡 Reduce bundle size (currently > ${(
-          PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET /
-          1024 /
-          1024
-        ).toFixed(0)}MB)`
-      );
-    }
+  const a = report.advancedQuality;
+  if (a) {
+    if (a.complexity.average > THRESHOLDS.COMPLEXITY_AVG_MAX)
+      recs.push('🟠 Refactor complex functions to improve readability');
+    if (a.complexity.max > THRESHOLDS.COMPLEXITY_MAX_MAX)
+      recs.push(`${STATUS.ERROR} Critical: Some functions are too complex (>20)`);
+    if (a.maintainability.index < THRESHOLDS.MAINTAINABILITY_MIN)
+      recs.push('🟠 Improve code maintainability');
+    if (a.duplication.percentage > THRESHOLDS.DUPLICATION_MAX)
+      recs.push(`${STATUS.WARN} Extract duplicated code into shared functions`);
   }
 
-  // Advanced quality recommendations
-  if (report.advancedQuality) {
-    if (report.advancedQuality.complexity.average > 10) {
-      recommendations.push('🟠 Refactor complex functions to improve readability');
-    }
-    if (report.advancedQuality.complexity.max > 20) {
-      recommendations.push('🔴 Critical: Some functions are too complex (>20)');
-    }
-    if (report.advancedQuality.maintainability.index < 70) {
-      recommendations.push('🟠 Improve code maintainability');
-    }
-    if (report.advancedQuality.duplication.percentage > 10) {
-      recommendations.push('🟡 Extract duplicated code into shared functions');
-    }
-  }
-
-  if (recommendations.length === 0) {
-    recommendations.push('✅ Code quality is excellent! Keep up the good work!');
-  }
-
-  return recommendations;
+  if (recs.length === 0)
+    recs.push(`${STATUS.OK} Code quality is excellent! Keep up the good work!`);
+  return recs;
 }
 
 /**
@@ -303,94 +295,20 @@ function generateMarkdownReport(report: UnifiedQualityReport): string {
 
   // Health score interpretation
   if (report.healthScore >= 80) {
-    lines.push('✅ **Excellent** - Code quality is high');
+    lines.push(`${STATUS.OK} **Excellent** - Code quality is high`);
   } else if (report.healthScore >= 60) {
-    lines.push('⚠️ **Good** - Some improvements needed');
+    lines.push(`${STATUS.WARN} **Good** - Some improvements needed`);
   } else if (report.healthScore >= 40) {
     lines.push('🟠 **Fair** - Significant improvements recommended');
   } else {
-    lines.push('🔴 **Poor** - Immediate attention required');
+    lines.push(`${STATUS.ERROR} **Poor** - Immediate attention required`);
   }
 
   lines.push('', '---', '');
 
-  // Performance Metrics
-  if (report.performance) {
-    lines.push('## ⚡ Performance Metrics', '');
-    lines.push('| Metric | Value | Status |');
-    lines.push('|--------|-------|--------|');
-
-    if (report.performance.buildTime) {
-      const minutes = Math.floor(report.performance.buildTime / TIME_UNITS.MS_PER_MINUTE);
-      const seconds = (
-        (report.performance.buildTime % TIME_UNITS.MS_PER_MINUTE) /
-        TIME_UNITS.MS_PER_SECOND
-      ).toFixed(1);
-      const status =
-        report.performance.buildTime < PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX ? '✅' : '⚠️';
-      lines.push(`| Build Time | ${minutes}m ${seconds}s | ${status} |`);
-    }
-
-    if (report.performance.bundleSize) {
-      const sizeMB = (report.performance.bundleSize.total / 1024 / 1024).toFixed(2);
-      const status =
-        report.performance.bundleSize.total < PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET
-          ? '✅'
-          : '⚠️';
-      lines.push(`| Bundle Size | ${sizeMB} MB | ${status} |`);
-    }
-
-    lines.push('');
-  }
-
-  // Code Quality
-  if (report.basicQuality) {
-    lines.push('## 🎨 Code Quality', '');
-    lines.push('| Metric | Value | Status |');
-    lines.push('|--------|-------|--------|');
-
-    const typeStatus = report.basicQuality.typeErrors === 0 ? '✅' : '🔴';
-    lines.push(`| TypeScript Errors | ${report.basicQuality.typeErrors} | ${typeStatus} |`);
-
-    const lintStatus = report.basicQuality.lintErrors === 0 ? '✅' : '🔴';
-    lines.push(`| ESLint Errors | ${report.basicQuality.lintErrors} | ${lintStatus} |`);
-
-    const warnStatus = report.basicQuality.lintWarnings <= 10 ? '✅' : '⚠️';
-    lines.push(`| ESLint Warnings | ${report.basicQuality.lintWarnings} | ${warnStatus} |`);
-
-    if (report.basicQuality.coverage !== undefined) {
-      const covStatus = report.basicQuality.coverage >= 60 ? '✅' : '⚠️';
-      lines.push(`| Test Coverage | ${report.basicQuality.coverage.toFixed(1)}% | ${covStatus} |`);
-    }
-
-    lines.push('');
-  }
-
-  // Advanced Metrics
-  if (report.advancedQuality) {
-    lines.push('## 🔬 Advanced Metrics', '');
-    lines.push('| Metric | Value | Status |');
-    lines.push('|--------|-------|--------|');
-
-    const complexityStatus = report.advancedQuality.complexity.average <= 10 ? '✅' : '⚠️';
-    lines.push(
-      `| Avg Complexity | ${report.advancedQuality.complexity.average.toFixed(2)} | ${complexityStatus} |`
-    );
-
-    lines.push(`| Max Complexity | ${report.advancedQuality.complexity.max} | - |`);
-
-    const maintStatus = report.advancedQuality.maintainability.index >= 70 ? '✅' : '⚠️';
-    lines.push(
-      `| Maintainability | ${report.advancedQuality.maintainability.index.toFixed(1)} (${report.advancedQuality.maintainability.rating}) | ${maintStatus} |`
-    );
-
-    const dupStatus = report.advancedQuality.duplication.percentage <= 10 ? '✅' : '⚠️';
-    lines.push(
-      `| Code Duplication | ${report.advancedQuality.duplication.percentage.toFixed(1)}% | ${dupStatus} |`
-    );
-
-    lines.push('');
-  }
+  lines.push(...renderPerformanceSection(report));
+  lines.push(...renderCodeQualitySection(report));
+  lines.push(...renderAdvancedSection(report));
 
   // Recommendations
   lines.push('## 💡 Recommendations', '');
@@ -402,6 +320,72 @@ function generateMarkdownReport(report: UnifiedQualityReport): string {
   lines.push('*Generated by Unified Quality Report*');
 
   return lines.join('\n');
+}
+
+const TABLE_HEADER: readonly string[] = [
+  '| Metric | Value | Status |',
+  '|--------|-------|--------|',
+];
+
+function renderPerformanceSection(report: UnifiedQualityReport): string[] {
+  if (!report.performance) return [];
+  const out: string[] = ['## ⚡ Performance Metrics', '', ...TABLE_HEADER];
+  const perf = report.performance;
+  if (perf.buildTime) {
+    const minutes = Math.floor(perf.buildTime / TIME_UNITS.MS_PER_MINUTE);
+    const seconds = (
+      (perf.buildTime % TIME_UNITS.MS_PER_MINUTE) /
+      TIME_UNITS.MS_PER_SECOND
+    ).toFixed(1);
+    const status = perf.buildTime < PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX ? STATUS.OK : STATUS.WARN;
+    out.push(`| Build Time | ${minutes}m ${seconds}s | ${status} |`);
+  }
+  if (perf.bundleSize) {
+    const sizeMB = (perf.bundleSize.total / 1024 / 1024).toFixed(2);
+    const status =
+      perf.bundleSize.total < PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET ? STATUS.OK : STATUS.WARN;
+    out.push(`| Bundle Size | ${sizeMB} MB | ${status} |`);
+  }
+  out.push('');
+  return out;
+}
+
+function renderCodeQualitySection(report: UnifiedQualityReport): string[] {
+  const b = report.basicQuality;
+  if (!b) return [];
+  const out: string[] = ['## 🎨 Code Quality', '', ...TABLE_HEADER];
+  const typeStatus = b.typeErrors === 0 ? STATUS.OK : STATUS.ERROR;
+  out.push(`| TypeScript Errors | ${b.typeErrors} | ${typeStatus} |`);
+  const lintStatus = b.lintErrors === 0 ? STATUS.OK : STATUS.ERROR;
+  out.push(`| ESLint Errors | ${b.lintErrors} | ${lintStatus} |`);
+  const warnStatus = b.lintWarnings <= THRESHOLDS.LINT_WARN_MAX ? STATUS.OK : STATUS.WARN;
+  out.push(`| ESLint Warnings | ${b.lintWarnings} | ${warnStatus} |`);
+  if (b.coverage !== undefined) {
+    const covStatus = b.coverage >= THRESHOLDS.COVERAGE_MIN ? STATUS.OK : STATUS.WARN;
+    out.push(`| Test Coverage | ${b.coverage.toFixed(1)}% | ${covStatus} |`);
+  }
+  out.push('');
+  return out;
+}
+
+function renderAdvancedSection(report: UnifiedQualityReport): string[] {
+  const a = report.advancedQuality;
+  if (!a) return [];
+  const out: string[] = ['## 🔬 Advanced Metrics', '', ...TABLE_HEADER];
+  const complexityStatus =
+    a.complexity.average <= THRESHOLDS.COMPLEXITY_AVG_MAX ? STATUS.OK : STATUS.WARN;
+  out.push(`| Avg Complexity | ${a.complexity.average.toFixed(2)} | ${complexityStatus} |`);
+  out.push(`| Max Complexity | ${a.complexity.max} | - |`);
+  const maintStatus =
+    a.maintainability.index >= THRESHOLDS.MAINTAINABILITY_MIN ? STATUS.OK : STATUS.WARN;
+  out.push(
+    `| Maintainability | ${a.maintainability.index.toFixed(1)} (${a.maintainability.rating}) | ${maintStatus} |`
+  );
+  const dupStatus =
+    a.duplication.percentage <= THRESHOLDS.DUPLICATION_MAX ? STATUS.OK : STATUS.WARN;
+  out.push(`| Code Duplication | ${a.duplication.percentage.toFixed(1)}% | ${dupStatus} |`);
+  out.push('');
+  return out;
 }
 
 /**

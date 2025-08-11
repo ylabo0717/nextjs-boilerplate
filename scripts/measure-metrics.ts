@@ -132,7 +132,6 @@ function parseSizeToKB(sizeStr: string): number {
     case 'B':
       return value / 1024;
     case 'KB':
-    case 'KB':
       return value;
     case 'MB':
       return value * 1024;
@@ -371,7 +370,7 @@ function displaySummary(metrics: Metrics) {
  * - --bundle: Measure only bundle size
  * - No args: Measure all metrics
  */
-async function main() {
+export async function measureMetrics() {
   const args = process.argv.slice(2);
   const measureAll = args.length === 0;
 
@@ -416,5 +415,7 @@ async function main() {
   }
 }
 
-// Execute script
-main().catch(console.error);
+// Only run main if this script is executed directly
+if (require.main === module) {
+  measureMetrics().catch(console.error);
+}

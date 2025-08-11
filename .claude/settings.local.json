@@ -40,7 +40,12 @@
       "Bash(pnpm quality:check:*)",
       "Bash(pnpm quality:analyze:*)",
       "Bash(git add:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(pnpm vitest:*)",
+      "Bash(node:*)",
+      "Bash(pnpm tsx:*)",
+      "Bash(rm:*)",
+      "Bash(pnpm precommit:fix:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -625,8 +625,12 @@ async function main() {
   }
 }
 
-// Execute script
-main().catch((error) => {
-  console.error('❌ Error running quality gate:', error);
-  process.exit(1);
-});
+// Only run main if this script is executed directly
+if (require.main === module) {
+  main().catch((error) => {
+    console.error('❌ Error running quality gate:', error);
+    process.exit(1);
+  });
+}
+
+export { evaluateQualityGate, DEFAULT_THRESHOLDS };

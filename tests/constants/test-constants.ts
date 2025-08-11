@@ -106,6 +106,16 @@ export const RETRY_CONFIG = {
    * Timeout before force killing unresponsive server process (unit: ms)
    */
   SERVER_FORCE_KILL_TIMEOUT: 5000,
+
+  /**
+   * Grace period before exiting the process to allow cleanup to run (unit: ms)
+   */
+  EXIT_CLEANUP_GRACE_PERIOD: 1000,
+
+  /**
+   * Maximum time to wait for server to become ready (unit: ms)
+   */
+  SERVER_READY_TIMEOUT: 30000,
 } as const;
 
 /**

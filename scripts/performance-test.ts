@@ -81,7 +81,11 @@ const SERVER_FORCE_KILL_TIMEOUT = parseEnvInt(
   { min: 1000 }
 );
 // Grace period before exiting the process to allow cleanup to run
-const EXIT_CLEANUP_GRACE_PERIOD = parseEnvInt('EXIT_CLEANUP_GRACE_PERIOD', 1000, { min: 0 });
+const EXIT_CLEANUP_GRACE_PERIOD = parseEnvInt(
+  'EXIT_CLEANUP_GRACE_PERIOD',
+  RETRY_CONFIG.EXIT_CLEANUP_GRACE_PERIOD,
+  { min: 0 }
+);
 
 /**
  * Server process variable
@@ -232,7 +236,7 @@ async function runPerformanceTest() {
  */
 function waitForServerReady(
   url: string,
-  timeoutMs = 30000,
+  timeoutMs = RETRY_CONFIG.SERVER_READY_TIMEOUT,
   intervalMs = SERVER_POLLING_INTERVAL
 ): Promise<void> {
   return new Promise((resolve, reject) => {

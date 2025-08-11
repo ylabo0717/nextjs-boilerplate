@@ -59,6 +59,23 @@
 - ソースマップ（`.map`ファイル）
 - 開発用依存関係
 
+#### Bundle Size (Total) の閾値（スクリプト共通）
+
+メトリクス/レポートでは、First Load JS とは別に、バンドルの「総サイズ（Total）」も扱います。これは `.next` 生成物から JS/CSS を合算した概算の指標で、以下の閾値を共通定義に基づいて判定します。
+
+| 種別               | 定数名                                     | 値    | 主な利用箇所                                                 | 説明                                                          |
+| ------------------ | ------------------------------------------ | ----- | ------------------------------------------------------------ | ------------------------------------------------------------- |
+| 推奨（ターゲット） | PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET  | 5MB   | scripts/report-metrics.ts, scripts/unified-quality-report.ts | ✅/⚠️ の表示やスコア減点の基準として使用（「< 5MB なら ✅」） |
+| 警告               | PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_WARNING | 50MB  | scripts/quality-gate.ts                                      | 品質ゲートの警告しきい値                                      |
+| 最大（エラー）     | PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_MAX     | 100MB | scripts/quality-gate.ts                                      | 品質ゲートの最大許容（超過で失敗）                            |
+
+定義場所: `scripts/constants/quality-metrics.ts`
+
+備考:
+
+- PRコメントに出力される Bundle Size の「< 5MB」は BUNDLE_SIZE_TARGET に同期しています。
+- 品質ゲートでは BUNDLE_SIZE_WARNING と BUNDLE_SIZE_MAX を使用し、閾値超過時に警告/エラーとして扱います。
+
 ### 使用方法
 
 ```bash
@@ -311,7 +328,7 @@ ANALYZE=true pnpm build
    pnpm test:coverage
    ```
 
-2. 閾値の調整が必要な場合は`scripts/quality-gate.ts`の`DEFAULT_THRESHOLDS`を修正
+2. 閾値の調整が必要な場合は、原則 `scripts/constants/quality-metrics.ts` の `PERFORMANCE_THRESHOLDS` を修正（`quality-gate.ts` の `DEFAULT_THRESHOLDS` から参照しています）
 
 ### Lighthouse CIが失敗する
 

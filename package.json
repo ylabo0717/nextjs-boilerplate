@@ -20,7 +20,13 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "metrics": "tsx scripts/measure-metrics.ts",
+    "metrics:build": "tsx scripts/measure-metrics.ts --build",
+    "metrics:test": "tsx scripts/measure-metrics.ts --test",
+    "metrics:bundle": "tsx scripts/measure-metrics.ts --bundle",
+    "quality:check": "tsx scripts/quality-gate.ts",
+    "metrics:report": "tsx scripts/report-metrics.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",

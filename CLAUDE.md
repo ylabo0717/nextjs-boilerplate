@@ -24,36 +24,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### IMPORTANT: Pre-commit Checks
 
-**コミット前に必ず以下のチェックを実行すること:**
+**Always run the following checks before committing:**
 
-1. **ESLintチェック**を実行
+1. **Run ESLint checks**
 
    ```bash
    pnpm lint
    ```
 
-2. **Prettierフォーマット**を実行
+2. **Run Prettier formatting**
 
    ```bash
    pnpm format
    ```
 
-3. **TypeScript型チェック**を実行
+3. **Run TypeScript type checking**
 
    ```bash
    pnpm typecheck
    ```
 
-4. **すべてのpre-commitチェック**をまとめて実行（推奨）
+4. **Run all pre-commit checks at once** (recommended)
    ```bash
    pnpm precommit:check
    ```
-   問題がある場合は自動修正を試みる:
+   If there are issues, attempt automatic fixes:
    ```bash
    pnpm precommit:fix
    ```
 
-これらのチェックをコミット前に実行することで、コミット時のpre-commit hookでの失敗を防ぐことができます。特にESLintとTypeScriptのエラーは必ず解決してからコミットすること。
+Running these checks before committing prevents failures in the pre-commit hooks. Always resolve ESLint and TypeScript errors before committing.
 
 ### IMPORTANT: Verify Latest Versions and Best Practices
 

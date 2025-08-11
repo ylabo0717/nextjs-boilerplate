@@ -762,7 +762,7 @@ function displaySummary(metrics: CodeQualityMetrics) {
 
   console.log('\n' + '='.repeat(60));
 
-  // SonarQube方式の評価
+  // SonarQube evaluation
   const debt = calculateTechnicalDebt(metrics);
   const healthScore = calculateHealthScore(metrics);
 

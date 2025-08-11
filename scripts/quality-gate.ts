@@ -8,7 +8,12 @@
 import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { COMPLEXITY_THRESHOLDS, getComplexityIndicator } from './constants/complexity-thresholds';
+import {
+  COMPLEXITY_THRESHOLDS,
+  getComplexityIndicator,
+  PERFORMANCE_THRESHOLDS,
+  LIGHTHOUSE_THRESHOLDS,
+} from './constants/quality-metrics';
 
 /**
  * Type definition for exec error with stdout/stderr
@@ -126,11 +131,11 @@ const DEFAULT_THRESHOLDS: QualityThresholds = {
     maximum: 10,
   },
   buildTime: {
-    maximum: 300000, // 5分
+    maximum: PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX,
     warning: 240000, // 4分
   },
   bundleSize: {
-    maximum: 104857600, // 100MB (for total .next directory, less strict)
+    maximum: PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_MAX,
     warning: 52428800, // 50MB
   },
   firstLoadJS: {
@@ -146,10 +151,10 @@ const DEFAULT_THRESHOLDS: QualityThresholds = {
     individualMaximum: COMPLEXITY_THRESHOLDS.INDIVIDUAL.MAXIMUM,
   },
   lighthouse: {
-    performance: 80,
-    accessibility: 90,
-    bestPractices: 90,
-    seo: 90,
+    performance: LIGHTHOUSE_THRESHOLDS.PERFORMANCE,
+    accessibility: LIGHTHOUSE_THRESHOLDS.ACCESSIBILITY,
+    bestPractices: LIGHTHOUSE_THRESHOLDS.BEST_PRACTICES,
+    seo: LIGHTHOUSE_THRESHOLDS.SEO,
   },
 };
 

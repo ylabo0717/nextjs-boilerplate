@@ -8,6 +8,7 @@
 import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { TIME_UNITS } from './constants/quality-metrics';
 
 /**
  * Route information from Next.js build output
@@ -325,14 +326,20 @@ function displaySummary(metrics: Metrics) {
   console.log('\n📊 === Metrics Summary ===');
 
   if (metrics.buildTime) {
-    const buildMinutes = Math.floor(metrics.buildTime / 60000);
-    const buildSeconds = ((metrics.buildTime % 60000) / 1000).toFixed(1);
+    const buildMinutes = Math.floor(metrics.buildTime / TIME_UNITS.MS_PER_MINUTE);
+    const buildSeconds = (
+      (metrics.buildTime % TIME_UNITS.MS_PER_MINUTE) /
+      TIME_UNITS.MS_PER_SECOND
+    ).toFixed(1);
     console.log(`⏱️  Build Time: ${buildMinutes}m ${buildSeconds}s`);
   }
 
   if (metrics.testTime) {
-    const testMinutes = Math.floor(metrics.testTime / 60000);
-    const testSeconds = ((metrics.testTime % 60000) / 1000).toFixed(1);
+    const testMinutes = Math.floor(metrics.testTime / TIME_UNITS.MS_PER_MINUTE);
+    const testSeconds = (
+      (metrics.testTime % TIME_UNITS.MS_PER_MINUTE) /
+      TIME_UNITS.MS_PER_SECOND
+    ).toFixed(1);
     console.log(`🧪 Test Time: ${testMinutes}m ${testSeconds}s`);
   }
 

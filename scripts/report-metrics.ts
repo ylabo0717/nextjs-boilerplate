@@ -8,6 +8,12 @@
 import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import {
+  TIME_UNITS,
+  PERFORMANCE_THRESHOLDS,
+  LIGHTHOUSE_THRESHOLDS,
+  SCORE_RATINGS,
+} from './constants/quality-metrics';
 
 /**
  * Metrics data structure
@@ -108,8 +114,8 @@ function formatDiff(
 
   switch (format) {
     case 'time':
-      const minutes = Math.floor(current / 60000);
-      const seconds = ((current % 60000) / 1000).toFixed(1);
+      const minutes = Math.floor(current / TIME_UNITS.MS_PER_MINUTE);
+      const seconds = ((current % TIME_UNITS.MS_PER_MINUTE) / TIME_UNITS.MS_PER_SECOND).toFixed(1);
       value = `${minutes}m ${seconds}s`;
       break;
     case 'size':
@@ -161,7 +167,7 @@ function getScoreBadge(score: number | undefined, threshold: number): string {
     return '⬜ N/A';
   }
 
-  if (score >= 90) {
+  if (score >= SCORE_RATINGS.A) {
     return `🟢 ${score}`;
   } else if (score >= threshold) {
     return `🟡 ${score}`;
@@ -187,7 +193,8 @@ function generateReport(current: Metrics, base: Metrics): string {
   ];
 
   // Build time
-  const buildStatus = current.buildTime && current.buildTime < 300000 ? '✅' : '⚠️';
+  const buildStatus =
+    current.buildTime && current.buildTime < PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX ? '✅' : '⚠️';
   lines.push(
     `| Build Time | ${formatDiff(current.buildTime, base.buildTime, 'time')} | < 5m | ${buildStatus} |`
   );
@@ -256,13 +263,13 @@ function generateReport(current: Metrics, base: Metrics): string {
       `| Performance | ${getScoreBadge(current.lighthouse.performance, 80)} | ≥ 80 | ${current.lighthouse.performance >= 80 ? '✅' : '❌'} |`
     );
     lines.push(
-      `| Accessibility | ${getScoreBadge(current.lighthouse.accessibility, 90)} | ≥ 90 | ${current.lighthouse.accessibility >= 90 ? '✅' : '❌'} |`
+      `| Accessibility | ${getScoreBadge(current.lighthouse.accessibility, LIGHTHOUSE_THRESHOLDS.ACCESSIBILITY)} | ≥ ${LIGHTHOUSE_THRESHOLDS.ACCESSIBILITY} | ${current.lighthouse.accessibility >= LIGHTHOUSE_THRESHOLDS.ACCESSIBILITY ? '✅' : '❌'} |`
     );
     lines.push(
-      `| Best Practices | ${getScoreBadge(current.lighthouse.bestPractices, 90)} | ≥ 90 | ${current.lighthouse.bestPractices >= 90 ? '✅' : '❌'} |`
+      `| Best Practices | ${getScoreBadge(current.lighthouse.bestPractices, LIGHTHOUSE_THRESHOLDS.BEST_PRACTICES)} | ≥ ${LIGHTHOUSE_THRESHOLDS.BEST_PRACTICES} | ${current.lighthouse.bestPractices >= LIGHTHOUSE_THRESHOLDS.BEST_PRACTICES ? '✅' : '❌'} |`
     );
     lines.push(
-      `| SEO | ${getScoreBadge(current.lighthouse.seo, 90)} | ≥ 90 | ${current.lighthouse.seo >= 90 ? '✅' : '❌'} |`
+      `| SEO | ${getScoreBadge(current.lighthouse.seo, LIGHTHOUSE_THRESHOLDS.SEO)} | ≥ ${LIGHTHOUSE_THRESHOLDS.SEO} | ${current.lighthouse.seo >= LIGHTHOUSE_THRESHOLDS.SEO ? '✅' : '❌'} |`
     );
   }
 

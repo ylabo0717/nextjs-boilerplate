@@ -13,7 +13,9 @@ import {
   ESLINTCC_RANKS,
   ESLINT_COMPLEXITY_RULES,
   COMPLEXITY_LEVELS,
-} from './constants/complexity-thresholds';
+  CODE_QUALITY_THRESHOLDS,
+  SCORE_RATINGS,
+} from './constants/quality-metrics';
 
 /**
  * Code quality metrics
@@ -369,10 +371,10 @@ function calculateMaintainabilityMetrics(
 
   // Determine rating
   let rating: 'A' | 'B' | 'C' | 'D' | 'F';
-  if (index >= 90) rating = 'A';
-  else if (index >= 80) rating = 'B';
-  else if (index >= 70) rating = 'C';
-  else if (index >= 60) rating = 'D';
+  if (index >= SCORE_RATINGS.A) rating = 'A';
+  else if (index >= SCORE_RATINGS.B) rating = 'B';
+  else if (index >= SCORE_RATINGS.C) rating = 'C';
+  else if (index >= SCORE_RATINGS.D) rating = 'D';
   else rating = 'F';
 
   // Find low maintainability files
@@ -457,7 +459,7 @@ function calculateHealthScore(metrics: CodeQualityMetrics): number {
   // Maintainability penalty
   if (metrics.maintainability.index < 70) {
     score -= 20;
-  } else if (metrics.maintainability.index < 85) {
+  } else if (metrics.maintainability.index < CODE_QUALITY_THRESHOLDS.MAINTAINABILITY.GOOD) {
     score -= 10;
   }
 

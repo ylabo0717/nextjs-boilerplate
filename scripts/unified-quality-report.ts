@@ -8,6 +8,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { execSync } from 'node:child_process';
+import { TIME_UNITS, PERFORMANCE_THRESHOLDS } from './constants/quality-metrics';
 
 /**
  * Combined quality metrics from all sources
@@ -175,7 +176,11 @@ function calculateHealthScore(report: UnifiedQualityReport): number {
 
   // Performance penalties
   if (report.performance) {
-    if (report.performance.buildTime && report.performance.buildTime > 300000) score -= 5;
+    if (
+      report.performance.buildTime &&
+      report.performance.buildTime > PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX
+    )
+      score -= 5;
     if (report.performance.bundleSize && report.performance.bundleSize.total > 5242880) score -= 10;
   }
 
@@ -213,7 +218,10 @@ function generateRecommendations(report: UnifiedQualityReport): string[] {
 
   // Performance recommendations
   if (report.performance) {
-    if (report.performance.buildTime && report.performance.buildTime > 300000) {
+    if (
+      report.performance.buildTime &&
+      report.performance.buildTime > PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX
+    ) {
       recommendations.push('🟡 Optimize build time (currently > 5 minutes)');
     }
     if (report.performance.bundleSize && report.performance.bundleSize.total > 5242880) {
@@ -277,9 +285,13 @@ function generateMarkdownReport(report: UnifiedQualityReport): string {
     lines.push('|--------|-------|--------|');
 
     if (report.performance.buildTime) {
-      const minutes = Math.floor(report.performance.buildTime / 60000);
-      const seconds = ((report.performance.buildTime % 60000) / 1000).toFixed(1);
-      const status = report.performance.buildTime < 300000 ? '✅' : '⚠️';
+      const minutes = Math.floor(report.performance.buildTime / TIME_UNITS.MS_PER_MINUTE);
+      const seconds = (
+        (report.performance.buildTime % TIME_UNITS.MS_PER_MINUTE) /
+        TIME_UNITS.MS_PER_SECOND
+      ).toFixed(1);
+      const status =
+        report.performance.buildTime < PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX ? '✅' : '⚠️';
       lines.push(`| Build Time | ${minutes}m ${seconds}s | ${status} |`);
     }
 

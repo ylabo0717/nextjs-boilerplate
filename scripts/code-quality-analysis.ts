@@ -17,7 +17,9 @@ import {
 } from './constants/quality-metrics';
 
 /**
- * SonarQubeの評価グレード
+ * SonarQube quality rating grades based on technical debt ratio.
+ * These grades follow the industry-standard SonarQube methodology.
+ * @see https://docs.sonarqube.org/latest/user-guide/metric-definitions/
  */
 const SONARQUBE_RATINGS = {
   A: { maxDebtRatio: 0.05, label: 'A', color: '🟢' },
@@ -28,46 +30,49 @@ const SONARQUBE_RATINGS = {
 } as const;
 
 /**
- * SonarQubeのデフォルト修正コスト（分）
+ * Default remediation costs in minutes based on SonarQube standards.
+ * These values represent the estimated time needed to fix various code issues.
  */
 const REMEDIATION_COSTS = {
-  /** 複雑度が閾値を超えた場合の1ポイントあたりの修正時間 */
+  /** Minutes required to fix each point of complexity exceeding threshold */
   COMPLEXITY_PER_POINT: 30,
-  /** 重複コード1ブロックあたりの修正時間 */
+  /** Minutes required to fix each duplicated code block */
   DUPLICATION_PER_BLOCK: 120,
-  /** カバレッジ不足1%あたりの修正時間 */
+  /** Minutes required to add tests for each 1% of missing coverage */
   COVERAGE_PER_PERCENT: 10,
-  /** 大きなファイル1つあたりの修正時間 */
+  /** Minutes required to refactor each large file */
   LARGE_FILE: 60,
-  /** 保守性が低いファイル1つあたりの修正時間 */
+  /** Minutes required to improve each file with low maintainability */
   LOW_MAINTAINABILITY: 90,
 } as const;
 
 /**
- * SonarQubeの品質ゲート閾値
+ * SonarQube quality gate thresholds.
+ * These are the standard thresholds used to determine if code meets quality standards.
  */
 const QUALITY_GATE_THRESHOLDS = {
-  /** 循環的複雑度の閾値 */
+  /** Maximum acceptable cyclomatic complexity per function */
   COMPLEXITY: 10,
-  /** 認知的複雑度の閾値 */
+  /** Maximum acceptable cognitive complexity per function */
   COGNITIVE_COMPLEXITY: 15,
-  /** 重複率の閾値（%） */
+  /** Maximum acceptable code duplication percentage */
   DUPLICATION: 3,
-  /** カバレッジの最小値（%） */
+  /** Minimum required test coverage percentage */
   COVERAGE: 80,
-  /** 1ファイルの最大行数 */
+  /** Maximum acceptable lines per file */
   FILE_LINES: 500,
-  /** 1関数の最大行数 */
+  /** Maximum acceptable lines per function */
   FUNCTION_LINES: 50,
 } as const;
 
 /**
- * 技術的負債の情報
+ * Technical debt information calculated based on SonarQube methodology.
+ * Technical debt represents the effort required to fix all code issues.
  */
 interface TechnicalDebt {
-  /** 総修正時間（分） */
+  /** Total remediation time in minutes */
   totalMinutes: number;
-  /** カテゴリ別の負債 */
+  /** Technical debt breakdown by category */
   byCategory: {
     complexity: number;
     duplication: number;
@@ -75,11 +80,11 @@ interface TechnicalDebt {
     fileSize: number;
     maintainability: number;
   };
-  /** 開発コスト（分） */
+  /** Estimated development cost in minutes */
   developmentCost: number;
-  /** 技術的負債比率 */
+  /** Technical debt ratio (remediation cost / development cost) */
   debtRatio: number;
-  /** 評価 */
+  /** Overall quality rating (A-E) */
   rating: 'A' | 'B' | 'C' | 'D' | 'E';
 }
 
@@ -499,7 +504,7 @@ function analyzeDuplication(files: string[]): CodeQualityMetrics['duplication'] 
   for (const [, occurrences] of contentHashes) {
     if (occurrences.length > 1) {
       blocks++;
-      duplicateLines += occurrences.length * 4; // Approximate
+      duplicateLines += occurrences.length * 4; // Approximate lines affected
     }
   }
 
@@ -512,26 +517,32 @@ function analyzeDuplication(files: string[]): CodeQualityMetrics['duplication'] 
 }
 
 /**
- * 開発コストを推定（ファイル数 × 行数から概算）
- * SonarQubeのデフォルト: 1行 = 0.06日 = 28.8分
+ * Estimates the development cost based on file count and lines of code.
+ * Uses SonarQube's default: 1 line = 0.06 days = 28.8 minutes.
+ * @param totalFiles - Total number of files in the project
+ * @param avgLinesPerFile - Average lines of code per file
+ * @returns Estimated development cost in minutes
  */
 function estimateDevelopmentCost(totalFiles: number, avgLinesPerFile: number): number {
-  const MINUTES_PER_LINE = 0.48; // 28.8分 / 60行（1時間で60行書く想定）
+  const MINUTES_PER_LINE = 0.48; // 28.8 min / 60 lines (assuming 60 lines per hour)
   return totalFiles * avgLinesPerFile * MINUTES_PER_LINE;
 }
 
 /**
- * 複雑度による技術的負債を計算
+ * Calculates technical debt caused by high code complexity.
+ * Debt is calculated for each file exceeding the complexity threshold.
+ * @param metrics - Code quality metrics containing complexity data
+ * @returns Technical debt in minutes for complexity issues
  */
 function calculateComplexityDebt(metrics: CodeQualityMetrics): number {
   let debt = 0;
 
-  // 高複雑度ファイルごとに負債を計算
+  // Calculate debt for each high-complexity file
   const highComplexityFiles = metrics.complexity?.highComplexityFiles || [];
   for (const file of highComplexityFiles) {
     if (file.complexity > QUALITY_GATE_THRESHOLDS.COMPLEXITY) {
       const excess = file.complexity - QUALITY_GATE_THRESHOLDS.COMPLEXITY;
-      // 各ファイルの超過分に対して修正コストを計算
+      // Calculate remediation cost for complexity exceeding threshold
       debt += excess * REMEDIATION_COSTS.COMPLEXITY_PER_POINT;
     }
   }
@@ -540,13 +551,16 @@ function calculateComplexityDebt(metrics: CodeQualityMetrics): number {
 }
 
 /**
- * 重複による技術的負債を計算
+ * Calculates technical debt caused by code duplication.
+ * Debt increases with the percentage of duplicated code.
+ * @param metrics - Code quality metrics containing duplication data
+ * @returns Technical debt in minutes for duplication issues
  */
 function calculateDuplicationDebt(metrics: CodeQualityMetrics): number {
   const duplicationPercentage = metrics.duplication?.percentage || 0;
 
   if (duplicationPercentage > QUALITY_GATE_THRESHOLDS.DUPLICATION) {
-    // 重複ブロック数を推定（重複率から概算）
+    // Estimate number of duplicate blocks from duplication percentage
     const estimatedBlocks = Math.ceil(
       (duplicationPercentage - QUALITY_GATE_THRESHOLDS.DUPLICATION) / 2
     );
@@ -557,7 +571,10 @@ function calculateDuplicationDebt(metrics: CodeQualityMetrics): number {
 }
 
 /**
- * カバレッジ不足による技術的負債を計算
+ * Calculates technical debt caused by insufficient test coverage.
+ * Debt is proportional to the coverage deficit below the threshold.
+ * @param coverage - Current test coverage percentage (0-100)
+ * @returns Technical debt in minutes for coverage issues
  */
 function calculateCoverageDebt(coverage: number | undefined): number {
   if (coverage === undefined) return 0;
@@ -571,7 +588,10 @@ function calculateCoverageDebt(coverage: number | undefined): number {
 }
 
 /**
- * ファイルサイズによる技術的負債を計算
+ * Calculates technical debt caused by large files.
+ * Large files are harder to maintain and understand.
+ * @param metrics - Code quality metrics containing file size data
+ * @returns Technical debt in minutes for file size issues
  */
 function calculateFileSizeDebt(metrics: CodeQualityMetrics): number {
   const largeFiles = metrics.fileMetrics?.largeFiles || [];
@@ -579,7 +599,10 @@ function calculateFileSizeDebt(metrics: CodeQualityMetrics): number {
 }
 
 /**
- * 保守性による技術的負債を計算
+ * Calculates technical debt caused by low maintainability.
+ * Files with low maintainability index require more effort to maintain.
+ * @param metrics - Code quality metrics containing maintainability data
+ * @returns Technical debt in minutes for maintainability issues
  */
 function calculateMaintainabilityDebt(metrics: CodeQualityMetrics): number {
   const lowMaintainabilityFiles = metrics.maintainability?.lowMaintainabilityFiles || [];
@@ -587,10 +610,13 @@ function calculateMaintainabilityDebt(metrics: CodeQualityMetrics): number {
 }
 
 /**
- * SonarQube方式で技術的負債を計算
+ * Calculates total technical debt using SonarQube methodology.
+ * Technical debt ratio = remediation cost / development cost.
+ * @param metrics - Comprehensive code quality metrics
+ * @returns Technical debt information including ratio and rating
  */
 function calculateTechnicalDebt(metrics: CodeQualityMetrics): TechnicalDebt {
-  // カテゴリ別の負債を計算
+  // Calculate debt for each category
   const byCategory = {
     complexity: calculateComplexityDebt(metrics),
     duplication: calculateDuplicationDebt(metrics),
@@ -599,19 +625,19 @@ function calculateTechnicalDebt(metrics: CodeQualityMetrics): TechnicalDebt {
     maintainability: calculateMaintainabilityDebt(metrics),
   };
 
-  // 総負債を計算
+  // Calculate total debt
   const totalMinutes = Object.values(byCategory).reduce((sum, debt) => sum + debt, 0);
 
-  // 開発コストを推定
+  // Estimate development cost
   const developmentCost = estimateDevelopmentCost(
     metrics.fileMetrics?.totalFiles || 0,
     metrics.fileMetrics?.avgLinesPerFile || 0
   );
 
-  // 技術的負債比率を計算
+  // Calculate technical debt ratio
   const debtRatio = developmentCost > 0 ? totalMinutes / developmentCost : 0;
 
-  // 評価を決定
+  // Determine quality rating based on debt ratio
   let rating: 'A' | 'B' | 'C' | 'D' | 'E' = 'E';
   for (const [grade, config] of Object.entries(SONARQUBE_RATINGS)) {
     if (debtRatio <= config.maxDebtRatio) {
@@ -630,18 +656,20 @@ function calculateTechnicalDebt(metrics: CodeQualityMetrics): TechnicalDebt {
 }
 
 /**
- * SonarQube方式でスコアを計算（0-100）
- * 技術的負債比率から逆算
+ * Calculates health score (0-100) based on SonarQube methodology.
+ * Score is inversely proportional to technical debt ratio.
+ * - Grade A (0-5% debt): 90-100 points
+ * - Grade B (5-10% debt): 75-90 points
+ * - Grade C (10-20% debt): 60-75 points
+ * - Grade D (20-50% debt): 40-60 points
+ * - Grade E (50%+ debt): 0-40 points
+ * @param metrics - Code quality metrics
+ * @returns Health score from 0 to 100
  */
 function calculateHealthScore(metrics: CodeQualityMetrics): number {
   const debt = calculateTechnicalDebt(metrics);
 
-  // 負債比率をスコアに変換（逆相関）
-  // A (0-5%) -> 90-100
-  // B (5-10%) -> 75-90
-  // C (10-20%) -> 60-75
-  // D (20-50%) -> 40-60
-  // E (50%+) -> 0-40
+  // Convert debt ratio to score (inverse correlation)
 
   if (debt.debtRatio <= 0.05) {
     return Math.round(90 + (1 - debt.debtRatio / 0.05) * 10);
@@ -784,15 +812,15 @@ async function main() {
     console.log('📝 Excluding shadcn/ui components from analysis\n');
   }
 
-  // Analyze source files
+  // Analyze all source files in the project
   const { files, fileMetrics } = analyzeSourceFiles({
     includeShadcnUI: !excludeShadcnUI,
   });
 
-  // Run ESLint complexity analysis
+  // Run ESLint to find complexity-related issues
   const eslintComplexity = runESLintComplexityAnalysis(files);
 
-  // Calculate complexity metrics using ESLintCC
+  // Calculate detailed complexity metrics with ESLintCC
   const complexity = await calculateComplexityWithESLintCC(files);
 
   // Calculate maintainability
@@ -847,13 +875,13 @@ async function main() {
 export async function analyzeCodeQualityAsync(
   config: AnalysisConfig = {}
 ): Promise<CodeQualityMetrics> {
-  // Analyze source files
+  // Analyze all source files
   const { files, fileMetrics } = analyzeSourceFiles(config);
 
-  // Run ESLint complexity analysis
+  // Run ESLint to find complexity-related issues
   const eslintComplexity = runESLintComplexityAnalysis(files);
 
-  // Calculate complexity metrics using ESLintCC
+  // Calculate detailed complexity metrics with ESLintCC
   const complexity = await calculateComplexityWithESLintCC(files);
   const maintainability = calculateMaintainabilityMetrics(
     complexity,

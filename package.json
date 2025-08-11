@@ -88,12 +88,5 @@
     "tw-animate-css": "^1.3.6",
     "typescript": "^5",
     "vitest": "^3.2.4"
-  },
-  "lint-staged": {
-    "*.{js,jsx,ts,tsx,mjs,cjs}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,md,mdx,css,scss,html,yml,yaml}": "prettier --write"
   }
 }

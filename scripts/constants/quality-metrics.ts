@@ -174,45 +174,6 @@ export const ESLINT_COMPLEXITY_RULES = {
 } as const;
 
 /**
- * Code quality thresholds
- */
-export const CODE_QUALITY_THRESHOLDS = {
-  /**
-   * Maintainability index thresholds
-   */
-  MAINTAINABILITY: {
-    /**
-     * Excellent maintainability threshold
-     */
-    EXCELLENT: 90,
-    /**
-     * Good maintainability threshold
-     */
-    GOOD: 85,
-    /**
-     * Fair maintainability threshold
-     */
-    FAIR: 65,
-    /**
-     * Poor maintainability threshold
-     */
-    POOR: 50,
-  },
-  /**
-   * Maximum cyclomatic complexity (same as COMPLEXITY_THRESHOLDS.AVERAGE.MAXIMUM)
-   */
-  CYCLOMATIC_COMPLEXITY_MAX: 10,
-  /**
-   * Maximum cognitive complexity
-   */
-  COGNITIVE_COMPLEXITY_MAX: 15,
-  /**
-   * Minimum test coverage percentage
-   */
-  TEST_COVERAGE_MIN: 80,
-} as const;
-
-/**
  * Score ratings for quality metrics
  */
 export const SCORE_RATINGS = {

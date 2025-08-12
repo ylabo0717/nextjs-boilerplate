@@ -10,7 +10,6 @@ import jsdocPlugin from 'eslint-plugin-jsdoc';
 import unicornPlugin from 'eslint-plugin-unicorn';
 import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
 import importPlugin from 'eslint-plugin-import';
-import tailwindcssPlugin from 'eslint-plugin-tailwindcss';
 import eslintPluginBetterTailwindcss from 'eslint-plugin-better-tailwindcss';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import vitestPlugin from 'eslint-plugin-vitest';
@@ -54,7 +53,7 @@ const eslintConfig = [
       unicorn: unicornPlugin,
       'jsx-a11y': jsxA11yPlugin,
       import: importPlugin,
-      tailwindcss: tailwindcssPlugin,
+      // tailwindcss: removed (migrated to eslint-plugin-better-tailwindcss)
       'better-tailwindcss': eslintPluginBetterTailwindcss,
       'react-hooks': reactHooksPlugin,
     },
@@ -187,13 +186,7 @@ const eslintConfig = [
         },
       ],
 
-      // Tailwind CSS rules - Temporarily disabled due to resolution issue on v4 beta
-      'tailwindcss/classnames-order': 'off',
-      'tailwindcss/enforces-negative-arbitrary-values': 'off',
-      'tailwindcss/enforces-shorthand': 'off',
-      'tailwindcss/no-arbitrary-value': 'off',
-      'tailwindcss/no-custom-classname': 'off',
-      'tailwindcss/no-contradicting-classname': 'off',
+      // old eslint-plugin-tailwindcss rules removed
 
       // better-tailwindcss - Tailwind v4 対応の正当性チェックを上書き（ignore維持）
       'better-tailwindcss/no-unregistered-classes': [

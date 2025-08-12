@@ -83,7 +83,6 @@ jobs:
         if: github.event.inputs.skip_quality_gate != 'true'
         run: |
           pnpm tsx scripts/quality-gate.ts
-        continue-on-error: true
 
       - name: Upload metrics artifacts
         uses: actions/upload-artifact@v4
@@ -253,3 +252,9 @@ jobs:
               description: passed ? 'Quality gate passed' : 'Quality gate failed',
               context: 'Quality Gate'
             });
+
+      - name: Fail job if quality gate failed
+        if: needs.metrics.outputs.quality_gate_passed != 'true'
+        run: |
+          echo "❌ Quality gate failed. See details above."
+          exit 1

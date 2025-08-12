@@ -1,4 +1,6 @@
 /// <reference types="vitest/globals" />
+import { assert } from 'vitest';
+
 import { UsersSchema } from '@/types/user';
 
 describe('GET /api/users (mocked)', () => {
@@ -13,13 +15,13 @@ describe('GET /api/users (mocked)', () => {
     // 型検証が成功したことを確認
     expect(parseResult.success).toBeTruthy();
 
+    // TypeScriptの型ガードとして assert を使用
+    // これにより parseResult.data が安全に使用可能になる
+    assert(parseResult.success, 'Schema validation should succeed');
+
     // 検証済みの型安全なデータを使用
-    // Type guard を assert で置き換え
-    // eslint-disable-next-line vitest/no-conditional-in-test -- Type guard is necessary for TypeScript
-    if (parseResult.success) {
-      const users = parseResult.data;
-      expect(users).toHaveLength(1);
-      expect(users[0]).toMatchObject({ name: 'Alice' });
-    }
+    const users = parseResult.data;
+    expect(users).toHaveLength(1);
+    expect(users[0]).toMatchObject({ name: 'Alice' });
   });
 });

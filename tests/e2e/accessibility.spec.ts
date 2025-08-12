@@ -56,17 +56,18 @@ test.describe('Accessibility', () => {
     });
 
     // Verify heading levels don't skip (e.g., h1 -> h3 without h2)
-    for (let i = 1; i < headings.length; i++) {
-      // eslint-disable-next-line security/detect-object-injection -- Array index is safe here
-      const current = headings[i];
-      const previous = headings[i - 1];
-      if (!current || !previous) continue;
+    headings.forEach((current, index) => {
+      if (index === 0) return; // Skip first heading
+
+      const previous = headings[index - 1];
+      if (!current || !previous) return;
+
       const currentLevel = current.level;
       const previousLevel = previous.level;
 
       // Level should not increase by more than 1
       expect(currentLevel - previousLevel).toBeLessThanOrEqual(1);
-    }
+    });
   });
 
   test('should have proper ARIA labels for interactive elements', async ({ page }) => {

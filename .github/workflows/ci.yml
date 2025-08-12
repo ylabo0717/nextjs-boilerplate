@@ -145,6 +145,9 @@ jobs:
       - name: Run Vitest tests with coverage
         run: pnpm test:coverage
 
+      - name: Run Scripts tests separately
+        run: pnpm test:scripts
+
       - name: Check coverage threshold
         if: matrix.node-version == '20.x'
         run: |

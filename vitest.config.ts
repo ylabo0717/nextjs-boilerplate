@@ -33,7 +33,6 @@ export default defineConfig({
         'src/repositories/**/*.{ts,tsx}',
         'src/utils/**/*.{ts,tsx}',
         'src/components/features/**/*.{ts,tsx}',
-        'scripts/**/*.{ts,mjs}',
       ],
       exclude: [
         '**/*.d.ts',

@@ -1,6 +1,6 @@
 module.exports = {
-  // TypeScript/JavaScript source files → ESLint + Prettier
-  '*.{ts,tsx,js,jsx}': ['eslint --fix', 'prettier --write'],
+  // TypeScript/JavaScript source files → Prettier 先行、ESLint 最後（整形結果の衝突を回避）
+  '*.{ts,tsx,js,jsx}': ['prettier --write', 'eslint --fix'],
 
   // Node/Config modules → Prettier のみ（ESLint は対象外にする）
   '*.{mjs,cjs,mts,cts}': ['prettier --write'],

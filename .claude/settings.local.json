@@ -54,7 +54,8 @@
       "Bash(pnpm precommit:fix:*)",
       "Bash(pnpm precommit:check:*)",
       "WebFetch(domain:nextjs.org)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(pnpm playwright test:*)"
     ],
     "deny": [
       "Bash(sudo *)",

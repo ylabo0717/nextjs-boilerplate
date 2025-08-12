@@ -1,28 +1,28 @@
 /**
  * Unified quality metrics constants for all quality check scripts
- * 
+ *
  * @remarks
  * This file serves as the single source of truth for all quality thresholds
- * 
+ *
  * @public
  */
 
 /**
  * Time conversion constants
- * 
+ *
  * @public
  */
 export const TIME_UNITS = {
   /**
    * Milliseconds in one minute
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
   MS_PER_MINUTE: 60000,
   /**
    * Milliseconds in one second
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -31,20 +31,20 @@ export const TIME_UNITS = {
 
 /**
  * Size conversion constants
- * 
+ *
  * @public
  */
 export const SIZE_UNITS = {
   /**
    * Bytes in one Kilobyte
-   * 
+   *
    * @remarks
    * Unit: bytes
    */
   BYTES_PER_KB: 1024,
   /**
    * Bytes in one Megabyte
-   * 
+   *
    * @remarks
    * Unit: bytes
    */
@@ -53,48 +53,48 @@ export const SIZE_UNITS = {
 
 /**
  * Performance thresholds for build and test operations
- * 
+ *
  * @public
  */
 export const PERFORMANCE_THRESHOLDS = {
   /**
    * Maximum acceptable build time
-   * 
+   *
    * @remarks
    * Unit: milliseconds (5 minutes)
    */
   BUILD_TIME_MAX: 300000,
   /**
    * Target build time
-   * 
+   *
    * @remarks
    * Unit: milliseconds (2 minutes)
    */
   BUILD_TIME_TARGET: 120000,
   /**
    * Maximum acceptable test time
-   * 
+   *
    * @remarks
    * Unit: milliseconds (3 minutes)
    */
   TEST_TIME_MAX: 180000,
   /**
    * Maximum acceptable bundle size
-   * 
+   *
    * @remarks
    * Unit: bytes (100MB)
    */
   BUNDLE_SIZE_MAX: 104857600,
   /**
    * Warning threshold for total bundle size
-   * 
+   *
    * @remarks
    * Unit: bytes (50MB)
    */
   BUNDLE_SIZE_WARNING: 52428800,
   /**
    * Target (recommended) total bundle size
-   * 
+   *
    * @remarks
    * Unit: bytes (5MB)
    * Used for displaying ✅/⚠️ in reports
@@ -104,34 +104,34 @@ export const PERFORMANCE_THRESHOLDS = {
 
 /**
  * Lighthouse score thresholds
- * 
+ *
  * @public
  */
 export const LIGHTHOUSE_THRESHOLDS = {
   /**
    * Minimum performance score
-   * 
+   *
    * @remarks
    * Unit: score (0-100)
    */
   PERFORMANCE: 75,
   /**
    * Minimum accessibility score
-   * 
+   *
    * @remarks
    * Unit: score (0-100)
    */
   ACCESSIBILITY: 90,
   /**
    * Minimum best practices score
-   * 
+   *
    * @remarks
    * Unit: score (0-100)
    */
   BEST_PRACTICES: 90,
   /**
    * Minimum SEO score
-   * 
+   *
    * @remarks
    * Unit: score (0-100)
    */
@@ -140,7 +140,7 @@ export const LIGHTHOUSE_THRESHOLDS = {
 
 /**
  * Complexity level definitions with thresholds
- * 
+ *
  * @public
  */
 export const COMPLEXITY_LEVELS = {
@@ -184,7 +184,7 @@ export const COMPLEXITY_LEVELS = {
 
 /**
  * Complexity thresholds for quality gates
- * 
+ *
  * @public
  */
 export const COMPLEXITY_THRESHOLDS = {
@@ -194,14 +194,14 @@ export const COMPLEXITY_THRESHOLDS = {
   INDIVIDUAL: {
     /**
      * Warning threshold - triggers warning in quality gate
-     * 
+     *
      * @remarks
      * Unit: complexity score
      */
     WARNING: 15,
     /**
      * Maximum threshold - triggers error in quality gate
-     * 
+     *
      * @remarks
      * Unit: complexity score
      */
@@ -213,14 +213,14 @@ export const COMPLEXITY_THRESHOLDS = {
   AVERAGE: {
     /**
      * Warning threshold for average complexity
-     * 
+     *
      * @remarks
      * Unit: average complexity score
      */
     WARNING: 8,
     /**
      * Maximum threshold for average complexity
-     * 
+     *
      * @remarks
      * Unit: average complexity score
      */
@@ -230,10 +230,10 @@ export const COMPLEXITY_THRESHOLDS = {
 
 /**
  * ESLintCC rank configuration
- * 
+ *
  * @remarks
  * Maps complexity values to letter grades for ESLintCC
- * 
+ *
  * @public
  */
 export const ESLINTCC_RANKS = {
@@ -265,7 +265,7 @@ export const ESLINTCC_RANKS = {
 
 /**
  * ESLint rule configuration for complexity
- * 
+ *
  * @public
  */
 export const ESLINT_COMPLEXITY_RULES = {
@@ -278,34 +278,34 @@ export const ESLINT_COMPLEXITY_RULES = {
 
 /**
  * Score ratings for quality metrics
- * 
+ *
  * @public
  */
 export const SCORE_RATINGS = {
   /**
    * A rating threshold
-   * 
+   *
    * @remarks
    * Unit: percentage (0-100)
    */
   A: 90,
   /**
    * B rating threshold
-   * 
+   *
    * @remarks
    * Unit: percentage (0-100)
    */
   B: 80,
   /**
    * C rating threshold
-   * 
+   *
    * @remarks
    * Unit: percentage (0-100)
    */
   C: 70,
   /**
    * D rating threshold
-   * 
+   *
    * @remarks
    * Unit: percentage (0-100)
    */
@@ -313,37 +313,37 @@ export const SCORE_RATINGS = {
 } as const;
 /**
  * Maintainability Index thresholds
- * 
+ *
  * @remarks
  * Based on industry standards and Microsoft's Maintainability Index
- * 
+ *
  * @public
  */
 export const MAINTAINABILITY_INDEX_THRESHOLDS = {
   /**
    * Excellent maintainability (green zone)
-   * 
+   *
    * @remarks
    * Unit: maintainability score (0-100)
    */
   EXCELLENT: 80,
   /**
    * Good maintainability (yellow zone)
-   * 
+   *
    * @remarks
    * Unit: maintainability score (0-100)
    */
   GOOD: 70,
   /**
    * Fair maintainability (orange zone)
-   * 
+   *
    * @remarks
    * Unit: maintainability score (0-100)
    */
   FAIR: 50,
   /**
    * Poor maintainability (red zone) - anything below FAIR
-   * 
+   *
    * @remarks
    * Unit: maintainability score (0-100)
    */
@@ -352,25 +352,25 @@ export const MAINTAINABILITY_INDEX_THRESHOLDS = {
 
 /**
  * Quality Gate default conditions (aligned with Sonar way for overall code fallback)
- * 
+ *
  * @remarks
  * Purpose:
  * - Binary quality gate thresholds independent from the health score.
  * - Approximate Sonar Way new-code criteria as an overall-code fallback.
- * 
+ *
  * @public
  */
 export const QUALITY_GATE_CONDITIONS = {
   /**
    * Minimum acceptable overall coverage percentage
-   * 
+   *
    * @remarks
    * Unit: percentage (0-100)
    */
   COVERAGE_MIN: 80,
   /**
    * Maximum acceptable duplication percentage for overall code
-   * 
+   *
    * @remarks
    * Unit: percentage (0-100)
    */
@@ -378,20 +378,20 @@ export const QUALITY_GATE_CONDITIONS = {
 } as const;
 /**
  * Unified quality report thresholds
- * 
+ *
  * @public
  */
 export const UNIFIED_REPORT_THRESHOLDS = {
   /**
    * Maximum acceptable lint warnings count
-   * 
+   *
    * @remarks
    * Unit: count
    */
   LINT_WARN_MAX: 10,
   /**
    * Maximum acceptable duplication percentage for individual files
-   * 
+   *
    * @remarks
    * Unit: percentage (0-100)
    */
@@ -399,34 +399,34 @@ export const UNIFIED_REPORT_THRESHOLDS = {
 } as const;
 /**
  * File size thresholds for code analysis
- * 
+ *
  * @public
  */
 export const FILE_SIZE_THRESHOLDS = {
   /**
    * Warning threshold for large files
-   * 
+   *
    * @remarks
    * Unit: lines of code
    */
   LARGE_FILE_LINES: 300,
   /**
    * Warning threshold for average lines per file
-   * 
+   *
    * @remarks
    * Unit: lines of code
    */
   AVG_LINES_WARNING: 200,
   /**
    * Maximum recommended lines per file
-   * 
+   *
    * @remarks
    * Unit: lines of code
    */
   MAX_RECOMMENDED_LINES: 500,
   /**
    * Maximum recommended lines per function
-   * 
+   *
    * @remarks
    * Unit: lines of code
    */
@@ -435,27 +435,27 @@ export const FILE_SIZE_THRESHOLDS = {
 
 /**
  * Display limits for reports and analysis
- * 
+ *
  * @public
  */
 export const DISPLAY_LIMITS = {
   /**
    * Maximum number of files to show in detailed reports
-   * 
+   *
    * @remarks
    * Unit: count
    */
   TOP_FILES_DETAILED: 10,
   /**
    * Maximum number of files to show in summary reports
-   * 
+   *
    * @remarks
    * Unit: count
    */
   TOP_FILES_SUMMARY: 5,
   /**
    * Maximum number of recommendations to show
-   * 
+   *
    * @remarks
    * Unit: count
    */
@@ -464,37 +464,37 @@ export const DISPLAY_LIMITS = {
 
 /**
  * First Load JS bundle size thresholds
- * 
+ *
  * @remarks
  * Unit: kilobytes
- * 
+ *
  * @public
  */
 export const FIRST_LOAD_JS_THRESHOLDS = {
   /**
    * Excellent bundle size
-   * 
+   *
    * @remarks
    * Unit: kilobytes
    */
   EXCELLENT: 100,
   /**
    * Good bundle size
-   * 
+   *
    * @remarks
    * Unit: kilobytes
    */
   GOOD: 150,
   /**
    * Warning threshold
-   * 
+   *
    * @remarks
    * Unit: kilobytes
    */
   WARNING: 200,
   /**
    * Maximum acceptable size
-   * 
+   *
    * @remarks
    * Unit: kilobytes
    */
@@ -503,15 +503,15 @@ export const FIRST_LOAD_JS_THRESHOLDS = {
 
 /**
  * Health Score weights for normalized metrics (sum should be 1.0)
- * 
+ *
  * @remarks
  * Purpose:
  * - Express relative importance of normalized metrics.
  * - Align with ISO/IEC 25010 (Maintainability/Performance) and Sonar gate practices.
- * 
+ *
  * Note:
  * - If MI is unavailable, reallocate its weight to CC_AVG.
- * 
+ *
  * @public
  */
 export const QUALITY_SCORE_WEIGHTS = {
@@ -532,27 +532,27 @@ export const QUALITY_SCORE_WEIGHTS = {
 
 /**
  * Health score bands and gate cap
- * 
+ *
  * @public
  */
 export const HEALTH_SCORE_THRESHOLDS = {
   /**
    * Excellent threshold
-   * 
+   *
    * @remarks
    * Unit: score (0-100)
    */
   EXCELLENT: 80,
   /**
    * Good threshold
-   * 
+   *
    * @remarks
    * Unit: score (0-100)
    */
   GOOD: 60,
   /**
    * Fair threshold (below this is Poor)
-   * 
+   *
    * @remarks
    * Unit: score (0-100)
    */
@@ -561,30 +561,30 @@ export const HEALTH_SCORE_THRESHOLDS = {
 
 /**
  * Cap applied to health score when Quality Gate fails
- * 
+ *
  * @remarks
  * Unit: score (0-100)
- * 
+ *
  * @public
  */
 export const QUALITY_GATE_FAILURE_CAP = 59 as const;
 
 /**
  * Display/format defaults for reports
- * 
+ *
  * @public
  */
 export const DISPLAY_FORMATS = {
   /**
    * Decimal places for bundle size in table
-   * 
+   *
    * @remarks
    * Unit: decimal places
    */
   BUNDLE_SIZE_TABLE_DECIMALS: 2,
   /**
    * Decimal places for bundle size target hint
-   * 
+   *
    * @remarks
    * Unit: decimal places
    */
@@ -593,10 +593,10 @@ export const DISPLAY_FORMATS = {
 
 /**
  * Get indicator emoji for quality gate
- * 
+ *
  * @param value - The complexity value to evaluate
  * @returns The appropriate emoji indicator
- * 
+ *
  * @public
  */
 export function getComplexityIndicator(value: number): string {
@@ -611,7 +611,7 @@ export function getComplexityIndicator(value: number): string {
 
 /**
  * Scoring constants used by unified quality report normalization
- * 
+ *
  * @public
  */
 export const SCORING_CONSTANTS = {

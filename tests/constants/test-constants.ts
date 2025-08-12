@@ -1,19 +1,19 @@
 /**
  * Test timeout constants
- * 
+ *
  * @remarks
  * Centralized timeout values for integration and E2E tests
  */
 
 /**
  * Wait times for UI interactions and animations
- * 
+ *
  * @public
  */
 export const UI_WAIT_TIMES = {
   /**
    * Instant feedback for micro-interactions like hover states and focus
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -21,7 +21,7 @@ export const UI_WAIT_TIMES = {
 
   /**
    * Quick transitions for dropdowns, tooltips, and accordion panels
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -29,7 +29,7 @@ export const UI_WAIT_TIMES = {
 
   /**
    * Standard animations for modals, page transitions, and form submissions
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -37,7 +37,7 @@ export const UI_WAIT_TIMES = {
 
   /**
    * Complex UI updates like data loading, chart rendering, and lazy loading
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -45,7 +45,7 @@ export const UI_WAIT_TIMES = {
 
   /**
    * Heavy operations like file uploads, bulk operations, and initial page load
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -54,13 +54,13 @@ export const UI_WAIT_TIMES = {
 
 /**
  * Network-related wait times
- * 
+ *
  * @public
  */
 export const NETWORK_WAIT_TIMES = {
   /**
    * API call completion for REST endpoints and GraphQL queries
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -68,7 +68,7 @@ export const NETWORK_WAIT_TIMES = {
 
   /**
    * Full page load including all assets for initial render and route changes
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -76,7 +76,7 @@ export const NETWORK_WAIT_TIMES = {
 
   /**
    * Network idle detection when no pending requests remain
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -85,13 +85,13 @@ export const NETWORK_WAIT_TIMES = {
 
 /**
  * Test-specific timeouts
- * 
+ *
  * @public
  */
 export const TEST_TIMEOUTS = {
   /**
    * Standard test case execution for most integration tests
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -99,7 +99,7 @@ export const TEST_TIMEOUTS = {
 
   /**
    * Complex scenarios including E2E flows and multi-step workflows
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -107,7 +107,7 @@ export const TEST_TIMEOUTS = {
 
   /**
    * Simple unit tests for component rendering and basic interactions
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -116,13 +116,13 @@ export const TEST_TIMEOUTS = {
 
 /**
  * Retry configuration for flaky operations
- * 
+ *
  * @public
  */
 export const RETRY_CONFIG = {
   /**
    * Maximum retry attempts for network requests and element visibility checks
-   * 
+   *
    * @remarks
    * Unit: count
    */
@@ -130,7 +130,7 @@ export const RETRY_CONFIG = {
 
   /**
    * Wait between retries to prevent rate limiting and allow recovery
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -138,7 +138,7 @@ export const RETRY_CONFIG = {
 
   /**
    * Server startup retry attempts for performance tests
-   * 
+   *
    * @remarks
    * Unit: count
    */
@@ -146,7 +146,7 @@ export const RETRY_CONFIG = {
 
   /**
    * Delay between server startup retries
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -154,7 +154,7 @@ export const RETRY_CONFIG = {
 
   /**
    * Polling interval for server health checks
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -162,7 +162,7 @@ export const RETRY_CONFIG = {
 
   /**
    * Timeout before force killing unresponsive server process
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -170,7 +170,7 @@ export const RETRY_CONFIG = {
 
   /**
    * Grace period before exiting the process to allow cleanup to run
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -178,7 +178,7 @@ export const RETRY_CONFIG = {
 
   /**
    * Maximum time to wait for server to become ready
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -187,13 +187,13 @@ export const RETRY_CONFIG = {
 
 /**
  * Animation and transition durations
- * 
+ *
  * @public
  */
 export const ANIMATION_DURATIONS = {
   /**
    * CSS transitions for color changes, transforms, and opacity
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -201,7 +201,7 @@ export const ANIMATION_DURATIONS = {
 
   /**
    * Modal animations with fade in/out and scale effects
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -209,7 +209,7 @@ export const ANIMATION_DURATIONS = {
 
   /**
    * Dropdown menu slide down/up animations
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -218,13 +218,13 @@ export const ANIMATION_DURATIONS = {
 
 /**
  * Web server timeouts for Playwright configuration
- * 
+ *
  * @public
  */
 export const WEBSERVER_TIMEOUT = {
   /**
    * Dev server startup including Next.js build and dependency installation
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -232,13 +232,13 @@ export const WEBSERVER_TIMEOUT = {
 } as const;
 /**
  * Test data configuration for content generation in tests
- * 
+ *
  * @public
  */
 export const TEST_DATA = {
   /**
    * Content items to generate for virtual scrolling and pagination tests
-   * 
+   *
    * @remarks
    * Unit: count
    */
@@ -246,7 +246,7 @@ export const TEST_DATA = {
 
   /**
    * Numeric height for scroll position and viewport calculations
-   * 
+   *
    * @remarks
    * Unit: pixels
    */
@@ -254,7 +254,7 @@ export const TEST_DATA = {
 
   /**
    * CSS height value for inline styles and dynamic styling
-   * 
+   *
    * @remarks
    * Unit: CSS pixels
    */
@@ -263,13 +263,13 @@ export const TEST_DATA = {
 
 /**
  * Accessibility testing configuration
- * 
+ *
  * @public
  */
 export const ACCESSIBILITY_TEST = {
   /**
    * Tab order verification for forms, navigation, and modals
-   * 
+   *
    * @remarks
    * Unit: count
    */
@@ -278,13 +278,13 @@ export const ACCESSIBILITY_TEST = {
 
 /**
  * Scroll position constants for testing
- * 
+ *
  * @public
  */
 export const SCROLL_POSITIONS = {
   /**
    * Scroll behavior verification for smooth scrolling and sticky headers
-   * 
+   *
    * @remarks
    * Unit: pixels
    */
@@ -293,13 +293,13 @@ export const SCROLL_POSITIONS = {
 
 /**
  * Performance metrics thresholds
- * 
+ *
  * @public
  */
 export const PERFORMANCE_THRESHOLDS = {
   /**
    * Good FCP score based on Core Web Vitals benchmark
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -307,7 +307,7 @@ export const PERFORMANCE_THRESHOLDS = {
 
   /**
    * Memory leak detection threshold to prevent excessive RAM usage
-   * 
+   *
    * @remarks
    * Unit: megabytes
    */
@@ -315,7 +315,7 @@ export const PERFORMANCE_THRESHOLDS = {
 
   /**
    * Maximum acceptable page load time
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -323,7 +323,7 @@ export const PERFORMANCE_THRESHOLDS = {
 
   /**
    * Maximum acceptable DOM content loaded time
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -332,13 +332,13 @@ export const PERFORMANCE_THRESHOLDS = {
 
 /**
  * Memory conversion factors
- * 
+ *
  * @public
  */
 export const MEMORY_CONVERSION = {
   /**
    * Conversion factor for memory usage reporting
-   * 
+   *
    * @remarks
    * Unit: bytes per KB
    */
@@ -346,7 +346,7 @@ export const MEMORY_CONVERSION = {
 
   /**
    * Conversion factor for performance metrics
-   * 
+   *
    * @remarks
    * Unit: bytes per MB
    */
@@ -355,13 +355,13 @@ export const MEMORY_CONVERSION = {
 
 /**
  * Viewport sizes for responsive testing
- * 
+ *
  * @public
  */
 export const VIEWPORT_SIZES = {
   /**
    * Full HD desktop for responsive layouts and desktop-first features
-   * 
+   *
    * @remarks
    * Unit: pixels
    */
@@ -369,7 +369,7 @@ export const VIEWPORT_SIZES = {
 
   /**
    * iPhone SE/8 size for mobile layouts and touch interactions
-   * 
+   *
    * @remarks
    * Unit: pixels
    */

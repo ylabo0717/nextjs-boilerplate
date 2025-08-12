@@ -217,7 +217,7 @@ All code should use TSDoc-style comments for better documentation and IDE suppor
 ```typescript
 /**
  * Maximum number of retry attempts for API calls
- * 
+ *
  * @public
  */
 export const MAX_RETRIES = 3;
@@ -230,13 +230,13 @@ Use multi-line TSDoc comments for each property:
 ```typescript
 /**
  * Application configuration constants
- * 
+ *
  * @public
  */
 export const CONFIG = {
   /**
    * API endpoint base URL
-   * 
+   *
    * @remarks
    * Used for all API requests in production
    */
@@ -244,7 +244,7 @@ export const CONFIG = {
 
   /**
    * Request timeout
-   * 
+   *
    * @remarks
    * Unit: milliseconds
    */
@@ -254,41 +254,41 @@ export const CONFIG = {
 
 #### For Functions and Methods
 
-```typescript
+````typescript
 /**
  * Calculates the total price including tax
- * 
+ *
  * @param price - The base price
  * @param taxRate - The tax rate as a decimal
  * @returns The total price including tax
- * 
+ *
  * @remarks
  * Tax rate should be provided as a decimal (e.g., 0.08 for 8%)
- * 
+ *
  * @example
  * ```typescript
  * const total = calculateTotal(100, 0.08); // Returns 108
  * ```
- * 
+ *
  * @public
  */
 function calculateTotal(price: number, taxRate: number): number {
   return price * (1 + taxRate);
 }
-```
+````
 
 #### For Classes and Interfaces
 
 ```typescript
 /**
  * Represents a user in the system
- * 
+ *
  * @public
  */
 interface User {
   /**
    * Unique identifier
-   * 
+   *
    * @remarks
    * Generated UUID v4 format
    */
@@ -301,7 +301,7 @@ interface User {
 
   /**
    * User's email address
-   * 
+   *
    * @remarks
    * Must be a valid email format
    */
@@ -312,12 +312,14 @@ interface User {
 ### TSDoc Best Practices
 
 #### Required Documentation
+
 - Use TSDoc comments for all exported constants, functions, classes, and interfaces
 - Mark public APIs with `@public` tag
 - Use `@remarks` for additional explanatory content
 - Add `@example` for complex functions to show usage
 
 #### TSDoc Tags Usage
+
 - `@param` - Parameter descriptions (no type needed, inferred from TypeScript)
 - `@returns` - Return value description
 - `@remarks` - Additional details, units, or constraints
@@ -328,6 +330,7 @@ interface User {
 - `@since` - Version when feature was added
 
 #### Style Guidelines
+
 - Keep main description concise but informative
 - Use `@remarks` for units of measurement (e.g., milliseconds, pixels)
 - Update comments when code changes
@@ -335,6 +338,7 @@ interface User {
 - Use proper TSDoc syntax to ensure compatibility with documentation generation tools
 
 #### Linting
+
 - ESLint with `eslint-plugin-tsdoc` enforces TSDoc syntax
 - Run `pnpm lint` to check TSDoc compliance
 - Documentation is generated using TypeDoc with `pnpm docs`

@@ -19,13 +19,7 @@
   "readme": "README.md",
   "categorizeByGroup": false,
   "defaultCategory": "Other",
-  "categoryOrder": [
-    "Components",
-    "Utils",
-    "Types",
-    "Constants",
-    "Other"
-  ],
+  "categoryOrder": ["Components", "Utils", "Types", "Constants", "Other"],
   "sort": ["source-order"],
   "kindSortOrder": [
     "Document",
@@ -85,11 +79,5 @@
     "@typeParam",
     "@virtual"
   ],
-  "inlineTags": [
-    "@inheritDoc",
-    "@label",
-    "@link",
-    "@linkcode",
-    "@linkplain"
-  ]
+  "inlineTags": ["@inheritDoc", "@label", "@link", "@linkcode", "@linkplain"]
 }

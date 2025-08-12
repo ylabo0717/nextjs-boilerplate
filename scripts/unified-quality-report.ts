@@ -8,7 +8,13 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { execSync } from 'node:child_process';
-import { TIME_UNITS, PERFORMANCE_THRESHOLDS } from './constants/quality-metrics';
+import {
+  TIME_UNITS,
+  PERFORMANCE_THRESHOLDS,
+  QUALITY_GATE_CONDITIONS,
+  QUALITY_SCORE_WEIGHTS,
+  COMPLEXITY_THRESHOLDS,
+} from './constants/quality-metrics';
 
 // Status symbols and shared thresholds
 const STATUS = {
@@ -200,41 +206,253 @@ function runBasicQualityChecks(): UnifiedQualityReport['basicQuality'] {
 }
 
 /**
- * Calculate overall health score
+ * Clamp a numeric value to the inclusive range [min, max].
+ *
+ * @param n - Input number
+ * @param min - Lower bound (inclusive)
+ * @param max - Upper bound (inclusive)
+ * @returns The clamped value within [min, max]
+ */
+function clamp(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, n));
+}
+
+/**
+ * Linearly map a value from one interval to another, clamped to [x1, x2].
+ *
+ * Example: linearMap(15, 10, 0, 20, 100) -> 50
+ *
+ * @param x - Input value
+ * @param x1 - Domain start (maps to y1)
+ * @param y1 - Range start
+ * @param x2 - Domain end (maps to y2)
+ * @param y2 - Range end
+ * @returns Interpolated value in [y1, y2]
+ */
+function linearMap(x: number, x1: number, y1: number, x2: number, y2: number): number {
+  if (x1 === x2) return y1;
+  const t = clamp((x - x1) / (x2 - x1), 0, 1);
+  return y1 + (y2 - y1) * t;
+}
+
+type ScoreKey =
+  | 'MI'
+  | 'CC_AVG'
+  | 'CC_MAX'
+  | 'DUPLICATION'
+  | 'COVERAGE'
+  | 'TS_ERRORS'
+  | 'LINT_ERRORS'
+  | 'LINT_WARNINGS'
+  | 'BUILD_TIME'
+  | 'BUNDLE_SIZE';
+
+type ScoreMap = Partial<Record<ScoreKey, number>>;
+
+/** Normalize basic quality scores */
+function normalizeBasic(b?: UnifiedQualityReport['basicQuality']): ScoreMap {
+  const out: ScoreMap = {};
+  if (!b) return out;
+  out.TS_ERRORS = b.typeErrors === 0 ? 100 : clamp(100 - 30 * Math.log10(b.typeErrors + 1), 0, 100);
+  out.LINT_ERRORS =
+    b.lintErrors === 0 ? 100 : clamp(100 - 20 * Math.log10(b.lintErrors + 1), 0, 100);
+  out.LINT_WARNINGS =
+    b.lintWarnings <= THRESHOLDS.LINT_WARN_MAX
+      ? 100
+      : clamp(100 - 2 * (b.lintWarnings - THRESHOLDS.LINT_WARN_MAX), 0, 100);
+  if (typeof b.coverage === 'number') {
+    const cov = clamp(b.coverage, 0, 100);
+    let s = 0;
+    if (cov <= 50) s = 0;
+    else if (cov <= 80) s = linearMap(cov, 50, 0, 80, 80);
+    else if (cov <= 90) s = linearMap(cov, 80, 80, 90, 90);
+    else s = linearMap(cov, 90, 90, 100, 100);
+    out.COVERAGE = clamp(s, 0, 100);
+  }
+  return out;
+}
+
+/** Normalize performance scores */
+function normalizePerformance(p?: UnifiedQualityReport['performance']): ScoreMap {
+  const out: ScoreMap = {};
+  if (!p) return out;
+  if (typeof p.buildTime === 'number') {
+    const t = p.buildTime;
+    const target = PERFORMANCE_THRESHOLDS.BUILD_TIME_TARGET;
+    const max = PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX;
+    const s = t <= target ? 100 : 100 - linearMap(t, target, 0, max, 100);
+    out.BUILD_TIME = clamp(s, 0, 100);
+  }
+  if (p.bundleSize && typeof p.bundleSize.total === 'number') {
+    const size = p.bundleSize.total;
+    const target = PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET;
+    const max = PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_MAX;
+    const s = size <= target ? 100 : 100 - linearMap(size, target, 0, max, 100);
+    out.BUNDLE_SIZE = clamp(s, 0, 100);
+  }
+  return out;
+}
+
+/** Normalize advanced quality scores */
+function normalizeAdvanced(a?: UnifiedQualityReport['advancedQuality']): ScoreMap {
+  // Small helpers to keep this function simple
+  const scoreAvgComplexity = (c: number): number => {
+    if (c <= 5) return 100;
+    if (c <= 10) return clamp(linearMap(c, 5, 100, 10, 80), 0, 100);
+    if (c <= 15) return clamp(linearMap(c, 10, 80, 15, 60), 0, 100);
+    if (c <= 20) return clamp(linearMap(c, 15, 60, 20, 40), 0, 100);
+    if (c <= 30) return clamp(linearMap(c, 20, 40, 30, 20), 0, 100);
+    return 0;
+  };
+
+  const scoreMaxComplexity = (cmax: number): number => {
+    const limit = COMPLEXITY_THRESHOLDS.INDIVIDUAL.MAXIMUM;
+    if (cmax <= limit) return 100;
+    if (cmax <= limit + 20) return clamp(100 - linearMap(cmax, limit, 0, limit + 20, 60), 0, 100);
+    return 0;
+  };
+
+  const scoreDuplication = (dupPct: number): number => {
+    const d = clamp(dupPct, 0, 100);
+    if (d <= 0) return 100;
+    if (d <= THRESHOLDS.DUPLICATION_MAX)
+      return clamp(linearMap(d, 0, 100, THRESHOLDS.DUPLICATION_MAX, 95), 0, 100);
+    if (d <= 10) return clamp(linearMap(d, THRESHOLDS.DUPLICATION_MAX, 95, 10, 60), 0, 100);
+    if (d <= 20) return clamp(linearMap(d, 10, 60, 20, 30), 0, 100);
+    return 0;
+  };
+
+  const out: ScoreMap = {};
+  if (!a) return out;
+  out.CC_AVG = scoreAvgComplexity(a.complexity.average);
+  out.CC_MAX = scoreMaxComplexity(a.complexity.max);
+  out.DUPLICATION = scoreDuplication(a.duplication.percentage);
+
+  if (typeof a.maintainability?.index === 'number') {
+    out.MI = clamp(a.maintainability.index, 0, 100);
+  }
+  return out;
+}
+
+/** Merge multiple partial score maps */
+function mergeScores(...parts: ScoreMap[]): ScoreMap {
+  return Object.assign({}, ...parts);
+}
+
+/**
+ * Normalize report metrics to 0–100 as per the documented scheme in docs/code-quality-metrics.md.
+ *
+ * @param report - UnifiedQualityReport input
+ * @returns A dictionary of normalized scores in the range [0, 100]
+ */
+function normalizeScores(report: UnifiedQualityReport): Record<string, number> {
+  const basic = normalizeBasic(report.basicQuality);
+  const perf = normalizePerformance(report.performance);
+  const adv = normalizeAdvanced(report.advancedQuality);
+  return mergeScores(basic, perf, adv) as Record<string, number>;
+}
+
+/**
+ * Determine Quality Gate status (true = pass, false = fail).
+ *
+ * Conditions (defaults):
+ * - TypeScript errors = 0
+ * - ESLint errors = 0
+ * - Coverage ≥ QUALITY_GATE_CONDITIONS.COVERAGE_MIN (default: 80%)
+ * - Duplication ≤ QUALITY_GATE_CONDITIONS.DUPLICATION_MAX (default: 3%)
+ *
+ * @param report - UnifiedQualityReport
+ * @returns true if gate passes, false otherwise
+ */
+function isQualityGatePass(report: UnifiedQualityReport): boolean {
+  const b = report.basicQuality;
+  if ((b?.typeErrors ?? 0) > 0) return false;
+  if ((b?.lintErrors ?? 0) > 0) return false;
+  if (typeof b?.coverage === 'number' && b.coverage < QUALITY_GATE_CONDITIONS.COVERAGE_MIN)
+    return false;
+
+  const a = report.advancedQuality;
+  if ((a?.duplication?.percentage ?? 0) > QUALITY_GATE_CONDITIONS.DUPLICATION_MAX) return false;
+
+  return true;
+}
+
+/**
+ * Compute the health score (0–100).
+ *
+ * Algorithm:
+ * 1) Normalize metrics to [0,100] via normalizeScores().
+ * 2) Compute weighted average using QUALITY_SCORE_WEIGHTS (re-normalize when some metrics are missing).
+ * 3) If Quality Gate fails, cap the score at 59.
+ *
+ * Notes:
+ * - If Maintainability Index (MI) is unavailable, its weight is reallocated to CC_AVG.
+ * - The final score is rounded to an integer.
+ *
+ * @param report - UnifiedQualityReport
+ * @returns healthScore in [0,100], capped at 59 on gate failure
  */
 function calculateHealthScore(report: UnifiedQualityReport): number {
-  const basicPenalty = (() => {
-    const b = report.basicQuality;
-    if (!b) return 0;
-    let p = 0;
-    if (b.typeErrors > 0) p += 20;
-    if (b.lintErrors > 0) p += 15;
-    if (b.lintWarnings > THRESHOLDS.LINT_WARN_MAX) p += 5;
-    if (b.coverage !== undefined && b.coverage < THRESHOLDS.COVERAGE_MIN) p += 10;
-    return p;
-  })();
+  const scores = normalizeScores(report) as Partial<
+    Record<
+      | 'MI'
+      | 'CC_AVG'
+      | 'CC_MAX'
+      | 'DUPLICATION'
+      | 'COVERAGE'
+      | 'TS_ERRORS'
+      | 'LINT_ERRORS'
+      | 'BUILD_TIME'
+      | 'BUNDLE_SIZE',
+      number
+    >
+  >;
 
-  const perfPenalty = (() => {
-    const p = report.performance;
-    if (!p) return 0;
-    let pen = 0;
-    if (p.buildTime && p.buildTime > PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX) pen += 5;
-    if (p.bundleSize && p.bundleSize.total > PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET) pen += 10;
-    return pen;
-  })();
+  // Local weights (allow reallocation when MI is missing)
+  let wMI: number = QUALITY_SCORE_WEIGHTS.MI;
+  let wCC_AVG: number = QUALITY_SCORE_WEIGHTS.CC_AVG;
+  const wCC_MAX: number = QUALITY_SCORE_WEIGHTS.CC_MAX;
+  const wDUP: number = QUALITY_SCORE_WEIGHTS.DUPLICATION;
+  const wCOV: number = QUALITY_SCORE_WEIGHTS.COVERAGE;
+  const wTS: number = QUALITY_SCORE_WEIGHTS.TS_ERRORS;
+  const wLINT: number = QUALITY_SCORE_WEIGHTS.LINT_ERRORS;
+  const wBUILD: number = QUALITY_SCORE_WEIGHTS.BUILD_TIME;
+  const wBUNDLE: number = QUALITY_SCORE_WEIGHTS.BUNDLE_SIZE;
 
-  const advPenalty = (() => {
-    const a = report.advancedQuality;
-    if (!a) return 0;
-    let p = 0;
-    if (a.complexity.average > THRESHOLDS.COMPLEXITY_AVG_MAX) p += 10;
-    if (a.maintainability.index < THRESHOLDS.MAINTAINABILITY_MIN) p += 15;
-    if (a.duplication.percentage > THRESHOLDS.DUPLICATION_MAX) p += 5;
-    return p;
-  })();
+  if (scores.MI === undefined) {
+    // Reallocate MI weight to average complexity when MI is not provided
+    wCC_AVG += wMI;
+    wMI = 0;
+  }
 
-  const score = 100 - basicPenalty - perfPenalty - advPenalty;
-  return Math.max(0, Math.min(100, score));
+  // Accumulate only available metrics using a local helper to keep complexity low
+  let accWeight = 0;
+  let accScore = 0;
+  const add = (value: number | undefined, weight: number) => {
+    if (value === undefined) return;
+    accWeight += weight;
+    accScore += weight * value;
+  };
+
+  add(scores.MI, wMI);
+  add(scores.CC_AVG, wCC_AVG);
+  add(scores.CC_MAX, wCC_MAX);
+  add(scores.DUPLICATION, wDUP);
+  add(scores.COVERAGE, wCOV);
+  add(scores.TS_ERRORS, wTS);
+  add(scores.LINT_ERRORS, wLINT);
+  add(scores.BUILD_TIME, wBUILD);
+  add(scores.BUNDLE_SIZE, wBUNDLE);
+
+  const base = accWeight > 0 ? accScore / accWeight : 0;
+  let health = clamp(base, 0, 100);
+
+  // Apply Quality Gate cap (recommended)
+  if (!isQualityGatePass(report)) {
+    health = Math.min(health, 59);
+  }
+
+  return Math.round(health);
 }
 
 /**

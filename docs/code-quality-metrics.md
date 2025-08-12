@@ -97,7 +97,7 @@ pnpm quality:full
 
 ### Where thresholds are defined
 
-- Central definition: `scripts/constants/complexity-thresholds.ts`
+- Central definition: `scripts/constants/quality-metrics.ts`
   - `COMPLEXITY_LEVELS`: A–F with human‑readable descriptions (e.g., "Dangerous - Must be refactored")
   - `COMPLEXITY_THRESHOLDS`: Warning and maximum thresholds (individual/average)
   - `ESLINTCC_RANKS`, `ESLINT_COMPLEXITY_RULES`: ESLint settings used by analysis scripts
@@ -119,7 +119,7 @@ Current settings (can be adjusted in `eslint.config.mjs`):
 
 In-script ESLint settings (used by analysis scripts):
 
-- Source: `scripts/constants/complexity-thresholds.ts`
+- Source: `scripts/constants/quality-metrics.ts`
   - `scripts/code-quality-analysis.ts` consumes `ESLINT_COMPLEXITY_RULES` and `ESLINTCC_RANKS`.
   - Lets you tune complexity rules for analysis without changing the global ESLint config.
 
@@ -312,3 +312,76 @@ function processTypeA(data) {
 - [ ] Automated refactoring suggestions
 - [ ] Performance impact analysis
 - [ ] Advanced TypeScript-specific metrics
+
+## Health Score（科学的根拠と算出）
+
+このリポジトリのヘルススコア（0–100）は、以下の原則と一次情報に基づいて設計しています。
+
+### 1. 設計原則（根拠）
+
+- 品質モデル: ISO/IEC 25010の品質特性（特に「Maintainability」「Performance efficiency」）を採用し、評価視点と重み付けに反映。
+- Quality Gateの意味論: SonarQubeのQuality Gateは条件の満たす/満たさないを二値で判定し、スコアで相殺しない運用が標準。
+- 維持性指標: MicrosoftのMaintainability Index（0–100）を第一級指標として採用可能な場合は直接活用。
+- 複雑度×テストの相互作用: CRAPメトリクスの知見（高複雑度×低カバレッジは変更リスクを増大）を関数形や勾配に反映。
+
+参考:
+
+- ISO/IEC 25010（品質特性）
+- SonarQube Quality Gate（推奨条件: Coverage≥80%、Duplication≤3%、重大Issue 0）
+- Microsoft Maintainability Index の式と閾値帯
+- CRAP: Change Risk Analysis and Predictions
+
+### 2. 二層型モデル
+
+1. Quality Gate（バイナリ判定）
+
+- 重大不具合同等: TypeScript Errors>0 または ESLint Errors>0 → Fail
+- Coverage<80% → Fail
+- Duplication>3% → Fail
+
+2. 正規化スコアの加重和（0–100）
+
+- 各メトリクスを0–100に正規化し、加重平均で集約。
+
+### 3. 正規化の例（0–100）
+
+- Maintainability Index: そのまま0–100（取得不可時は複雑度に重み再配分）
+- 平均複雑度（CC avg）: 5→100, 10→80, 15→60, 20→40, 30→20, >30→0 の区分線形
+- 最大複雑度（CC max）: 20超を段階的に減点（上限リスク抑制）
+- 重複率（%）: 0→100, 3→95, 10→60, 20→30, ≥30→0 の区分線形
+- カバレッジ（%）: 80%で強い勾配（50→0, 80→80, 90→90, 100→100）
+- TypeScript Errors: 0→100、>0は非線形で急減（信号的）
+- ESLint Errors: 0→100、>0で穏やかに減点
+- ESLint Warnings: 10件超過分のみ緩やかに減点
+- Build Time: 目標（例: ≤2分）→100、最大（5分）→0 の線形
+- Bundle Size: 目標（5MB）→100、最大（100MB）→0 の線形
+
+注: 具体的しきい値は `scripts/constants/quality-metrics.ts` に集約。
+
+### 4. 重み（合計=1.0）の例
+
+- Maintainabilityブロック 0.55（MI 0.25、CC avg 0.15、CC max 0.05、Dup 0.10）
+- テスト品質 0.15（Coverage）
+- 静的不具合 0.10（TS Errors 0.06、ESLint Errors 0.04）
+- パフォーマンス 0.20（Build 0.10、Bundle 0.10）
+
+MI未取得時は、その重みをCC avgへ再配分します。
+
+### 5. Gate Fail時のスコア処理（推奨: キャップ方式）
+
+- 判定がFailのとき、healthScoreの上限を59にキャップします（例: min(raw, 59)）。
+- Gateのバイナリ性（標準運用）を守りつつ、rawスコアは別途保存/可視化してトレンド分析に利用できます。
+
+### 6. 将来のキャリブレーション
+
+- 分位点正規化: リポ内の履歴分布（p10–p90）に基づいてスコアレンジを動的調整
+- 目的適合: 障害/レビュー不合格率/投入工数との相関に基づく重み再学習（MCDA/回帰）
+- 新規コード重視: 新規コードメトリクス取得後はSonar同様の「新規コード基準」へ移行
+
+### 7. 出典
+
+- ISO/IEC 25010（品質モデル）: [https://iso25000.com/index.php/en/iso-25000-standards/iso-25010](https://iso25000.com/index.php/en/iso-25000-standards/iso-25010)
+- SonarQube Quality Gates: [https://docs.sonarsource.com/sonarqube/latest/user-guide/quality-gates/](https://docs.sonarsource.com/sonarqube/latest/user-guide/quality-gates/)
+- Maintainability Index（Microsoft Docs）: [https://learn.microsoft.com/en-us/visualstudio/code-quality/code-metrics-maintainability-index-range-and-meaning](https://learn.microsoft.com/en-us/visualstudio/code-quality/code-metrics-maintainability-index-range-and-meaning)
+- Code metrics values（Microsoft Docs）: [https://learn.microsoft.com/en-us/visualstudio/code-quality/code-metrics-values](https://learn.microsoft.com/en-us/visualstudio/code-quality/code-metrics-values)
+- CRAP metric（Artima）: [http://www.artima.com/weblogs/viewpost.jsp?thread=210575](http://www.artima.com/weblogs/viewpost.jsp?thread=210575)

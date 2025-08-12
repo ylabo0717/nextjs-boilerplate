@@ -26,6 +26,10 @@ export const PERFORMANCE_THRESHOLDS = {
    */
   BUILD_TIME_MAX: 300000,
   /**
+   * Target build time in milliseconds (2 minutes)
+   */
+  BUILD_TIME_TARGET: 120000,
+  /**
    * Maximum acceptable test time in milliseconds (3 minutes)
    */
   TEST_TIME_MAX: 180000,
@@ -220,6 +224,46 @@ export const QUALITY_GATE_WEIGHTS = {
    * Lighthouse score weight
    */
   LIGHTHOUSE_WEIGHT: 0.25,
+} as const;
+
+/**
+ * Quality Gate default conditions (aligned with Sonar way for overall code fallback)
+ *
+ * Purpose:
+ * - Binary quality gate thresholds independent from the health score.
+ * - Approximate Sonar Way new-code criteria as an overall-code fallback.
+ */
+export const QUALITY_GATE_CONDITIONS = {
+  /** Minimum acceptable overall coverage percentage */
+  COVERAGE_MIN: 80,
+  /** Maximum acceptable duplication percentage for overall code */
+  DUPLICATION_MAX: 3,
+} as const;
+
+/**
+ * Health Score weights for normalized metrics (sum should be 1.0)
+ *
+ * Purpose:
+ * - Express relative importance of normalized metrics.
+ * - Align with ISO/IEC 25010 (Maintainability/Performance) and Sonar gate practices.
+ *
+ * Note:
+ * - If MI is unavailable, reallocate its weight to CC_AVG.
+ */
+export const QUALITY_SCORE_WEIGHTS = {
+  // Maintainability block
+  MI: 0.25,
+  CC_AVG: 0.15,
+  CC_MAX: 0.05,
+  DUPLICATION: 0.1,
+  // Test quality
+  COVERAGE: 0.15,
+  // Static defects
+  TS_ERRORS: 0.06,
+  LINT_ERRORS: 0.04,
+  // Performance
+  BUILD_TIME: 0.1,
+  BUNDLE_SIZE: 0.1,
 } as const;
 
 /**

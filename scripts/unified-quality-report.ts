@@ -19,6 +19,7 @@ import {
   COMPLEXITY_THRESHOLDS,
   UNIFIED_REPORT_THRESHOLDS,
   HEALTH_SCORE_THRESHOLDS,
+  MAINTAINABILITY_INDEX_THRESHOLDS,
   QUALITY_GATE_FAILURE_CAP,
   SCORING_CONSTANTS,
 } from './constants/quality-metrics';
@@ -549,7 +550,7 @@ function addAdvancedRecommendations(
     recs.push('🟠 Refactor complex functions to improve readability');
   if (a.complexity.max > COMPLEXITY_THRESHOLDS.INDIVIDUAL.MAXIMUM)
     recs.push(`${STATUS.ERROR} Critical: Some functions are too complex (>20)`);
-  if (a.maintainability.index < UNIFIED_REPORT_THRESHOLDS.MAINTAINABILITY_MIN)
+  if (a.maintainability.index < MAINTAINABILITY_INDEX_THRESHOLDS.GOOD)
     recs.push('🟠 Improve code maintainability');
   if (a.duplication.percentage > UNIFIED_REPORT_THRESHOLDS.DUPLICATION_MAX)
     recs.push(`${STATUS.WARN} Extract duplicated code into shared functions`);
@@ -685,7 +686,7 @@ function renderAdvancedSection(report: UnifiedQualityReport): string[] {
   out.push(`| Avg Complexity | ${a.complexity.average.toFixed(2)} | ${complexityStatus} |`);
   out.push(`| Max Complexity | ${a.complexity.max} | - |`);
   const maintStatus =
-    a.maintainability.index >= UNIFIED_REPORT_THRESHOLDS.MAINTAINABILITY_MIN
+    a.maintainability.index >= MAINTAINABILITY_INDEX_THRESHOLDS.GOOD
       ? STATUS.OK
       : STATUS.WARN;
   out.push(

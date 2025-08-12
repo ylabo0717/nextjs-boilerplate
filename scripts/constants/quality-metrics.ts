@@ -217,6 +217,28 @@ export const SCORE_RATINGS = {
    */
   D: 60,
 } as const;
+/**
+ * Maintainability Index thresholds
+ * Based on industry standards and Microsoft's Maintainability Index
+ */
+export const MAINTAINABILITY_INDEX_THRESHOLDS = {
+  /**
+   * Excellent maintainability (green zone)
+   */
+  EXCELLENT: 80,
+  /**
+   * Good maintainability (yellow zone)
+   */
+  GOOD: 70,
+  /**
+   * Fair maintainability (orange zone)
+   */
+  FAIR: 50,
+  /**
+   * Poor maintainability (red zone) - anything below FAIR
+   */
+  POOR: 30,
+} as const;
 
 /**
  * Quality gate scoring weights
@@ -257,10 +279,6 @@ export const UNIFIED_REPORT_THRESHOLDS = {
    * Maximum acceptable lint warnings count
    */
   LINT_WARN_MAX: 10,
-  /**
-   * Minimum acceptable maintainability index (0-100)
-   */
-  MAINTAINABILITY_MIN: 70,
   /**
    * Maximum acceptable duplication percentage for individual files
    */

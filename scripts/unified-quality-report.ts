@@ -33,7 +33,7 @@ const STATUS = {
 /**
  * Combined quality metrics from all sources
  */
-interface UnifiedQualityReport {
+export interface UnifiedQualityReport {
   /** Timestamp of report generation */
   timestamp: string;
   /** Performance metrics from measure-metrics.ts */
@@ -378,7 +378,7 @@ function mergeScores(...parts: ScoreMap[]): ScoreMap {
  * @param report - UnifiedQualityReport input
  * @returns A dictionary of normalized scores in the range [0, 100]
  */
-function normalizeScores(report: UnifiedQualityReport): Record<string, number> {
+export function normalizeScores(report: UnifiedQualityReport): Record<string, number> {
   const basic = normalizeBasic(report.basicQuality);
   const perf = normalizePerformance(report.performance);
   const adv = normalizeAdvanced(report.advancedQuality);
@@ -397,7 +397,7 @@ function normalizeScores(report: UnifiedQualityReport): Record<string, number> {
  * @param report - UnifiedQualityReport
  * @returns true if gate passes, false otherwise
  */
-function isQualityGatePass(report: UnifiedQualityReport): boolean {
+export function isQualityGatePass(report: UnifiedQualityReport): boolean {
   const b = report.basicQuality;
   if ((b?.typeErrors ?? 0) > 0) return false;
   if ((b?.lintErrors ?? 0) > 0) return false;
@@ -425,7 +425,7 @@ function isQualityGatePass(report: UnifiedQualityReport): boolean {
  * @param report - UnifiedQualityReport
  * @returns healthScore in [0,100], capped at 59 on gate failure
  */
-function calculateHealthScore(report: UnifiedQualityReport): number {
+export function calculateHealthScore(report: UnifiedQualityReport): number {
   const scores = normalizeScores(report) as Partial<
     Record<
       | 'MI'
@@ -560,7 +560,7 @@ function addAdvancedRecommendations(
  * @param report - Combined quality report
  * @returns Array of human-readable recommendation strings
  */
-function generateRecommendations(report: UnifiedQualityReport): string[] {
+export function generateRecommendations(report: UnifiedQualityReport): string[] {
   const recs: string[] = [];
   addBasicRecommendations(report.basicQuality, recs);
   addPerformanceRecommendations(report.performance, recs);
@@ -573,7 +573,7 @@ function generateRecommendations(report: UnifiedQualityReport): string[] {
 /**
  * Generate markdown report
  */
-function generateMarkdownReport(report: UnifiedQualityReport): string {
+export function generateMarkdownReport(report: UnifiedQualityReport): string {
   const lines: string[] = [
     '# 📊 Unified Quality Report',
     '',
@@ -704,7 +704,7 @@ function renderAdvancedSection(report: UnifiedQualityReport): string[] {
  * Exits with non-zero status when health score is below threshold.
  * @returns Promise<void>
  */
-async function main() {
+export async function main() {
   console.log('🚀 Generating unified quality report...\n');
 
   // Gather all metrics
@@ -773,8 +773,10 @@ async function main() {
   }
 }
 
-// Execute script
-main().catch((error) => {
-  console.error('❌ Error generating unified report:', error);
-  process.exit(1);
-});
+// Execute script (skip during tests)
+if (process.env.NODE_ENV !== 'test') {
+  main().catch((error) => {
+    console.error('❌ Error generating unified report:', error);
+    process.exit(1);
+  });
+}

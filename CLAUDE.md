@@ -208,6 +208,16 @@ This is a Next.js 15.4.6 application using the App Router architecture with Reac
 
 ## Code Documentation Standards
 
+For comprehensive documentation guidelines, see [Documentation Guidelines](docs/design_guide/documentation-guidelines.md).
+
+The documentation guide includes:
+
+- TSDoc syntax and best practices
+- Three-stage validation strategy (pre-commit, pre-push, CI)
+- What to document vs what NOT to document
+- Templates for common code patterns
+- Troubleshooting and migration guides
+
 ### TSDoc Comments
 
 All code should use TSDoc-style comments for better documentation and IDE support. This project has adopted TSDoc as the official documentation standard, replacing JSDoc.

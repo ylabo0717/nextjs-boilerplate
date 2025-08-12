@@ -49,9 +49,9 @@
   "validation": {
     "notExported": true,
     "invalidLink": true,
-    "notDocumented": false
+    "notDocumented": true
   },
-  "commentStyle": "tsdoc",
+  "commentStyle": "JSDoc",
   "blockTags": [
     "@alpha",
     "@beta",

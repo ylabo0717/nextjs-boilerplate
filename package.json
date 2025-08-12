@@ -40,7 +40,8 @@
     "lighthouse:assert": "lhci assert",
     "lighthouse:collect": "lhci collect",
     "lighthouse:upload": "lhci upload",
-    "docs": "typedoc",
+    "docs": "typedoc --treatWarningsAsErrors",
+    "docs:check": "typedoc --treatWarningsAsErrors --emit none",
     "docs:watch": "typedoc --watch"
   },
   "dependencies": {

@@ -125,7 +125,7 @@ In-script ESLint settings (used by analysis scripts):
 
 How to update thresholds:
 
-1. Edit `scripts/constants/complexity-thresholds.ts` (e.g., change individual MAX from 20 → 18)
+1. Edit `scripts/constants/quality-metrics.ts` (e.g., change individual MAX from 20 → 18)
 1. Verify locally:
 
 ```bash
@@ -357,6 +357,109 @@ function processTypeA(data) {
 - Bundle Size: 目標（5MB）→100、最大（100MB）→0 の線形
 
 注: 具体的しきい値は `scripts/constants/quality-metrics.ts` に集約。
+
+### 3.1 正規化ブレークポイントとターゲットスコア（実装準拠）
+
+実装はすべて `scripts/constants/quality-metrics.ts` の定数に依存します。ここに採用根拠と対応関係を明示します。
+
+#### Coverage（テストカバレッジ）
+
+- 定数:
+  - `QUALITY_GATE_CONDITIONS.COVERAGE_MIN = 80`（Gate閾値）
+  - `SCORING_CONSTANTS.COVERAGE_BREAKPOINTS = { ZERO: 50, GOOD: 80, GREAT: 90 }`
+  - `SCORING_CONSTANTS.COVERAGE_SCORES = { AT_GOOD: 80, AT_GREAT: 90, AT_MAX: 100 }`
+- 根拠: 80%は業界標準（Sonar Way）を参照。50%未満は品質信号として0点域に抑える。80–90–100の3段階は「改善余地→優良→最上位」を示す。
+- 区分線形マッピング:
+
+| Coverage% 区間 | 出力スコア |
+| -------------- | ---------- |
+| ≤ 50           | 0          |
+| 50–80          | 0→80       |
+| 80–90          | 80→90      |
+| 90–100         | 90→100     |
+
+Mermaid 可視化（参考）:
+
+```mermaid
+%%{init: { 'theme': 'neutral' } }%%
+xychart-beta
+  title "Coverage normalization"
+  x-axis "Coverage %" 0 --> 100
+  y-axis "Score" 0 --> 100
+  line [0,0],[50,0],[80,80],[90,90],[100,100]
+```
+
+#### 平均循環的複雑度（CC avg）
+
+- 定数:
+  - ブレークポイント: `SCORING_CONSTANTS.CC_AVG_BREAKPOINTS` = 5(A), 10(B), 15(C), 20(D), 30(E)
+  - スコア: `SCORING_CONSTANTS.CC_AVG_SCORES` = 100(A), 80(B), 60(C), 40(D), 20(E)
+- 根拠: A–Fの等級（`COMPLEXITY_LEVELS`）に整合。複雑度が高まるほど段階的に減点し、>30 は 0 に漸近。
+- 区分線形マッピング:
+
+| CC avg 区間 | 出力スコア |
+| ----------- | ---------- |
+| ≤ 5         | 100        |
+| 5–10        | 100→80     |
+| 10–15       | 80→60      |
+| 15–20       | 60→40      |
+| 20–30       | 40→20      |
+| > 30        | 0          |
+
+```mermaid
+%%{init: { 'theme': 'neutral' } }%%
+xychart-beta
+  title "CC avg normalization"
+  x-axis "CC avg" 0 --> 35
+  y-axis "Score" 0 --> 100
+  line [0,100],[5,100],[10,80],[15,60],[20,40],[30,20],[35,0]
+```
+
+#### 最大循環的複雑度（CC max）
+
+- 定数:
+  - Gate上限: `COMPLEXITY_THRESHOLDS.INDIVIDUAL.MAXIMUM = 20`
+  - ペナルティ範囲: `SCORING_CONSTANTS.MAX_COMPLEXITY_PENALTY_RANGE = 20`（20→40）
+  - 最大減点: `SCORING_CONSTANTS.MAX_COMPLEXITY_MAX_DEDUCT = 60`（100→40）
+- 根拠: 単一箇所の極端な複雑度はリスクだが、健康度の全体性を損なわないように勾配は限定（40 まで）。> MAX+範囲は 0。
+
+| 条件  | 出力スコア     |
+| ----- | -------------- |
+| ≤ 20  | 100            |
+| 20–40 | 100→40（線形） |
+| > 40  | 0              |
+
+#### 重複率（Duplication %）
+
+- 定数:
+  - プロジェクトしきい値: `UNIFIED_REPORT_THRESHOLDS.DUPLICATION_MAX = 10`
+  - ブレークポイント: `SCORING_CONSTANTS.DUPLICATION_BREAKPOINTS = { MID: 10, HIGH: 20 }`
+  - スコア: `SCORING_CONSTANTS.DUPLICATION_SCORES = { THRESHOLD: 95, MID: 60, HIGH: 30 }`
+- 根拠: 0%は満点。しきい値（10%）で 95 点（「警告域入り」）。10–20%で急減（60→30）。20%以上は 0 に漸近。
+
+| Dup% 区間 | 出力スコア           |
+| --------- | -------------------- |
+| = 0       | 100                  |
+| 0–10      | 100→95               |
+| 10–20     | 95→60→30（区分線形） |
+| ≥ 20      | 0                    |
+
+備考: Gateの二値判定は別途 `QUALITY_GATE_CONDITIONS.DUPLICATION_MAX = 3` を使用（全体コードの許容重複）。
+
+#### Lint/TypeScript エラー・警告
+
+- 対数減衰/線形ペナルティを定数化:
+  - `SCORING_CONSTANTS.TS_ERROR_LOG_DECAY = 30`
+  - `SCORING_CONSTANTS.LINT_ERROR_LOG_DECAY = 20`
+  - `SCORING_CONSTANTS.LINT_WARNING_PENALTY = 2`（`UNIFIED_REPORT_THRESHOLDS.LINT_WARN_MAX = 10`超過分に適用）
+
+### 3.2 定数→実装の対応表
+
+- Coverage: `COVERAGE_BREAKPOINTS`/`COVERAGE_SCORES` + `QUALITY_GATE_CONDITIONS.COVERAGE_MIN`
+- Avg Complexity: `CC_AVG_BREAKPOINTS`/`CC_AVG_SCORES`
+- Max Complexity: `COMPLEXITY_THRESHOLDS.INDIVIDUAL.MAXIMUM` + `MAX_COMPLEXITY_PENALTY_RANGE` + `MAX_COMPLEXITY_MAX_DEDUCT`
+- Duplication: `UNIFIED_REPORT_THRESHOLDS.DUPLICATION_MAX` + `DUPLICATION_BREAKPOINTS` + `DUPLICATION_SCORES`
+- Lint/TS: `TS_ERROR_LOG_DECAY` / `LINT_ERROR_LOG_DECAY` / `LINT_WARNING_PENALTY` + `LINT_WARN_MAX`
 
 ### 4. 重み（合計=1.0）の例
 

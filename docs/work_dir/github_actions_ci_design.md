@@ -816,32 +816,35 @@ continue-on-error: false
 
 #### メトリクス計測実装
 
-- [ ] ビルド時間計測スクリプト
-- [ ] テスト実行時間計測
-- [ ] バンドルサイズ計測
-  - [ ] webpack-bundle-analyzer統合
-  - [ ] サイズ閾値チェック
-- [ ] Lighthouse CI設定
-  - [ ] .lighthouserc.json作成
-  - [ ] パフォーマンススコア閾値設定
+- [x] ビルド時間計測スクリプト（scripts/measure-metrics.ts実装済み）
+- [x] テスト実行時間計測（scripts/measure-metrics.ts実装済み）
+- [x] バンドルサイズ計測（scripts/measure-metrics.ts実装済み）
+  - [ ] webpack-bundle-analyzer統合（未実装）
+  - [x] サイズ閾値チェック（quality-gate.tsで実装済み）
+- [x] Lighthouse CI設定
+  - [x] .lighthouserc.json作成（実装済み）
+  - [x] .lighthouserc.mobile.json作成（モバイル設定）
+  - [x] パフォーマンススコア閾値設定（実装済み）
+  - [x] GitHub Actions ワークフロー作成（.github/workflows/lighthouse.yml）
+  - [x] PRコメント機能実装（実装済み）
 
 #### 品質ゲート実装
 
-- [ ] 複合的なメトリクスチェックスクリプト
-- [ ] 必須メトリクスの設定
-  - [ ] カバレッジ60%以上
-  - [ ] 型エラー0件
-  - [ ] Lintエラー0件
-- [ ] 警告メトリクスの設定
-  - [ ] ビルド時間5分以内
-  - [ ] バンドルサイズ増加率
-- [ ] 環境別閾値の実装
+- [x] 複合的なメトリクスチェックスクリプト（scripts/quality-gate.ts実装済み）
+- [x] 必須メトリクスの設定
+  - [x] カバレッジ60%以上（quality-gate.tsで実装済み）
+  - [x] 型エラー0件（quality-gate.tsで実装済み）
+  - [x] Lintエラー0件（quality-gate.tsで実装済み）
+- [x] 警告メトリクスの設定
+  - [x] ビルド時間5分以内（quality-gate.tsで実装済み）
+  - [x] バンドルサイズ増加率（quality-gate.tsで実装済み）
+- [x] 環境別閾値の実装（quality-gate.tsで実装済み）
 
 #### メトリクスレポート
 
-- [ ] GitHub Statusへの反映
-- [ ] PRコメントへの自動投稿
-- [ ] メトリクス履歴の保存方法検討
+- [x] GitHub Statusへの反映（.github/workflows/metrics.ymlで実装済み）
+- [x] PRコメントへの自動投稿（scripts/report-metrics.ts実装済み）
+- [x] メトリクス履歴の保存方法検討（metricsディレクトリに保存、アーティファクトとして30日間保持）
 
 ### Phase 5: リリース自動化（Day 10-12）
 

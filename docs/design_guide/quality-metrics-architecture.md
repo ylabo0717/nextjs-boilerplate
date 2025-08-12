@@ -1,0 +1,1172 @@
+# 品質メトリクス・品質ゲートアーキテクチャ設計書
+
+## 目次
+
+1. [概要](#概要)
+2. [設計思想と原則](#設計思想と原則)
+3. [メトリクス計測システム](#メトリクス計測システム)
+4. [品質ゲートシステム](#品質ゲートシステム)
+5. [ヘルススコア算出](#ヘルススコア算出)
+6. [CI/CD統合](#cicd統合)
+7. [実装詳細](#実装詳細)
+8. [開発者ガイド](#開発者ガイド)
+
+## 概要
+
+本プロジェクトでは、ソフトウェアの品質を定量的に測定し、継続的に改善していくための包括的なメトリクス計測・品質ゲートシステムを実装しています。このシステムは、業界標準の品質モデルと科学的根拠に基づいて設計されており、開発チームが高品質なコードを維持するための客観的な指標を提供します。
+
+### システムの目的
+
+1. **品質の可視化**: コード品質やパフォーマンスを定量的に測定
+2. **早期問題発見**: 自動化された品質チェックによる問題の早期検出
+3. **継続的改善**: メトリクスの追跡による改善活動の効果測定
+4. **標準化**: 業界標準に準拠した一貫性のある品質基準の適用
+
+> 実装アラインメント（現状サマリ）
+>
+> 本ドキュメントは設計の将来像も含みます。現時点の実装と差異がある主な点:
+>
+> - quality-gate.ts はカバレッジ最小60%（警告70%）でFail判定。Unified Reportでは80%基準でスコア化/キャップ。
+> - 重複率のFailはUnified Report側で扱い、quality-gate.tsでは直接Failとしません。
+> - Lighthouseは既定でデスクトップ設定のみ実行。minScoreはPerformance/Acc/Best/SEO=0.90。
+> - 重複検出は jscpd を採用（sonarjsは補助）。
+> - しきい値は原則`scripts/constants/quality-metrics.ts`がSOTですが、quality-gate.tsに暫定デフォルトあり。
+
+## 設計思想と原則
+
+### 1. 科学的根拠に基づく設計
+
+すべてのメトリクスと閾値は、以下の国際標準や研究成果に基づいています：
+
+- **ISO/IEC 25010**: ソフトウェア品質モデル（特に保守性と性能効率性）
+- **McCabeの複雑度理論**: 循環的複雑度10以下の推奨
+- **Core Web Vitals**: Googleが定めるWebパフォーマンス基準
+- **SonarQube Quality Gate**: 業界標準の品質ゲート条件
+
+### 2. 測定の客観性と再現性
+
+すべてのメトリクスは自動化されたツールによって測定され、人的判断を排除することで客観性と再現性を確保しています。同じコードベースに対しては常に同じ結果が得られるよう、測定環境と手法を標準化しています。
+
+### 3. 二層型評価モデル
+
+品質評価は2つの層で構成されています：
+
+1. **Quality Gate（バイナリ判定）**: 必須条件のPass/Fail判定。Failの場合はビルド失敗
+2. **Health Score（0-100点）**: 全体的な品質を数値化。改善の目安として活用
+
+```mermaid
+graph TB
+    subgraph "二層型品質評価モデル"
+        A[コード変更] --> B[メトリクス計測]
+        B --> C{第1層: Quality Gate}
+        C -->|Pass| D[第2層: Health Score算出]
+        C -->|Fail| E[ビルド失敗]
+        D --> F[0-100点で評価]
+        F --> G[継続的改善の指標]
+        E --> H[即座に修正が必要]
+    end
+
+    style C fill:#f9f,stroke:#333,stroke-width:2px
+    style D fill:#9f9,stroke:#333,stroke-width:2px
+    style E fill:#f99,stroke:#333,stroke-width:2px
+```
+
+## メトリクス計測システム
+
+メトリクス計測システムは、コードベースの品質を定量的に測定し、継続的に監視するための仕組みです。このシステムは、開発者が書いたコードがどの程度の品質を保っているか、パフォーマンスに問題がないか、保守しやすい状態になっているかを自動的に測定します。
+
+測定は完全に自動化されており、PRの作成時やビルド時に自動的に実行されます。これにより、品質の低下を早期に発見し、問題が本番環境に到達する前に対処することができます。また、測定結果は数値として記録されるため、時系列での品質の推移を追跡し、改善活動の効果を客観的に評価することが可能です。
+
+### システムアーキテクチャ
+
+```mermaid
+graph LR
+    subgraph "メトリクス収集層"
+        A1[Next.js Build] --> M1[ビルド時間]
+        A2[Bundle Analyzer] --> M2[バンドルサイズ]
+        A3[TypeScript Compiler] --> M3[型エラー]
+        A4[ESLint] --> M4[Lint違反]
+        A5[Vitest Coverage] --> M5[テストカバレッジ]
+        A6[ESLintCC] --> M6[複雑度分析]
+        A7[Lighthouse CI] --> M7[Web Vitals]
+    end
+
+    subgraph "データ処理層"
+        M1 --> P1[measure-metrics.ts]
+        M2 --> P1
+        M3 --> P2[quality-gate.ts]
+        M4 --> P2
+        M5 --> P2
+        M6 --> P3[code-quality-analysis.ts]
+        M7 --> P4[lighthouse.yml]
+    end
+
+    subgraph "レポート生成層"
+        P1 --> R1[unified-quality-report.ts]
+        P2 --> R1
+        P3 --> R1
+        P4 --> R1
+        R1 --> R2[統合レポート]
+        R1 --> R3[ヘルススコア]
+    end
+
+    subgraph "出力層"
+        R2 --> O1[GitHub PR Comment]
+        R2 --> O2[GitHub Summary]
+        R3 --> O3[品質ダッシュボード]
+        R3 --> O4[自動Issue作成]
+    end
+
+    style A1 fill:#e1f5fe
+    style A2 fill:#e1f5fe
+    style A3 fill:#e1f5fe
+    style A4 fill:#e1f5fe
+    style A5 fill:#e1f5fe
+    style A6 fill:#e1f5fe
+    style A7 fill:#e1f5fe
+    style R1 fill:#fff3e0
+    style R3 fill:#f3e5f5
+```
+
+### 計測対象メトリクス
+
+本システムでは、ソフトウェアの品質を多角的に評価するため、以下の4つのカテゴリーでメトリクスを計測しています。それぞれのカテゴリーは異なる品質特性を測定し、総合的な品質評価を可能にします。
+
+#### 1. パフォーマンスメトリクス
+
+パフォーマンスメトリクスは、アプリケーションのビルド速度やバンドルサイズを測定し、開発効率とエンドユーザー体験の両面から品質を評価します。ビルド時間が長いと開発効率が低下し、バンドルサイズが大きいとユーザーの初回読み込み時間が増加するため、これらの指標を継続的に監視することが重要です。
+
+##### ビルド時間
+
+- **測定内容**: Next.jsのプロダクションビルドにかかる時間
+- **目的**: CI/CDパイプラインの効率性確保
+- **Quality Gate**: 5分以内（超過で失敗）
+- **目標値**: 2分以内（スコアリングで満点）
+
+##### バンドルサイズ（First Load JS）
+
+- **測定内容**: ユーザーが初回アクセス時にダウンロードするJavaScriptサイズ
+- **目的**: ページ読み込み速度の最適化
+- **計算式**: フレームワーク + 共通チャンク + ページ固有コード
+- **測定対象外**:
+  - `.next/server/` - サーバーサイドコード
+  - `.next/cache/` - ビルドキャッシュ
+  - ソースマップ（`.map`ファイル）
+  - 開発用依存関係
+- **閾値根拠**:
+
+| サイズ | 3G回線での読み込み時間 | 評価        |
+| ------ | ---------------------- | ----------- |
+| <100KB | 約0.6秒                | ⚡ 優秀     |
+| <150KB | 約0.9秒                | ✅ 良好     |
+| <200KB | 約1.2秒                | ⚠️ 許容範囲 |
+| <250KB | 約1.5秒                | ❌ 要改善   |
+
+##### Bundle Size（Total）
+
+- **測定内容**: `.next`生成物からJS/CSSを合算した総サイズ
+- **目的**: ビルド成果物全体のサイズ管理
+- **閾値設定**:
+
+| 種別               | 定数名              | 値    | 用途                                  |
+| ------------------ | ------------------- | ----- | ------------------------------------- |
+| 推奨（ターゲット） | BUNDLE_SIZE_TARGET  | 5MB   | ✅/⚠️の表示・スコア判断               |
+| 警告               | BUNDLE_SIZE_WARNING | 50MB  | 注意喚起（参考）                      |
+| 最大               | BUNDLE_SIZE_MAX     | 100MB | 参考上限（FailはFirst Load JSで管理） |
+
+注: 合計バンドルサイズは現状「参考指標」。Failの基準はFirst Load JS（>200KB 警告 / >250KB Fail）。
+
+#### 2. コード品質メトリクス
+
+コード品質メトリクスは、ソースコードの構造的な品質を評価します。複雑度が高いコードはバグが発生しやすく、理解や修正が困難になります。また、重複コードは保守性を低下させ、一貫性のない変更を引き起こす原因となります。これらのメトリクスを測定することで、コードの保守性と信頼性を定量的に評価できます。
+
+##### 循環的複雑度（Cyclomatic Complexity）
+
+- **測定内容**: コードの制御フローの複雑さ
+- **測定方法**: ESLintCCによるAST解析
+- **測定対象**: 自チームが作成・管理するコードのみ（`src/components/ui/`等のshadcn/uiコンポーネントは除外）
+- **カウント対象**:
+  - 条件分岐（if/else、switch/case）
+  - ループ（for、while、do-while）
+  - 論理演算子（&&、||）
+  - try-catch文
+- **Quality Gate**:
+  - 個別ファイル最大: 20以下（ESLint標準デフォルト値）
+  - 個別ファイル警告: 15以下（SonarQube推奨値）
+  - プロジェクト平均警告: 8以下（ベストプラクティス）
+  - プロジェクト平均最大: 10以下（McCabe推奨値）
+- **評価基準**:
+
+| 複雑度 | 評価    | スコアリング | 根拠                   |
+| ------ | ------- | ------------ | ---------------------- |
+| 1-5    | ⚡ 優秀 | 100点        | シンプルで理解しやすい |
+| 6-10   | ✅ 良好 | 80点         | McCabe推奨値以内       |
+| 11-15  | ⚠️ 注意 | 60点         | SonarQube警告レベル    |
+| 16-20  | 🟡 警告 | 40点         | ESLintデフォルト上限   |
+| 21+    | ❌ 危険 | 0-20点       | バグ発生率が急増       |
+
+##### 保守性指数（Maintainability Index）
+
+- **測定内容**: コードの保守しやすさを0-100で評価
+- **計算要素**: 複雑度、行数、コメント率の複合指標
+- **閾値根拠**: Microsoft Visual Studioの基準を採用
+
+##### コード重複率
+
+- **測定内容**: 重複コードの割合
+- **測定方法**: jscpd（トークンベース）で検出（sonarjsは補助）
+- **Quality Gate**: Unified Report側で判定（3%以下推奨）。quality-gate.tsでは直接Failしない。
+- **スコアリング**: 0%で100点、3%で95点、10%で60点、20%以上で0点
+
+#### 3. 静的解析メトリクス
+
+静的解析メトリクスは、コンパイラやリンターによって検出される問題を測定します。TypeScriptの型エラーは実行時エラーの予防に直結し、ESLintのルール違反はコーディング規約の遵守状況を示します。また、テストカバレッジは、コードがどの程度テストで保護されているかを示す重要な指標です。これらのメトリクスにより、コードの正確性と品質の基本的な保証を確認できます。
+
+##### TypeScriptエラー
+
+- **測定内容**: 型エラーの件数
+- **Quality Gate**: 0件（1件でも失敗）
+- **スコアリング**: 0件で100点、1件以上で急激に減点
+
+##### ESLintエラー/警告
+
+- **測定内容**: コーディング規約違反
+- **Quality Gate**: エラー0件（1件でも失敗）
+- **スコアリング**: 警告10件以下で満点、超過分を緩やかに減点
+
+##### テストカバレッジ
+
+- **測定内容**: テストでカバーされているコードの割合
+- **Quality Gate**: 実装デフォルトは60%（警告70%）。推奨は80%（SonarWay）。
+- **スコアリング**: 50%以下で0点、80%で80点、90%で90点、100%で100点（Unified Reportに反映）
+
+#### 4. Lighthouseメトリクス
+
+Lighthouseメトリクスは、Webアプリケーションのユーザー体験を包括的に評価します。Googleが開発したLighthouseツールを使用して、パフォーマンス、アクセシビリティ、ベストプラクティス、SEOの4つの観点から測定を行います。特にCore Web Vitalsは、実際のユーザー体験に直結する重要な指標であり、検索エンジンのランキングにも影響を与えるため、継続的な監視が不可欠です。
+
+##### 測定カテゴリー（スコア）
+
+| カテゴリー     | Quality Gate | 推奨 | 優秀 | 説明                                 |
+| -------------- | ------------ | ---- | ---- | ------------------------------------ |
+| Performance    | ≥90          | ≥95  | ≥98  | ページの読み込み速度とパフォーマンス |
+| Accessibility  | ≥95          | ≥97  | ≥99  | アクセシビリティ（障害者対応）       |
+| Best Practices | ≥95          | ≥97  | ≥99  | Web開発のベストプラクティス準拠      |
+| SEO            | ≥95          | ≥97  | ≥99  | 検索エンジン最適化                   |
+
+##### パフォーマンススコア90%の妥当性と根拠
+
+**90%という閾値は、以下の公式ドキュメントと統計データに基づく業界標準です：**
+
+###### 1. Google公式基準（出典：[Chrome Developers - Lighthouse Performance Scoring](https://developer.chrome.com/docs/lighthouse/performance/performance-scoring)）
+
+- **0-49点**: Poor（改善が必要）
+- **50-89点**: Needs Improvement（改善の余地あり）
+- **90-100点**: Good（良好）
+
+Googleは90点以上を「Good」と定義し、これがWeb業界における事実上の標準となっています。
+
+###### 2. 統計的根拠（出典：[HTTP Archive](https://httparchive.org/)）
+
+- 90点は全ウェブサイトの**上位8%**に相当する水準
+- HTTPArchiveの実測データでは、第8パーセンタイルが90点の基準点として設定
+- 2024年時点で、モバイルサイトの5.7%のみが90-100点を達成
+
+###### 3. Next.jsにおける達成可能性
+
+Next.js 15.4.6の最適化機能により、90点以上は現実的な目標：
+
+- **App Router & React Server Components**: サーバーサイドレンダリングによる高速化
+- **画像最適化**: Next/Imageコンポーネントによる自動最適化（WebP変換、遅延読み込み）
+- **コード分割**: Dynamic importsによる必要最小限のJavaScript配信
+- **Turbopack**: 開発環境での高速ビルド
+
+2024-2025年の事例では、適切に最適化されたNext.jsアプリケーションで**95点以上**を達成している開発者も多数存在します。
+
+###### 4. Lighthouse CI推奨設定（出典：[GoogleChrome/lighthouse-ci](https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/configuration.md)）
+
+```json
+// lighthouse:recommendedプリセット
+{
+  "assertions": {
+    "categories:performance": ["warn", { "minScore": 0.9 }]
+  }
+}
+```
+
+Google公式のLighthouse CIでも、`lighthouse:recommended`プリセットで90点を警告閾値として採用しています。
+
+###### 5. デスクトップ vs モバイル環境での考慮事項
+
+- **デスクトップ環境**（現在の設定）: より厳格な基準だが、ネットワーク条件が良好なため達成しやすい
+  - LCP: 1.2秒以下で90点以上（モバイルは2.5秒）
+  - 現在の設定: `"preset": "desktop"`により、デスクトップ環境で測定
+- **モバイル環境**: より寛容な基準だが、実際のネットワーク条件が厳しい
+
+###### 6. 運用上の推奨事項
+
+1. **段階的アプローチ**: 初期段階では`warn`レベルから始め、最適化を進めながら`error`レベルへ移行も可能
+2. **継続的改善**: 90点達成後も、95点を目指して継続的に最適化
+3. **根本原因の分析**: スコア低下時は閾値を下げるのではなく、パフォーマンス改善に注力
+4. **個別メトリクスの重視**: Core Web Vitals（LCP、FCP、CLS等）は`error`レベルで厳格に管理
+
+**結論**: 90%の閾値は「非常に厳しい」のではなく、**modern Next.jsアプリケーションとして達成すべき現実的な品質基準**です。
+
+##### Core Web Vitals（パフォーマンス指標）
+
+| 指標                           | 閾値      | レベル | 説明                                   |
+| ------------------------------ | --------- | ------ | -------------------------------------- |
+| FCP (First Contentful Paint)   | 1.8秒以下 | Warn   | 最初のコンテンツが表示されるまでの時間 |
+| LCP (Largest Contentful Paint) | 2.5秒以下 | Warn   | 最大のコンテンツが表示されるまでの時間 |
+| CLS (Cumulative Layout Shift)  | 0.1以下   | Warn   | レイアウトのずれ（視覚的安定性）       |
+| TBT (Total Blocking Time)      | 300ms以下 | Warn   | メインスレッドがブロックされる時間     |
+| Speed Index                    | 3.4秒以下 | Warn   | ページ内容が視覚的に表示される速度     |
+| TTI (Time to Interactive)      | 3.8秒以下 | Warn   | ページが完全に操作可能になるまでの時間 |
+| Max Potential FID              | 250ms以下 | Warn   | 最大入力遅延時間                       |
+
+##### 測定設定
+
+- **測定対象URL**: `/`, `/example`（設定可能）
+- **実行回数**: 3回（平均値を算出）
+- **環境**: 既定はデスクトップ。モバイルは`.lighthouserc.mobile.json`を指定して任意実行（現行ワークフローでは未実行）。
+- **タイムアウト**: 30秒
+
+## 品質ゲートシステム
+
+品質ゲートシステムは、測定されたメトリクスを基に、コードの品質が基準を満たしているかを自動的に判定する仕組みです。このシステムは、品質の低いコードが本番環境にデプロイされることを防ぐ最後の砦として機能します。
+
+品質ゲートは、単純な合格/不合格の判定だけでなく、改善の余地がある箇所を明確に示し、開発者が品質向上に取り組むための具体的な指針を提供します。また、時系列での品質推移を追跡することで、プロジェクト全体の品質トレンドを把握し、適切なタイミングでリファクタリングなどの改善活動を計画することが可能になります。
+
+### 二層型品質評価モデル
+
+本システムでは、品質を2つの層で評価する「二層型品質評価モデル」を採用しています。第1層では必須条件の合否を判定し、第2層では品質の程度を数値化します。この2層構造により、最低限の品質保証と継続的な品質改善の両立を実現しています。
+
+#### 第1層: バイナリゲート（Pass/Fail）
+
+第1層のバイナリゲートは、絶対に譲れない品質の最低ラインを定義します。実装上のFail条件は次の通りです（quality-gate.ts）。
+
+- TypeScriptエラー = 0 / ESLintエラー = 0（警告は10件超で警告表示）
+- テストカバレッジ: 最低60%（70%未満は警告）※推奨は80%
+- First Load JS: >200KB 警告、>250KB でFail（最大ルート）
+- 複雑度: プロジェクト平均>10、個別最大>20でFail（>15は警告）
+
+一方、Unified Report側のゲート（Health Scoreキャップ用）は次を基準にします。
+
+- TypeScriptエラー=0 / ESLintエラー=0
+- カバレッジ ≥ 80%
+- 重複率 ≤ 3%
+
+```typescript
+// 品質ゲート条件
+const QUALITY_GATE_CONDITIONS = {
+  TS_ERRORS_MAX: 0, // TypeScriptエラー許容0
+  LINT_ERRORS_MAX: 0, // ESLintエラー許容0
+  COVERAGE_MIN: 80, // カバレッジ80%以上
+  DUPLICATION_MAX: 3, // 重複率3%以下
+};
+```
+
+#### 第2層: スコアリング（0-100点）
+
+第2層のスコアリングは、品質の程度を0-100点の連続値で評価します。バイナリゲートをパスしたコードであっても、その品質には優劣があります。例えば、テストカバレッジが80%でも90%でも第1層はパスしますが、90%の方がより高品質です。この層では、各メトリクスを正規化して重み付き平均を計算し、総合的な品質スコアを算出します。このスコアは、チームの品質目標設定や、継続的な改善活動の指標として活用されます。
+
+```typescript
+// 重み配分
+const SCORE_WEIGHTS = {
+  maintainability: 0.25, // 保守性
+  complexity_avg: 0.15, // 平均複雑度
+  complexity_max: 0.05, // 最大複雑度
+  duplication: 0.1, // 重複率
+  coverage: 0.15, // カバレッジ
+  ts_errors: 0.06, // TypeScriptエラー
+  lint_errors: 0.04, // ESLintエラー
+  build_time: 0.1, // ビルド時間
+  bundle_size: 0.1, // バンドルサイズ
+};
+```
+
+## ヘルススコア算出
+
+ヘルススコアは、プロジェクト全体の健康状態を表す総合指標です。複数のメトリクスを一つの数値に集約することで、品質の全体像を直感的に把握できるようになります。このスコアは、経営層への報告、プロジェクト間の比較、時系列での品質推移の追跡など、様々な場面で活用されます。
+
+ヘルススコアの算出には、科学的根拠に基づいた正規化アルゴリズムと重み付けを使用しています。各メトリクスの重要度は、ソフトウェア工学の研究成果と実務経験に基づいて決定されており、コードの長期的な保守性を最も重視した配分になっています。
+
+### スコア算出フロー
+
+```mermaid
+graph TD
+    subgraph "入力メトリクス"
+        M1[保守性指数<br/>25%]
+        M2[平均複雑度<br/>15%]
+        M3[最大複雑度<br/>5%]
+        M4[重複率<br/>10%]
+        M5[カバレッジ<br/>15%]
+        M6[TSエラー<br/>6%]
+        M7[Lintエラー<br/>4%]
+        M8[ビルド時間<br/>10%]
+        M9[バンドルサイズ<br/>10%]
+    end
+
+    subgraph "正規化処理"
+        N1[0-100スケール変換]
+        N2[段階的スコアリング]
+        N3[対数減衰適用]
+    end
+
+    subgraph "スコア計算"
+        C1[重み付き平均計算]
+        C2{Quality Gate<br/>Pass?}
+        C3[最終スコア<br/>0-100]
+        C4[スコア上限59点]
+    end
+
+    subgraph "評価結果"
+        R1[80-100: Excellent]
+        R2[60-79: Good]
+        R3[40-59: Fair]
+        R4[0-39: Poor]
+    end
+
+    M1 --> N1
+    M2 --> N2
+    M3 --> N2
+    M4 --> N2
+    M5 --> N2
+    M6 --> N3
+    M7 --> N3
+    M8 --> N1
+    M9 --> N1
+
+    N1 --> C1
+    N2 --> C1
+    N3 --> C1
+
+    C1 --> C2
+    C2 -->|Yes| C3
+    C2 -->|No| C4
+
+    C3 --> R1
+    C3 --> R2
+    C3 --> R3
+    C3 --> R4
+    C4 --> R3
+    C4 --> R4
+
+    style M1 fill:#e3f2fd
+    style M2 fill:#e3f2fd
+    style M3 fill:#e3f2fd
+    style M4 fill:#e3f2fd
+    style M5 fill:#e3f2fd
+    style C1 fill:#fff3e0
+    style C2 fill:#fce4ec
+    style R1 fill:#c8e6c9
+    style R2 fill:#dcedc8
+    style R3 fill:#fff9c4
+    style R4 fill:#ffccbc
+```
+
+### スコア算出アルゴリズム
+
+スコア算出は3段階のプロセスで行われます。まず各メトリクスを0-100の範囲に正規化し、次にそれぞれに重みを掛けて加重平均を計算し、最後に品質ゲートの結果に基づいて上限を設定します。
+
+#### 1. 正規化関数
+
+各メトリクスを0-100のスコアに変換：
+
+**カバレッジの正規化**:
+
+```text
+50%以下 → 0点
+50-80% → 線形補間で0-80点
+80-90% → 線形補間で80-90点
+90-100% → 線形補間で90-100点
+```
+
+**複雑度の正規化**:
+
+```text
+CC ≤ 5 → 100点（A評価）
+5 < CC ≤ 10 → 80点（B評価）
+10 < CC ≤ 15 → 60点（C評価）
+15 < CC ≤ 20 → 40点（D評価）
+20 < CC ≤ 30 → 20点（E評価）
+CC > 30 → 0点（F評価）
+```
+
+#### 2. 詳細な正規化マッピング
+
+##### カバレッジの正規化詳細
+
+- **ブレークポイント**: 50% (ZERO), 80% (GOOD), 90% (GREAT)
+- **スコア**: 50%以下→0点, 80%→80点, 90%→90点, 100%→100点
+- **根拠**: 80%は業界標準（SonarWay）、50%未満は品質信号として0点域
+
+##### 複雑度の正規化詳細
+
+- **平均複雑度ブレークポイント**: 5(A), 10(B), 15(C), 20(D), 30(E)
+- **平均複雑度スコア**: 100(A), 80(B), 60(C), 40(D), 20(E), 0(F)
+- **最大複雑度**: 20以下→100点、20-40→線形減点、40超→0点
+
+##### 重複率の正規化詳細
+
+- **ブレークポイント**: 0%, 3%, 10%, 20%
+- **スコア**: 0%→100点, 3%→95点, 10%→60点, 20%→30点, 30%以上→0点
+- **根拠**: SonarQube推奨値3%を警告域の開始点
+
+#### 3. 総合スコア計算
+
+```typescript
+// 総合ヘルススコア計算
+healthScore = Σ(weight[i] × normalizedScore[i])
+
+// ゲート失敗時のキャップ（59点以下に制限）
+if (gateStatus === 'FAIL') {
+  healthScore = Math.min(healthScore, 59);
+}
+```
+
+**重み配分の根拠**:
+
+- **保守性ブロック（55%）**: コードの長期的な品質を重視
+- **テスト品質（15%）**: 変更時の安全性を確保
+- **静的不具合（10%）**: 即座に修正すべき問題の検出
+- **パフォーマンス（20%）**: 開発効率とユーザー体験
+
+### スコアの解釈
+
+| スコア範囲 | 評価      | 意味                   |
+| ---------- | --------- | ---------------------- |
+| 80-100     | Excellent | 高品質で保守性が高い   |
+| 60-79      | Good      | 許容可能、一部改善推奨 |
+| 40-59      | Fair      | 重要な改善が必要       |
+| 0-39       | Poor      | 緊急の対応が必要       |
+
+## CI/CD統合
+
+CI/CD統合により、品質チェックが開発プロセスに自動的に組み込まれます。開発者がPRを作成した瞬間から、コードの品質が自動的に測定・評価され、フィードバックが提供されます。これにより、品質の問題を早期に発見し、レビュープロセスを効率化することができます。
+
+また、定期的な品質測定により、プロジェクトの品質が時間とともにどのように変化しているかを追跡できます。品質が低下傾向にある場合は自動的にアラートが発生し、チームが迅速に対応できるようになっています。
+
+### CI/CDパイプラインフロー
+
+```mermaid
+flowchart TD
+    subgraph "トリガーイベント"
+        E1[PR作成/更新]
+        E2[mainブランチへのpush]
+        E3[定期実行<br/>毎週月曜日]
+        E4[手動実行]
+    end
+
+    subgraph "GitHub Actions Workflows"
+        W1[metrics.yml]
+        W2[code-quality.yml]
+        W3[lighthouse.yml]
+    end
+
+    subgraph "品質チェックジョブ"
+        J1[メトリクス収集]
+        J2[品質ゲート判定]
+        J3[コード品質分析]
+        J4[Lighthouse測定]
+        J5[統合レポート生成]
+    end
+
+    subgraph "アクション"
+        A1[PRコメント投稿]
+        A2[GitHub Summary出力]
+        A3[Issue自動作成<br/>スコア60未満]
+        A4[ビルド成功/失敗]
+    end
+
+    E1 --> W1
+    E1 --> W2
+    E1 --> W3
+    E2 --> W1
+    E3 --> W2
+    E4 --> W1
+    E4 --> W2
+    E4 --> W3
+
+    W1 --> J1
+    W1 --> J2
+    W2 --> J3
+    W3 --> J4
+
+    J1 --> J5
+    J2 --> J5
+    J3 --> J5
+    J4 --> J5
+
+    J5 --> A1
+    J5 --> A2
+    J5 -->|低スコア| A3
+    J2 -->|Pass/Fail| A4
+
+    style E1 fill:#fce4ec
+    style E2 fill:#fce4ec
+    style E3 fill:#fce4ec
+    style E4 fill:#fce4ec
+    style W1 fill:#e8f5e9
+    style W2 fill:#e8f5e9
+    style W3 fill:#e8f5e9
+    style J5 fill:#fff9c4
+    style A4 fill:#ffebee
+```
+
+### GitHub Actionsワークフロー
+
+本システムでは、GitHub Actionsを使用して品質チェックを自動化しています。複数のワークフローが連携して動作し、包括的な品質評価を実現しています。
+
+#### 1. メトリクス計測ワークフロー（`.github/workflows/metrics.yml`）
+
+PR作成・更新時に自動実行される包括的な品質チェック：
+
+**ジョブ構成**:
+
+1. **metrics** - メトリクス収集と品質ゲートチェック
+   - ビルド時間の計測
+   - バンドルサイズの計算
+   - TypeScript/ESLintエラーチェック
+   - テストカバレッジ測定
+
+2. **lighthouse** - Lighthouse CI実行
+   - Performance、Accessibility、Best Practices、SEOスコア測定
+   - Core Web Vitalsの検証
+   - デスクトップ/モバイル両環境での測定
+
+3. **bundle-analysis** - バンドルサイズ分析
+   - ページ別のJSサイズ分析
+   - First Load JSの計測
+   - 前回との差分比較
+
+4. **quality-summary** - 結果サマリー生成
+   - 全メトリクスの統合レポート作成
+   - PRへの自動コメント投稿
+   - GitHub Summaryへの出力
+
+#### 2. コード品質ワークフロー（`.github/workflows/code-quality.yml`）
+
+**実行タイミング**:
+
+- 週次定期実行（毎週月曜日00:00 UTC）
+- PR作成時の自動実行
+- 手動実行（workflow_dispatch）
+
+**機能**:
+
+- ESLintによる詳細な複雑度分析
+- 保守性指数の計算
+- 重複コードの検出
+- 統合ヘルススコアの算出
+- 品質低下時のIssue自動作成（スコア60未満）
+
+#### 3. Lighthouse CI ワークフロー（`.github/workflows/lighthouse.yml`）
+
+**測定内容**:
+
+- 本番ビルドでの実測値
+- 3回実行の平均値算出
+- デスクトップ/モバイル設定の切り替え
+- Artifactとしてのレポート保存
+
+### PRへの自動フィードバック
+
+PRには以下の情報が自動的にコメントされます：
+
+```markdown
+## 📊 統合品質レポート
+
+**総合ヘルススコア: 85/100** ✅
+
+### ⚡ パフォーマンス
+
+- ビルド時間: 2m 30s ✅ (< 5m)
+- バンドルサイズ: 180KB ⚠️ (目標: < 150KB)
+
+### 🎯 コード品質
+
+- TypeScriptエラー: 0 ✅
+- 平均複雑度: 4.3 ✅ (優秀レベル)
+- テストカバレッジ: 82% ✅
+
+### 📈 改善提案
+
+1. バンドルサイズを削減してください（現在: 180KB → 目標: 150KB）
+2. `src/utils/parser.ts`の複雑度を下げてください（現在: 15 → 推奨: 10以下）
+```
+
+## 実装詳細
+
+実装詳細セクションでは、品質メトリクス・品質ゲートシステムの技術的な実装について説明します。このシステムは、TypeScriptで実装された複数のスクリプトと設定ファイルで構成されており、それぞれが特定の役割を持って協調動作します。
+
+アーキテクチャは拡張性と保守性を重視して設計されており、新しいメトリクスの追加や閾値の調整が容易に行えるようになっています。また、すべての設定は単一のファイルで管理されており、システム全体の一貫性が保たれています。
+
+### ディレクトリ構造
+
+```text
+scripts/
+├── constants/
+│   └── quality-metrics.ts    # 全閾値・定数の定義
+├── measure-metrics.ts         # メトリクス計測
+├── quality-gate.ts           # 品質ゲートチェック
+├── report-metrics.ts         # レポート生成
+├── code-quality-analysis.ts  # コード品質分析
+└── unified-quality-report.ts # 統合レポート生成
+
+metrics/
+├── latest.json               # 最新メトリクス
+├── code-quality-latest.json  # 最新コード品質
+└── unified-report.md         # 統合レポート
+```
+
+### 主要スクリプト
+
+#### measure-metrics.ts
+
+- ビルド時間、バンドルサイズを計測
+- 結果をJSON形式で保存
+- GitHub Actions環境変数への出力
+
+#### quality-gate.ts
+
+- 品質基準のチェック
+- Pass/Fail判定
+- 詳細な失敗理由の出力
+
+#### code-quality-analysis.ts
+
+- ESLintCCによる複雑度分析
+- 保守性指数の計算
+- ファイル別の詳細分析
+
+#### unified-quality-report.ts
+
+- 全メトリクスの統合
+- ヘルススコア算出
+- Markdownレポート生成
+
+## 開発者ガイド
+
+開発者ガイドでは、品質メトリクス・品質ゲートシステムを日常の開発作業で活用する方法を説明します。このシステムは、開発者の負担を増やすのではなく、品質の高いコードを効率的に書くための支援ツールとして設計されています。
+
+ローカル環境で簡単に品質チェックを実行できるコマンドが用意されており、PRを作成する前に品質の問題を発見・修正することができます。また、具体的な改善方法のガイダンスも提供されており、品質向上のための実践的な知識を身につけることができます。
+
+### 🚀 クイックスタート
+
+品質チェックを今すぐ始めるための最小限のコマンドセットです。
+
+#### 1. 初回セットアップ（1回だけ実行）
+
+```bash
+# 依存関係のインストール
+pnpm install
+
+# ビルドが成功することを確認
+pnpm build
+```
+
+#### 2. PR作成前の必須チェック（毎回実行）
+
+```bash
+# Step 1: 基本的な品質チェック（1分以内）
+pnpm precommit:check
+# → TypeScript、ESLint、Prettierの問題を一括チェック
+
+# Step 2: 品質ゲート確認（2-3分）
+pnpm quality:check
+# → 品質基準を満たしているか確認（Fail時は修正必須）
+
+# Step 3: 詳細レポート確認（オプション）
+pnpm quality:report
+# → ヘルススコアと改善提案を確認
+```
+
+#### 3. 問題が見つかった場合の対処
+
+```bash
+# 自動修正可能な問題を一括修正
+pnpm precommit:fix
+
+# 複雑度が高い場合
+pnpm quality:analyze
+# → 問題のあるファイルを特定してリファクタリング
+
+# バンドルサイズが大きい場合
+pnpm metrics:bundle
+# → サイズの大きいモジュールを特定
+```
+
+#### 💡 Pro Tips
+
+- **毎日の開発フロー**: `pnpm precommit:check` を頻繁に実行
+- **PR作成前**: `pnpm quality:check` で品質ゲートを必ず確認
+- **週次レビュー**: `pnpm quality:report` でプロジェクト全体の健康状態を確認
+
+### ローカルでの使用方法
+
+#### 基本的な品質チェック
+
+```bash
+# 全メトリクスを計測
+pnpm metrics
+
+# 品質ゲートチェック
+pnpm quality:check
+
+# 統合レポート生成
+pnpm quality:report
+
+# すべてを実行
+pnpm quality:full
+```
+
+#### 個別メトリクスの計測
+
+```bash
+# ビルド時間のみ
+pnpm metrics:build
+
+# バンドルサイズのみ
+pnpm metrics:bundle
+
+# コード品質分析のみ
+pnpm quality:analyze
+
+# Lighthouse測定
+pnpm lighthouse
+```
+
+### 閾値のカスタマイズ
+
+すべての閾値は`scripts/constants/quality-metrics.ts`で一元管理されています。このファイルがSingle Source of Truthとして機能し、全スクリプトから参照されます。
+
+#### 主要な定数グループ
+
+```typescript
+// パフォーマンス閾値
+export const PERFORMANCE_THRESHOLDS = {
+  BUILD_TIME_MAX: 300000, // 5分
+  BUILD_TIME_TARGET: 120000, // 2分（目標）
+  BUNDLE_SIZE_MAX: 104857600, // 100MB
+  BUNDLE_SIZE_WARNING: 52428800, // 50MB
+  BUNDLE_SIZE_TARGET: 5242880, // 5MB（推奨）
+};
+
+// 複雑度閾値
+export const COMPLEXITY_THRESHOLDS = {
+  INDIVIDUAL: {
+    WARNING: 15, // SonarQube推奨値
+    MAXIMUM: 20, // ESLintデフォルト
+  },
+  AVERAGE: {
+    WARNING: 8, // ベストプラクティス
+    MAXIMUM: 10, // McCabe推奨値
+  },
+};
+
+// 品質ゲート条件
+export const QUALITY_GATE_CONDITIONS = {
+  TS_ERRORS_MAX: 0,
+  LINT_ERRORS_MAX: 0,
+  COVERAGE_MIN: 80, // SonarWay標準
+  DUPLICATION_MAX: 3, // SonarQube推奨
+};
+```
+
+#### 変更手順
+
+1. `scripts/constants/quality-metrics.ts`を編集
+2. ローカルで影響を確認：
+
+   ```bash
+   pnpm quality:analyze
+   pnpm quality:check
+   pnpm quality:report
+   ```
+
+3. PRを作成してCIで検証
+
+### トラブルシューティング
+
+よくある問題とその解決方法をFAQ形式でまとめています。
+
+#### ❓ Q1: `pnpm quality:check` でFAILになるが、何が問題か分からない
+
+**A:** 以下の順番で原因を特定してください：
+
+```bash
+# 1. 個別のチェックを実行して問題を特定
+pnpm typecheck        # TypeScriptエラーの確認
+pnpm lint            # ESLintエラーの確認
+pnpm test:coverage   # テストカバレッジの確認
+
+# 2. 詳細なレポートを確認
+pnpm quality:report  # どのメトリクスが基準を満たしていないか確認
+
+# 3. 最も一般的な原因と対処法
+# - TypeScriptエラー: 型定義の修正
+# - ESLintエラー: pnpm lint --fix で自動修正
+# - カバレッジ不足: テストを追加（80%以上必要）
+```
+
+#### ❓ Q2: ビルド時間が5分を超えてエラーになる
+
+**A:** ビルドパフォーマンスの問題です：
+
+```bash
+# 1. キャッシュをクリアして再ビルド
+rm -rf .next
+pnpm build
+
+# 2. 不要な依存関係の確認
+pnpm list --depth=0  # 使用していない大きなパッケージを削除
+
+# 3. 動的インポートの活用
+# 重いコンポーネントは dynamic import に変更
+```
+
+#### ❓ Q3: バンドルサイズが大きすぎると警告される
+
+**A:** バンドルサイズの最適化が必要です：
+
+```bash
+# 1. 詳細な分析を実行
+pnpm metrics:bundle
+
+# 2. Next.js Bundle Analyzerで視覚的に確認
+ANALYZE=true pnpm build
+
+# 3. 一般的な対処法
+# - 大きなライブラリを軽量な代替に変更
+# - Tree Shakingが効いているか確認
+# - 画像の最適化（next/imageを使用）
+# - 不要なポリフィルの削除
+```
+
+#### ❓ Q4: 複雑度が高いと警告されるが、どうリファクタリングすべきか
+
+**A:** 複雑度の高いファイルを特定して段階的に改善：
+
+```bash
+# 1. 問題のあるファイルを特定
+pnpm quality:analyze
+# → 複雑度が15以上のファイルがリストされる
+
+# 2. リファクタリングの基本戦略
+# - 早期リターンで入れ子を減らす
+# - 長い関数を複数の小さな関数に分割
+# - switch文をオブジェクトマップに変更
+# - 条件分岐をポリモーフィズムで置き換え
+```
+
+#### ❓ Q5: Lighthouseスコアが低い
+
+**A:** パフォーマンス最適化が必要です：
+
+```bash
+# 1. ローカルでLighthouseを実行
+pnpm lighthouse
+
+# 2. レポートを確認（.lighthouseci/に生成される）
+open .lighthouseci/*.html
+
+# 3. 一般的な改善策
+# - 画像の遅延読み込み（loading="lazy"）
+# - Webフォントの最適化
+# - 不要なJavaScriptの削減
+# - Critical CSSのインライン化
+```
+
+#### ❓ Q6: CI/CDでは失敗するがローカルでは成功する
+
+**A:** 環境差異の可能性があります：
+
+```bash
+# 1. Node.jsバージョンの確認
+node --version  # CI環境と同じバージョンか確認
+
+# 2. クリーンインストール
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
+
+# 3. 本番ビルドでテスト
+NODE_ENV=production pnpm build
+NODE_ENV=production pnpm quality:check
+
+# 4. GitHub Actions のログを確認
+# PRページの "Checks" タブで詳細なエラーメッセージを確認
+```
+
+#### ❓ Q7: メトリクス計測が遅い
+
+**A:** 並列実行とキャッシュを活用：
+
+```bash
+# 1. 必要なメトリクスのみ実行
+pnpm metrics:build   # ビルド時間のみ
+pnpm metrics:bundle  # バンドルサイズのみ
+
+# 2. CI環境でのキャッシュ設定確認
+# .github/workflows/metrics.yml でキャッシュが有効か確認
+
+# 3. ローカルでの高速化
+# .next/ ディレクトリをキャッシュとして保持
+```
+
+#### ❓ Q8: 品質レポートの見方が分からない
+
+**A:** レポートの重要な部分を理解しましょう：
+
+```bash
+# 1. レポートを生成
+pnpm quality:report
+
+# 2. 重要な指標の見方
+# - Health Score: 60以上を維持（80以上が理想）
+# - Quality Gate: すべてPASSが必須
+# - 赤色の項目: 即座に対処が必要
+# - 黄色の項目: 改善を推奨
+# - 緑色の項目: 問題なし
+
+# 3. アクションアイテムの優先順位
+# 1st: Quality Gate失敗項目（ビルドブロッカー）
+# 2nd: 複雑度が20を超えるファイル
+# 3rd: カバレッジ80%未満
+# 4th: その他の改善提案
+```
+
+#### ❓ Q9: テストカバレッジが上がらない
+
+**A:** 効率的にカバレッジを向上させる方法：
+
+```bash
+# 1. カバレッジレポートの詳細確認
+pnpm test:coverage
+open coverage/index.html
+
+# 2. カバーされていない箇所を特定
+# 赤くハイライトされた行を確認
+
+# 3. 重要な箇所から順にテストを追加
+# - ビジネスロジック
+# - エラーハンドリング
+# - 条件分岐
+```
+
+#### ❓ Q10: 毎回すべてのチェックを実行するのが面倒
+
+**A:** Git Hooksが自動で実行します：
+
+```bash
+# 1. Huskyが設定済みなので、コミット時に自動チェック
+git commit -m "feat: add feature"
+# → 自動的にprecommit:checkが実行される
+
+# 2. 手動で全チェックを一括実行
+pnpm quality:full
+
+# 3. VS Code拡張機能の活用
+# - ESLint: リアルタイムでエラー表示
+# - Prettier: 保存時に自動フォーマット
+```
+
+### ベストプラクティス
+
+#### コード複雑度を下げる方法
+
+1. **早期リターンの活用**
+
+```typescript
+// 悪い例
+function process(data) {
+  if (data) {
+    if (data.valid) {
+      // 処理
+    }
+  }
+}
+
+// 良い例
+function process(data) {
+  if (!data) return;
+  if (!data.valid) return;
+  // 処理
+}
+```
+
+1. **関数の分割**
+
+```typescript
+// 悪い例
+function complexFunction() {
+  // 100行のコード
+}
+
+// 良い例
+function mainFunction() {
+  const step1 = processStep1();
+  const step2 = processStep2(step1);
+  return finalizeProcess(step2);
+}
+```
+
+1. **ポリモーフィズムの活用**
+
+```typescript
+// 悪い例
+if (type === 'A') {
+  /* 処理A */
+} else if (type === 'B') {
+  /* 処理B */
+} else if (type === 'C') {
+  /* 処理C */
+}
+
+// 良い例
+const handlers = {
+  A: handleTypeA,
+  B: handleTypeB,
+  C: handleTypeC,
+};
+handlers[type]?.();
+```
+
+#### バンドルサイズ最適化
+
+1. **動的インポートの活用**
+
+```typescript
+// 重いライブラリを遅延読み込み
+const HeavyComponent = dynamic(() => import('./HeavyComponent'));
+```
+
+1. **Tree Shakingの確認**
+
+```typescript
+// 名前付きインポートを使用
+import { specific } from 'library'; // ✅
+import * as all from 'library'; // ❌
+```
+
+1. **バンドル分析**
+
+```bash
+ANALYZE=true pnpm build
+```
+
+### 継続的改善のサイクル
+
+1. **現状把握**: `pnpm quality:report`で現在の品質を確認
+2. **目標設定**: 改善すべきメトリクスを特定
+3. **改善実施**: リファクタリングや最適化を実行
+4. **効果測定**: 再度メトリクスを計測して効果を確認
+5. **標準化**: 改善内容をチーム全体で共有
+
+## 参考文献
+
+- [ISO/IEC 25010 - Software Quality Model](https://iso25000.com/index.php/en/iso-25000-standards/iso-25010)
+- [McCabe, T. J. (1976). "A Complexity Measure"](https://ieeexplore.ieee.org/document/1702388)
+- [SonarQube Quality Gates Documentation](https://docs.sonarsource.com/sonarqube/latest/user-guide/quality-gates/)
+- [Google Core Web Vitals](https://web.dev/vitals/)
+- [Microsoft Code Metrics Values](https://learn.microsoft.com/en-us/visualstudio/code-quality/code-metrics-values)
+- [CRAP Metric - Change Risk Analysis and Predictions](http://www.artima.com/weblogs/viewpost.jsp?thread=210575)

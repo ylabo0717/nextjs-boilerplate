@@ -1,4 +1,10 @@
 {
+  "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": "900000",
+    "BASH_MAX_TIMEOUT_MS": "900000",
+    "MCP_TIMEOUT": "900000",
+    "MCP_TOOL_TIMEOUT": "900000"
+  },
   "permissions": {
     "allow": [
       "mcp__serena__activate_project",
@@ -34,7 +40,32 @@
       "Bash(gh run view:*)",
       "Bash(gh workflow:*)",
       "WebFetch(domain:docs.github.com)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(pnpm quality:report:*)",
+      "Bash(pnpm metrics:build:*)",
+      "Bash(pnpm quality:check:*)",
+      "Bash(pnpm quality:analyze:*)",
+      "Bash(git add:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(pnpm vitest:*)",
+      "Bash(node:*)",
+      "Bash(pnpm tsx:*)",
+      "Bash(rm:*)",
+      "Bash(pnpm precommit:fix:*)",
+      "Bash(pnpm precommit:check:*)",
+      "WebFetch(domain:nextjs.org)",
+      "Bash(npx eslint:*)",
+      "Bash(pnpm playwright test:*)",
+      "Bash(cat:*)",
+      "Bash(pnpm lighthouse:collect:*)",
+      "Bash(pnpm lighthouse:assert:*)"
+    ],
+    "deny": [
+      "Bash(sudo *)",
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf ~/*)",
+      "Bash(rm -rf /*)"
     ]
   },
   "enableAllProjectMcpServers": true,

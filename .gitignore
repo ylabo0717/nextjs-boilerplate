@@ -43,7 +43,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# metrics
+/metrics/
+
+
 # Serena MCP
 .serena/
 # However, share the project settings
 !.serena/project.yml
+
+# Lighthouse CI
+.lighthouseci

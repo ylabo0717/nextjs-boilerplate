@@ -2,6 +2,7 @@
  * Playwright test framework for end-to-end testing
  */
 import { test, expect } from '@playwright/test';
+
 /**
  * Viewport size constants for responsive design testing
  */

@@ -1,6 +1,7 @@
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
+
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
@@ -31,6 +32,7 @@ export default defineConfig({
         'src/stores/**/*.{ts,tsx}',
         'src/repositories/**/*.{ts,tsx}',
         'src/utils/**/*.{ts,tsx}',
+        'src/components/features/**/*.{ts,tsx}',
       ],
       exclude: [
         '**/*.d.ts',
@@ -58,7 +60,7 @@ export default defineConfig({
         '**/*.config.*',
         'vitest.setup.*',
       ],
-      reporter: ['text', 'html', 'lcov'],
+      reporter: ['text', 'html', 'lcov', 'json-summary'],
       reportsDirectory: './coverage',
     },
   },

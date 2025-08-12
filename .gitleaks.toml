@@ -263,7 +263,7 @@ tags = ["password", "generic"]
 id = "password-in-url"
 description = "Password in URL"
 # Matches passwords in connection strings and URLs (with @ to ensure it's a credential URL)
-regex = '''(?i)(?:ftp|https?|mongodb|mysql|postgres(?:ql)?|redis|ssh)://[^:]+:([^@]{8,})@[^/]+'''
+regex = '''(?i)(?:ftp|https?|mongodb|mysql|postgres(?:ql)?|redis|ssh)://[^\s:/@]+:([^\s@]{8,})@[^\s/]+'''
 entropy = 3.5
 keywords = ["://", "@"]
 tags = ["password", "url"]

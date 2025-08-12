@@ -7,8 +7,8 @@
  */
 
 import { chromium } from 'playwright';
-import { spawn, execSync, type ChildProcess } from 'child_process';
-import * as http from 'http';
+import { spawn, execSync, type ChildProcess } from 'node:child_process';
+import * as http from 'node:http';
 import { PERFORMANCE_THRESHOLDS, RETRY_CONFIG } from '../tests/constants/test-constants';
 
 // Configuration
@@ -24,7 +24,9 @@ let isCleaningUp = false;
 let exitScheduled = false;
 
 /**
- * Run performance tests against the application
+ * Run performance tests against the application.
+ * Navigates to BASE_URL and collects browser performance timing metrics.
+ * Fails the process when thresholds are exceeded.
  */
 async function runPerformanceTest() {
   const browser = await chromium.launch();
@@ -153,7 +155,11 @@ async function runPerformanceTest() {
 }
 
 /**
- * Wait for server to be ready by polling the endpoint
+ * Wait for server to be ready by polling the endpoint.
+ * @param url - Health-check URL to poll (e.g., http://localhost:3000)
+ * @param timeoutMs - Maximum time to wait in milliseconds
+ * @param intervalMs - Polling interval in milliseconds
+ * @returns Promise that resolves when server returns 200 OK, rejects on timeout
  */
 function waitForServerReady(
   url: string,
@@ -186,8 +192,9 @@ function waitForServerReady(
 }
 
 /**
- * Check if a command exists in the system PATH
- * Works cross-platform (Windows, macOS, Linux)
+ * Check if a command exists in the system PATH (cross-platform).
+ * @param command - Command name, e.g., "pnpm" | "npm" | "yarn"
+ * @returns true if found in PATH, otherwise false
  */
 function commandExists(command: string): boolean {
   try {
@@ -201,7 +208,9 @@ function commandExists(command: string): boolean {
 }
 
 /**
- * Start the server process
+ * Start the server process using the available package manager.
+ * Uses spawn with shell=false for safety, sets NODE_ENV=test.
+ * @returns ChildProcess handle for the started server
  */
 function startServer(): ChildProcess {
   console.log('Starting server process...');
@@ -256,7 +265,8 @@ function startServer(): ChildProcess {
 }
 
 /**
- * Start server with retry logic
+ * Start server with retry logic and readiness polling.
+ * Attempts to start once and polls BASE_URL until ready or timeout.
  */
 async function startServerWithRetry(): Promise<void> {
   let retries = RETRY_CONFIG.SERVER_START_RETRIES;
@@ -300,11 +310,10 @@ async function startServerWithRetry(): Promise<void> {
   );
 }
 
+/** Ensure server cleanup on any exit. */
 /**
- * Ensure server cleanup on any exit
- */
-/**
- * Force kill a server process
+ * Force kill a server process.
+ * @param serverProcess - Child process to terminate
  */
 function forceKillServerProcess(serverProcess: ChildProcess | null): void {
   if (!serverProcess || serverProcess.killed) {
@@ -327,6 +336,9 @@ function forceKillServerProcess(serverProcess: ChildProcess | null): void {
   }
 }
 
+/**
+ * Attempt graceful shutdown, then force kill after timeout.
+ */
 function cleanupServer(): void {
   if (isCleaningUp) {
     return;
@@ -365,6 +377,10 @@ function cleanupServer(): void {
 }
 
 // Centralized exit scheduler to avoid double cleanup/exit
+/**
+ * Schedule process exit after performing cleanup.
+ * @param code - Process exit code (default 0)
+ */
 function scheduleExit(code = 0): void {
   if (exitScheduled) return;
   exitScheduled = true;
@@ -398,6 +414,10 @@ process.on('uncaughtException', (err) => {
 });
 
 // Main execution
+/**
+ * Main IIFE entrypoint for CI.
+ * Starts the server, waits for readiness, runs performance tests, and cleans up.
+ */
 (async () => {
   let exitCode = 0;
   try {

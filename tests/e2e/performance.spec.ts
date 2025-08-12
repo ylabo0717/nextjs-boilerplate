@@ -2,6 +2,7 @@
  * Playwright test framework for end-to-end testing
  */
 import { test, expect } from '@playwright/test';
+
 /**
  * Performance testing constants including network timing, thresholds, and memory conversion utilities
  */

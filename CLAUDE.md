@@ -22,6 +22,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Guidelines
 
+### IMPORTANT: Pre-commit Checks
+
+**Always run the following checks before committing:**
+
+1. **Run ESLint checks**
+
+   ```bash
+   pnpm lint
+   ```
+
+2. **Run Prettier formatting**
+
+   ```bash
+   pnpm format
+   ```
+
+3. **Run TypeScript type checking**
+
+   ```bash
+   pnpm typecheck
+   ```
+
+4. **Run all pre-commit checks at once** (recommended)
+   ```bash
+   pnpm precommit:check
+   ```
+   If there are issues, attempt automatic fixes:
+   ```bash
+   pnpm precommit:fix
+   ```
+
+Running these checks before committing prevents failures in the pre-commit hooks. Always resolve ESLint and TypeScript errors before committing.
+
 ### IMPORTANT: Verify Latest Versions and Best Practices
 
 **Before implementing any feature or using any library/tool:**
@@ -91,6 +124,27 @@ This principle is critical for maintainability and consistency across the codeba
 - **Docker Images:** Verify the official image name and latest stable tags
 - **npm/pnpm packages:** Check for security vulnerabilities and latest versions
 - **APIs and SDKs:** Ensure you're using the current recommended approach, not legacy methods
+
+## Documentation Management
+
+### Document Creation Guidelines
+
+**Working Documents Location:**
+
+- Create work-in-progress documents, design notes, and research findings in `docs/work_dir/`
+- Use descriptive file names (e.g., `github-actions-best-practices.md`, `performance-optimization-notes.md`)
+
+**Production Documents Location:**
+
+- Place finalized and reviewed content from `docs/work_dir/` into `docs/design_guide/`
+- `docs/design_guide/` contains official design guides, architecture documents, and established best practices
+
+**Document Management Workflow:**
+
+1. Create new documents initially in `docs/work_dir/`
+2. Once content is finalized and team consensus is reached, move or refine it to `docs/design_guide/`
+3. `docs/work_dir/` contains working documents that may change frequently
+4. `docs/design_guide/` contains stable content that should be modified carefully
 
 ## Architecture
 
@@ -298,7 +352,13 @@ When you encounter a new numeric value in tests:
 
 ## GitHub Actions
 
-When implementing or modifying GitHub Actions workflows, refer to `docs/github-actions-best-practices.md`.
+When implementing or modifying GitHub Actions workflows, refer to `docs/work_dir/github-actions-best-practices.md` for detailed best practices including:
+
+- Permissions configuration (最小権限の原則)
+- Version management for Actions and tools
+- Security best practices
+- Performance optimization techniques
+- Debugging and troubleshooting
 
 ## Git Commit Convention
 

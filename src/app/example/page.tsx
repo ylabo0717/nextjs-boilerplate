@@ -1,12 +1,12 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import * as z from 'zod';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { toast } from 'sonner';
 import {
   Form,
   FormControl,
@@ -16,6 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 
 const formSchema = z.object({
   email: z.string().email('有効なメールアドレスを入力してください'),
@@ -41,7 +42,12 @@ export default function ExamplePage() {
     <div className="container mx-auto py-10">
       <h1 className="mb-8 text-4xl font-bold">Next.js Boilerplate Example</h1>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div
+        className={`
+        grid gap-6
+        md:grid-cols-2
+      `}
+      >
         <Card>
           <CardHeader>
             <CardTitle>サンプルフォーム</CardTitle>

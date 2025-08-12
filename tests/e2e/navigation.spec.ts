@@ -2,6 +2,7 @@
  * Playwright test framework for end-to-end testing
  */
 import { test, expect } from '@playwright/test';
+
 /**
  * Test constants for UI interactions, scroll positions, and test data
  */

@@ -272,11 +272,15 @@ function normalizeBasic(b?: UnifiedQualityReport['basicQuality']): ScoreMap {
       : clamp(100 - SCORING_CONSTANTS.TS_ERROR_LOG_DECAY * Math.log10(b.typeErrors + 1), 0, 100);
   if (typeof b.coverage === 'number') {
     const cov = clamp(b.coverage, 0, 100);
+    const BP = SCORING_CONSTANTS.COVERAGE_BREAKPOINTS;
+    const S = SCORING_CONSTANTS.COVERAGE_SCORES;
     let s = 0;
-    if (cov <= 50) s = 0;
-    else if (cov <= 80) s = linearMap(cov, 50, 0, 80, 80);
-    else if (cov <= 90) s = linearMap(cov, 80, 80, 90, 90);
-    else s = linearMap(cov, 90, 90, 100, 100);
+    if (cov <= BP.ZERO) s = 0;
+    else if (cov <= QUALITY_GATE_CONDITIONS.COVERAGE_MIN)
+      s = linearMap(cov, BP.ZERO, 0, QUALITY_GATE_CONDITIONS.COVERAGE_MIN, S.AT_GOOD);
+    else if (cov <= BP.GREAT)
+      s = linearMap(cov, QUALITY_GATE_CONDITIONS.COVERAGE_MIN, S.AT_GOOD, BP.GREAT, S.AT_GREAT);
+    else s = linearMap(cov, BP.GREAT, S.AT_GREAT, 100, S.AT_MAX);
     out.COVERAGE = clamp(s, 0, 100);
   }
   return out;
@@ -307,29 +311,45 @@ function normalizePerformance(p?: UnifiedQualityReport['performance']): ScoreMap
 function normalizeAdvanced(a?: UnifiedQualityReport['advancedQuality']): ScoreMap {
   // Small helpers to keep this function simple
   const scoreAvgComplexity = (c: number): number => {
-    if (c <= 5) return 100;
-    if (c <= 10) return clamp(linearMap(c, 5, 100, 10, 80), 0, 100);
-    if (c <= 15) return clamp(linearMap(c, 10, 80, 15, 60), 0, 100);
-    if (c <= 20) return clamp(linearMap(c, 15, 60, 20, 40), 0, 100);
-    if (c <= 30) return clamp(linearMap(c, 20, 40, 30, 20), 0, 100);
+    const B = SCORING_CONSTANTS.CC_AVG_BREAKPOINTS;
+    const S = SCORING_CONSTANTS.CC_AVG_SCORES;
+    if (c <= B.EXCELLENT) return S.EXCELLENT;
+    if (c <= B.GOOD) return clamp(linearMap(c, B.EXCELLENT, S.EXCELLENT, B.GOOD, S.GOOD), 0, 100);
+    if (c <= B.FAIR) return clamp(linearMap(c, B.GOOD, S.GOOD, B.FAIR, S.FAIR), 0, 100);
+    if (c <= B.WARNING) return clamp(linearMap(c, B.FAIR, S.FAIR, B.WARNING, S.WARNING), 0, 100);
+    if (c <= B.CRITICAL)
+      return clamp(linearMap(c, B.WARNING, S.WARNING, B.CRITICAL, S.CRITICAL), 0, 100);
     return 0;
   };
 
   const scoreMaxComplexity = (cmax: number): number => {
     const limit = COMPLEXITY_THRESHOLDS.INDIVIDUAL.MAXIMUM;
     if (cmax <= limit) return 100;
-    if (cmax <= limit + 20) return clamp(100 - linearMap(cmax, limit, 0, limit + 20, 60), 0, 100);
+    if (cmax <= limit + SCORING_CONSTANTS.MAX_COMPLEXITY_PENALTY_RANGE)
+      return clamp(
+        100 -
+          linearMap(
+            cmax,
+            limit,
+            0,
+            limit + SCORING_CONSTANTS.MAX_COMPLEXITY_PENALTY_RANGE,
+            SCORING_CONSTANTS.MAX_COMPLEXITY_MAX_DEDUCT
+          ),
+        0,
+        100
+      );
     return 0;
   };
 
   const scoreDuplication = (dupPct: number): number => {
     const d = clamp(dupPct, 0, 100);
     if (d <= 0) return 100;
-    if (d <= UNIFIED_REPORT_THRESHOLDS.DUPLICATION_MAX)
-      return clamp(linearMap(d, 0, 100, UNIFIED_REPORT_THRESHOLDS.DUPLICATION_MAX, 95), 0, 100);
-    if (d <= 10)
-      return clamp(linearMap(d, UNIFIED_REPORT_THRESHOLDS.DUPLICATION_MAX, 95, 10, 60), 0, 100);
-    if (d <= 20) return clamp(linearMap(d, 10, 60, 20, 30), 0, 100);
+    const T = UNIFIED_REPORT_THRESHOLDS.DUPLICATION_MAX;
+    const BP = SCORING_CONSTANTS.DUPLICATION_BREAKPOINTS;
+    const S = SCORING_CONSTANTS.DUPLICATION_SCORES;
+    if (d <= T) return clamp(linearMap(d, 0, 100, T, S.THRESHOLD), 0, 100);
+    if (d <= BP.MID) return clamp(linearMap(d, T, S.THRESHOLD, BP.MID, S.MID), 0, 100);
+    if (d <= BP.HIGH) return clamp(linearMap(d, BP.MID, S.MID, BP.HIGH, S.HIGH), 0, 100);
     return 0;
   };
 

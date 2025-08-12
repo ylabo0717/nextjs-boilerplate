@@ -351,9 +351,45 @@ export const SCORING_CONSTANTS = {
   LINT_WARNING_PENALTY: 2,
   /** Range beyond individual CC limit used for max complexity penalty */
   MAX_COMPLEXITY_PENALTY_RANGE: 20,
+  /** Max deduction applied at end of CC max penalty range (100 - 40 = 60) */
+  MAX_COMPLEXITY_MAX_DEDUCT: 60,
   /** Breakpoints for duplication scoring beyond project threshold */
   DUPLICATION_BREAKPOINTS: {
     MID: 10,
     HIGH: 20,
+  },
+  /** Target scores for duplication segments */
+  DUPLICATION_SCORES: {
+    THRESHOLD: 95,
+    MID: 60,
+    HIGH: 30,
+  },
+  /** Coverage piecewise breakpoints */
+  COVERAGE_BREAKPOINTS: {
+    ZERO: 50,
+    GOOD: 80,
+    GREAT: 90,
+  },
+  /** Coverage target scores at breakpoints */
+  COVERAGE_SCORES: {
+    AT_GOOD: 80,
+    AT_GREAT: 90,
+    AT_MAX: 100,
+  },
+  /** Average complexity breakpoints (aligned to COMPLEXITY_LEVELS) */
+  CC_AVG_BREAKPOINTS: {
+    EXCELLENT: COMPLEXITY_LEVELS.EXCELLENT.maxValue, // 5
+    GOOD: COMPLEXITY_LEVELS.GOOD.maxValue, // 10
+    FAIR: COMPLEXITY_LEVELS.FAIR.maxValue, // 15
+    WARNING: COMPLEXITY_LEVELS.WARNING.maxValue, // 20
+    CRITICAL: COMPLEXITY_LEVELS.CRITICAL.maxValue, // 30
+  },
+  /** Target scores for average complexity segments */
+  CC_AVG_SCORES: {
+    EXCELLENT: 100,
+    GOOD: 80,
+    FAIR: 60,
+    WARNING: 40,
+    CRITICAL: 20,
   },
 } as const;

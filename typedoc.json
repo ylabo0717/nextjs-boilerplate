@@ -52,7 +52,13 @@
     "invalidLink": true,
     "notDocumented": true
   },
+  // commentStyle: "JSDoc" is correct for TSDoc
+  // TSDoc uses JSDoc comment format (/** */) but with TSDoc-specific tags
+  // TypeDoc only accepts "jsdoc", "block", "line", or "all" as values
+  // "TSDoc" is not a valid option - TSDoc is a standard, not a comment style
   "commentStyle": "JSDoc",
+  // Block tags configuration includes both JSDoc and TSDoc tags
+  // This ensures compatibility with TSDoc standard while supporting TypeDoc features
   "blockTags": [
     "@alpha",
     "@beta",

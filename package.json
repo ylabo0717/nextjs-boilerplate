@@ -43,7 +43,7 @@
     "lighthouse:collect": "lhci collect",
     "lighthouse:upload": "lhci upload",
     "docs": "typedoc --treatWarningsAsErrors",
-    "docs:check": "node scripts/check-docs.js",
+    "docs:check": "node scripts/check-docs.mjs",
     "docs:check:raw": "typedoc --emit none --validation.notDocumented true --validation.notExported true --validation.invalidLink true",
     "docs:watch": "typedoc --watch"
   },

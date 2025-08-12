@@ -4,6 +4,8 @@ module.exports = {
   singleQuote: true,
   printWidth: 100,
   tabWidth: 2,
-  plugins: ['prettier-plugin-tailwindcss'],
-  tailwindFunctions: ['clsx', 'cn'],
+  // prettier-plugin-tailwindcss を削除
+  // Tailwindクラスの整形はESLint (better-tailwindcss)に一本化
+  // plugins: ['prettier-plugin-tailwindcss'],
+  // tailwindFunctions: ['clsx', 'cn'],
 };

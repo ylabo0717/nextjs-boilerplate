@@ -61,6 +61,7 @@ const eslintConfig = [
       // better-tailwindcss 推奨設定（Flat Config互換: rulesのみをマージ）
       ...eslintPluginBetterTailwindcss.configs['recommended-error'].rules,
       // 整形系ルールは段階導入のため一時OFF（CI安定化優先）
+      // ローカルでの一括整形は `pnpm lint:tw:fix` を使用
       'better-tailwindcss/enforce-consistent-line-wrapping': 'off',
       'better-tailwindcss/enforce-consistent-class-order': 'off',
       '@typescript-eslint/no-unused-vars': [

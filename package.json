@@ -32,7 +32,10 @@
     "quality:report": "tsx scripts/unified-quality-report.ts",
     "quality:full": "pnpm quality:analyze && pnpm quality:report",
     "precommit:check": "pnpm lint && pnpm format:check && pnpm typecheck",
-    "precommit:fix": "pnpm lint --fix && pnpm format && pnpm typecheck"
+    "precommit:fix": "pnpm lint --fix && pnpm format && pnpm typecheck",
+    "lint:tw": "eslint --ext .ts,.tsx \"src/**/*.tsx\" --rule 'better-tailwindcss/enforce-consistent-class-order:error' --rule 'better-tailwindcss/enforce-consistent-line-wrapping:error'",
+    "lint:tw:fix": "eslint --ext .ts,.tsx \"src/**/*.tsx\" --rule 'better-tailwindcss/enforce-consistent-class-order:error' --rule 'better-tailwindcss/enforce-consistent-line-wrapping:error' --fix",
+    "lint:tw:preview": "eslint --ext .ts,.tsx \"src/**/*.tsx\" --rule 'better-tailwindcss/enforce-consistent-class-order:error' --rule 'better-tailwindcss/enforce-consistent-line-wrapping:error' --fix-dry-run"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",

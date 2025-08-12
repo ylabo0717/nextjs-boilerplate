@@ -687,9 +687,7 @@ function renderAdvancedSection(report: UnifiedQualityReport): string[] {
   out.push(`| Avg Complexity | ${a.complexity.average.toFixed(2)} | ${complexityStatus} |`);
   out.push(`| Max Complexity | ${a.complexity.max} | - |`);
   const maintStatus =
-    a.maintainability.index >= MAINTAINABILITY_INDEX_THRESHOLDS.GOOD
-      ? STATUS.OK
-      : STATUS.WARN;
+    a.maintainability.index >= MAINTAINABILITY_INDEX_THRESHOLDS.GOOD ? STATUS.OK : STATUS.WARN;
   out.push(
     `| Maintainability | ${a.maintainability.index.toFixed(1)} (${a.maintainability.rating}) | ${maintStatus} |`
   );

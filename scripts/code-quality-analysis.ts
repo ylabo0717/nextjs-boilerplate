@@ -5,10 +5,12 @@
  * Uses ESLintCC for accurate complexity measurement
  */
 
+import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { execSync } from 'node:child_process';
+
 import { Complexity } from 'eslintcc';
+
 import {
   ESLINTCC_RANKS,
   ESLINT_COMPLEXITY_RULES,
@@ -16,7 +18,6 @@ import {
   SCORE_RATINGS,
   FILE_SIZE_THRESHOLDS,
 } from './constants/quality-metrics';
-
 
 /**
  * Code quality metrics

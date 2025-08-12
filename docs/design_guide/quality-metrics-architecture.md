@@ -44,11 +44,79 @@
 1. **Quality Gate（バイナリ判定）**: 必須条件のPass/Fail判定。Failの場合はビルド失敗
 2. **Health Score（0-100点）**: 全体的な品質を数値化。改善の目安として活用
 
+```mermaid
+graph TB
+    subgraph "二層型品質評価モデル"
+        A[コード変更] --> B[メトリクス計測]
+        B --> C{第1層: Quality Gate}
+        C -->|Pass| D[第2層: Health Score算出]
+        C -->|Fail| E[ビルド失敗]
+        D --> F[0-100点で評価]
+        F --> G[継続的改善の指標]
+        E --> H[即座に修正が必要]
+    end
+
+    style C fill:#f9f,stroke:#333,stroke-width:2px
+    style D fill:#9f9,stroke:#333,stroke-width:2px
+    style E fill:#f99,stroke:#333,stroke-width:2px
+```
+
 ## メトリクス計測システム
 
 メトリクス計測システムは、コードベースの品質を定量的に測定し、継続的に監視するための仕組みです。このシステムは、開発者が書いたコードがどの程度の品質を保っているか、パフォーマンスに問題がないか、保守しやすい状態になっているかを自動的に測定します。
 
 測定は完全に自動化されており、PRの作成時やビルド時に自動的に実行されます。これにより、品質の低下を早期に発見し、問題が本番環境に到達する前に対処することができます。また、測定結果は数値として記録されるため、時系列での品質の推移を追跡し、改善活動の効果を客観的に評価することが可能です。
+
+### システムアーキテクチャ
+
+```mermaid
+graph LR
+    subgraph "メトリクス収集層"
+        A1[Next.js Build] --> M1[ビルド時間]
+        A2[Bundle Analyzer] --> M2[バンドルサイズ]
+        A3[TypeScript Compiler] --> M3[型エラー]
+        A4[ESLint] --> M4[Lint違反]
+        A5[Vitest Coverage] --> M5[テストカバレッジ]
+        A6[ESLintCC] --> M6[複雑度分析]
+        A7[Lighthouse CI] --> M7[Web Vitals]
+    end
+
+    subgraph "データ処理層"
+        M1 --> P1[measure-metrics.ts]
+        M2 --> P1
+        M3 --> P2[quality-gate.ts]
+        M4 --> P2
+        M5 --> P2
+        M6 --> P3[code-quality-analysis.ts]
+        M7 --> P4[lighthouse.yml]
+    end
+
+    subgraph "レポート生成層"
+        P1 --> R1[unified-quality-report.ts]
+        P2 --> R1
+        P3 --> R1
+        P4 --> R1
+        R1 --> R2[統合レポート]
+        R1 --> R3[ヘルススコア]
+    end
+
+    subgraph "出力層"
+        R2 --> O1[GitHub PR Comment]
+        R2 --> O2[GitHub Summary]
+        R3 --> O3[品質ダッシュボード]
+        R3 --> O4[自動Issue作成]
+    end
+
+    style A1 fill:#e1f5fe
+    style A2 fill:#e1f5fe
+    style A3 fill:#e1f5fe
+    style A4 fill:#e1f5fe
+    style A5 fill:#e1f5fe
+    style A6 fill:#e1f5fe
+    style A7 fill:#e1f5fe
+    style R1 fill:#fff3e0
+    style R3 fill:#f3e5f5
+```
 
 ### 計測対象メトリクス
 
@@ -241,6 +309,80 @@ const SCORE_WEIGHTS = {
 
 ヘルススコアの算出には、科学的根拠に基づいた正規化アルゴリズムと重み付けを使用しています。各メトリクスの重要度は、ソフトウェア工学の研究成果と実務経験に基づいて決定されており、コードの長期的な保守性を最も重視した配分になっています。
 
+### スコア算出フロー
+
+```mermaid
+graph TD
+    subgraph "入力メトリクス"
+        M1[保守性指数<br/>25%]
+        M2[平均複雑度<br/>15%]
+        M3[最大複雑度<br/>5%]
+        M4[重複率<br/>10%]
+        M5[カバレッジ<br/>15%]
+        M6[TSエラー<br/>6%]
+        M7[Lintエラー<br/>4%]
+        M8[ビルド時間<br/>10%]
+        M9[バンドルサイズ<br/>10%]
+    end
+
+    subgraph "正規化処理"
+        N1[0-100スケール変換]
+        N2[段階的スコアリング]
+        N3[対数減衰適用]
+    end
+
+    subgraph "スコア計算"
+        C1[重み付き平均計算]
+        C2{Quality Gate<br/>Pass?}
+        C3[最終スコア<br/>0-100]
+        C4[スコア上限59点]
+    end
+
+    subgraph "評価結果"
+        R1[80-100: Excellent]
+        R2[60-79: Good]
+        R3[40-59: Fair]
+        R4[0-39: Poor]
+    end
+
+    M1 --> N1
+    M2 --> N2
+    M3 --> N2
+    M4 --> N2
+    M5 --> N2
+    M6 --> N3
+    M7 --> N3
+    M8 --> N1
+    M9 --> N1
+
+    N1 --> C1
+    N2 --> C1
+    N3 --> C1
+
+    C1 --> C2
+    C2 -->|Yes| C3
+    C2 -->|No| C4
+
+    C3 --> R1
+    C3 --> R2
+    C3 --> R3
+    C3 --> R4
+    C4 --> R3
+    C4 --> R4
+
+    style M1 fill:#e3f2fd
+    style M2 fill:#e3f2fd
+    style M3 fill:#e3f2fd
+    style M4 fill:#e3f2fd
+    style M5 fill:#e3f2fd
+    style C1 fill:#fff3e0
+    style C2 fill:#fce4ec
+    style R1 fill:#c8e6c9
+    style R2 fill:#dcedc8
+    style R3 fill:#fff9c4
+    style R4 fill:#ffccbc
+```
+
 ### スコア算出アルゴリズム
 
 スコア算出は3段階のプロセスで行われます。まず各メトリクスを0-100の範囲に正規化し、次にそれぞれに重みを掛けて加重平均を計算し、最後に品質ゲートの結果に基づいて上限を設定します。
@@ -322,6 +464,73 @@ if (gateStatus === 'FAIL') {
 CI/CD統合により、品質チェックが開発プロセスに自動的に組み込まれます。開発者がPRを作成した瞬間から、コードの品質が自動的に測定・評価され、フィードバックが提供されます。これにより、品質の問題を早期に発見し、レビュープロセスを効率化することができます。
 
 また、定期的な品質測定により、プロジェクトの品質が時間とともにどのように変化しているかを追跡できます。品質が低下傾向にある場合は自動的にアラートが発生し、チームが迅速に対応できるようになっています。
+
+### CI/CDパイプラインフロー
+
+```mermaid
+flowchart TD
+    subgraph "トリガーイベント"
+        E1[PR作成/更新]
+        E2[mainブランチへのpush]
+        E3[定期実行<br/>毎週月曜日]
+        E4[手動実行]
+    end
+
+    subgraph "GitHub Actions Workflows"
+        W1[metrics.yml]
+        W2[code-quality.yml]
+        W3[lighthouse.yml]
+    end
+
+    subgraph "品質チェックジョブ"
+        J1[メトリクス収集]
+        J2[品質ゲート判定]
+        J3[コード品質分析]
+        J4[Lighthouse測定]
+        J5[統合レポート生成]
+    end
+
+    subgraph "アクション"
+        A1[PRコメント投稿]
+        A2[GitHub Summary出力]
+        A3[Issue自動作成<br/>スコア60未満]
+        A4[ビルド成功/失敗]
+    end
+
+    E1 --> W1
+    E1 --> W2
+    E1 --> W3
+    E2 --> W1
+    E3 --> W2
+    E4 --> W1
+    E4 --> W2
+    E4 --> W3
+
+    W1 --> J1
+    W1 --> J2
+    W2 --> J3
+    W3 --> J4
+
+    J1 --> J5
+    J2 --> J5
+    J3 --> J5
+    J4 --> J5
+
+    J5 --> A1
+    J5 --> A2
+    J5 -->|低スコア| A3
+    J2 -->|Pass/Fail| A4
+
+    style E1 fill:#fce4ec
+    style E2 fill:#fce4ec
+    style E3 fill:#fce4ec
+    style E4 fill:#fce4ec
+    style W1 fill:#e8f5e9
+    style W2 fill:#e8f5e9
+    style W3 fill:#e8f5e9
+    style J5 fill:#fff9c4
+    style A4 fill:#ffebee
+```
 
 ### GitHub Actionsワークフロー
 

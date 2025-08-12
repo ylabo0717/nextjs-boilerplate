@@ -42,7 +42,7 @@ export default function ExamplePage() {
     <div className="container mx-auto py-10">
       <h1 className="mb-8 text-4xl font-bold">Next.js Boilerplate Example</h1>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className={`grid gap-6 md:grid-cols-2`}>
         <Card>
           <CardHeader>
             <CardTitle>サンプルフォーム</CardTitle>

@@ -16,6 +16,9 @@ import {
   QUALITY_SCORE_WEIGHTS,
   COMPLEXITY_THRESHOLDS,
   UNIFIED_REPORT_THRESHOLDS,
+  HEALTH_SCORE_THRESHOLDS,
+  QUALITY_GATE_FAILURE_CAP,
+  SCORING_CONSTANTS,
 } from './constants/quality-metrics';
 
 // Status symbols and shared thresholds
@@ -249,11 +252,24 @@ function normalizeBasic(b?: UnifiedQualityReport['basicQuality']): ScoreMap {
   if (!b) return out;
   out.TS_ERRORS = b.typeErrors === 0 ? 100 : clamp(100 - 30 * Math.log10(b.typeErrors + 1), 0, 100);
   out.LINT_ERRORS =
-    b.lintErrors === 0 ? 100 : clamp(100 - 20 * Math.log10(b.lintErrors + 1), 0, 100);
+    b.lintErrors === 0
+      ? 100
+      : clamp(100 - SCORING_CONSTANTS.LINT_ERROR_LOG_DECAY * Math.log10(b.lintErrors + 1), 0, 100);
   out.LINT_WARNINGS =
     b.lintWarnings <= UNIFIED_REPORT_THRESHOLDS.LINT_WARN_MAX
       ? 100
-      : clamp(100 - 2 * (b.lintWarnings - UNIFIED_REPORT_THRESHOLDS.LINT_WARN_MAX), 0, 100);
+      : clamp(
+          100 -
+            SCORING_CONSTANTS.LINT_WARNING_PENALTY *
+              (b.lintWarnings - UNIFIED_REPORT_THRESHOLDS.LINT_WARN_MAX),
+          0,
+          100
+        );
+  // Use constants for log decay
+  out.TS_ERRORS =
+    b.typeErrors === 0
+      ? 100
+      : clamp(100 - SCORING_CONSTANTS.TS_ERROR_LOG_DECAY * Math.log10(b.typeErrors + 1), 0, 100);
   if (typeof b.coverage === 'number') {
     const cov = clamp(b.coverage, 0, 100);
     let s = 0;
@@ -444,7 +460,7 @@ function calculateHealthScore(report: UnifiedQualityReport): number {
 
   // Apply Quality Gate cap (recommended)
   if (!isQualityGatePass(report)) {
-    health = Math.min(health, 59);
+    health = Math.min(health, QUALITY_GATE_FAILURE_CAP);
   }
 
   return Math.round(health);
@@ -484,7 +500,11 @@ function addPerformanceRecommendations(
 ): void {
   if (!p) return;
   if (p.buildTime && p.buildTime > PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX)
-    recs.push(`${STATUS.WARN} Optimize build time (currently > 5 minutes)`);
+    recs.push(
+      `${STATUS.WARN} Optimize build time (currently > ${
+        PERFORMANCE_THRESHOLDS.BUILD_TIME_MAX / TIME_UNITS.MS_PER_MINUTE
+      } minutes)`
+    );
   if (p.bundleSize && p.bundleSize.total > PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET) {
     const targetMB = (PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET / 1024 / 1024).toFixed(0);
     recs.push(`${STATUS.WARN} Reduce bundle size (currently > ${targetMB}MB)`);
@@ -540,11 +560,11 @@ function generateMarkdownReport(report: UnifiedQualityReport): string {
   ];
 
   // Health score interpretation
-  if (report.healthScore >= 80) {
+  if (report.healthScore >= HEALTH_SCORE_THRESHOLDS.EXCELLENT) {
     lines.push(`${STATUS.OK} **Excellent** - Code quality is high`);
-  } else if (report.healthScore >= 60) {
+  } else if (report.healthScore >= HEALTH_SCORE_THRESHOLDS.GOOD) {
     lines.push(`${STATUS.WARN} **Good** - Some improvements needed`);
-  } else if (report.healthScore >= 40) {
+  } else if (report.healthScore >= HEALTH_SCORE_THRESHOLDS.FAIR) {
     lines.push('🟠 **Fair** - Significant improvements recommended');
   } else {
     lines.push(`${STATUS.ERROR} **Poor** - Immediate attention required`);
@@ -699,9 +719,9 @@ async function main() {
   console.log('='.repeat(60));
   console.log(`\n🎯 Overall Health Score: ${report.healthScore}/100`);
 
-  if (report.healthScore >= 80) {
+  if (report.healthScore >= HEALTH_SCORE_THRESHOLDS.EXCELLENT) {
     console.log('✅ Excellent code quality!');
-  } else if (report.healthScore >= 60) {
+  } else if (report.healthScore >= HEALTH_SCORE_THRESHOLDS.GOOD) {
     console.log('⚠️  Good quality with room for improvement');
   } else {
     console.log('🔴 Quality needs immediate attention');
@@ -722,7 +742,7 @@ async function main() {
   }
 
   // Exit with appropriate code
-  if (report.healthScore < 40) {
+  if (report.healthScore < HEALTH_SCORE_THRESHOLDS.FAIR) {
     process.exit(1);
   }
 }

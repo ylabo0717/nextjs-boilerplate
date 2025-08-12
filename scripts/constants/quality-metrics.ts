@@ -284,6 +284,23 @@ export const QUALITY_SCORE_WEIGHTS = {
 } as const;
 
 /**
+ * Health score bands and gate cap
+ */
+export const HEALTH_SCORE_THRESHOLDS = {
+  /** Excellent threshold */
+  EXCELLENT: 80,
+  /** Good threshold */
+  GOOD: 60,
+  /** Fair threshold (below this is Poor) */
+  FAIR: 40,
+} as const;
+
+/**
+ * Cap applied to health score when Quality Gate fails
+ */
+export const QUALITY_GATE_FAILURE_CAP = 59 as const;
+
+/**
  * Get complexity level for a given value
  */
 export function getComplexityLevel(value: number): {
@@ -321,3 +338,22 @@ export function getComplexityIndicator(value: number): string {
   }
   return '';
 }
+
+/**
+ * Scoring constants used by unified quality report normalization
+ */
+export const SCORING_CONSTANTS = {
+  /** Decay factor for TS error penalty (log10-based) */
+  TS_ERROR_LOG_DECAY: 30,
+  /** Decay factor for ESLint error penalty (log10-based) */
+  LINT_ERROR_LOG_DECAY: 20,
+  /** Linear penalty per ESLint warning above threshold */
+  LINT_WARNING_PENALTY: 2,
+  /** Range beyond individual CC limit used for max complexity penalty */
+  MAX_COMPLEXITY_PENALTY_RANGE: 20,
+  /** Breakpoints for duplication scoring beyond project threshold */
+  DUPLICATION_BREAKPOINTS: {
+    MID: 10,
+    HIGH: 20,
+  },
+} as const;

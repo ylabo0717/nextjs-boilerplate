@@ -821,9 +821,12 @@ continue-on-error: false
 - [x] バンドルサイズ計測（scripts/measure-metrics.ts実装済み）
   - [ ] webpack-bundle-analyzer統合（未実装）
   - [x] サイズ閾値チェック（quality-gate.tsで実装済み）
-- [ ] Lighthouse CI設定
-  - [ ] .lighthouserc.json作成（未実装）
-  - [ ] パフォーマンススコア閾値設定（未実装）
+- [x] Lighthouse CI設定
+  - [x] .lighthouserc.json作成（実装済み）
+  - [x] .lighthouserc.mobile.json作成（モバイル設定）
+  - [x] パフォーマンススコア閾値設定（実装済み）
+  - [x] GitHub Actions ワークフロー作成（.github/workflows/lighthouse.yml）
+  - [x] PRコメント機能実装（実装済み）
 
 #### 品質ゲート実装
 

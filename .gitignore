@@ -51,3 +51,6 @@ next-env.d.ts
 .serena/
 # However, share the project settings
 !.serena/project.yml
+
+# Lighthouse CI
+.lighthouseci

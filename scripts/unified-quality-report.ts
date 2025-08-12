@@ -15,6 +15,7 @@ import {
   QUALITY_GATE_CONDITIONS,
   QUALITY_SCORE_WEIGHTS,
   COMPLEXITY_THRESHOLDS,
+  UNIFIED_REPORT_THRESHOLDS,
 } from './constants/quality-metrics';
 
 // Status symbols and shared thresholds
@@ -22,15 +23,6 @@ const STATUS = {
   OK: '✅',
   WARN: '⚠️',
   ERROR: '🔴',
-} as const;
-
-const THRESHOLDS = {
-  COVERAGE_MIN: 60,
-  LINT_WARN_MAX: 10,
-  COMPLEXITY_AVG_MAX: 10,
-  COMPLEXITY_MAX_MAX: 20,
-  MAINTAINABILITY_MIN: 70,
-  DUPLICATION_MAX: 10,
 } as const;
 
 /**
@@ -259,9 +251,9 @@ function normalizeBasic(b?: UnifiedQualityReport['basicQuality']): ScoreMap {
   out.LINT_ERRORS =
     b.lintErrors === 0 ? 100 : clamp(100 - 20 * Math.log10(b.lintErrors + 1), 0, 100);
   out.LINT_WARNINGS =
-    b.lintWarnings <= THRESHOLDS.LINT_WARN_MAX
+    b.lintWarnings <= UNIFIED_REPORT_THRESHOLDS.LINT_WARN_MAX
       ? 100
-      : clamp(100 - 2 * (b.lintWarnings - THRESHOLDS.LINT_WARN_MAX), 0, 100);
+      : clamp(100 - 2 * (b.lintWarnings - UNIFIED_REPORT_THRESHOLDS.LINT_WARN_MAX), 0, 100);
   if (typeof b.coverage === 'number') {
     const cov = clamp(b.coverage, 0, 100);
     let s = 0;
@@ -317,9 +309,10 @@ function normalizeAdvanced(a?: UnifiedQualityReport['advancedQuality']): ScoreMa
   const scoreDuplication = (dupPct: number): number => {
     const d = clamp(dupPct, 0, 100);
     if (d <= 0) return 100;
-    if (d <= THRESHOLDS.DUPLICATION_MAX)
-      return clamp(linearMap(d, 0, 100, THRESHOLDS.DUPLICATION_MAX, 95), 0, 100);
-    if (d <= 10) return clamp(linearMap(d, THRESHOLDS.DUPLICATION_MAX, 95, 10, 60), 0, 100);
+    if (d <= UNIFIED_REPORT_THRESHOLDS.DUPLICATION_MAX)
+      return clamp(linearMap(d, 0, 100, UNIFIED_REPORT_THRESHOLDS.DUPLICATION_MAX, 95), 0, 100);
+    if (d <= 10)
+      return clamp(linearMap(d, UNIFIED_REPORT_THRESHOLDS.DUPLICATION_MAX, 95, 10, 60), 0, 100);
     if (d <= 20) return clamp(linearMap(d, 10, 60, 20, 30), 0, 100);
     return 0;
   };
@@ -472,9 +465,12 @@ function addBasicRecommendations(
   if (!b) return;
   if (b.typeErrors > 0) recs.push(`${STATUS.ERROR} Fix TypeScript errors immediately`);
   if (b.lintErrors > 0) recs.push(`${STATUS.ERROR} Resolve ESLint errors`);
-  if (b.lintWarnings > THRESHOLDS.LINT_WARN_MAX) recs.push(`${STATUS.WARN} Reduce ESLint warnings`);
-  if (b.coverage !== undefined && b.coverage < THRESHOLDS.COVERAGE_MIN)
-    recs.push(`${STATUS.WARN} Increase test coverage to at least ${THRESHOLDS.COVERAGE_MIN}%`);
+  if (b.lintWarnings > UNIFIED_REPORT_THRESHOLDS.LINT_WARN_MAX)
+    recs.push(`${STATUS.WARN} Reduce ESLint warnings`);
+  if (b.coverage !== undefined && b.coverage < QUALITY_GATE_CONDITIONS.COVERAGE_MIN)
+    recs.push(
+      `${STATUS.WARN} Increase test coverage to at least ${QUALITY_GATE_CONDITIONS.COVERAGE_MIN}%`
+    );
 }
 
 /**
@@ -505,13 +501,13 @@ function addAdvancedRecommendations(
   recs: string[]
 ): void {
   if (!a) return;
-  if (a.complexity.average > THRESHOLDS.COMPLEXITY_AVG_MAX)
+  if (a.complexity.average > COMPLEXITY_THRESHOLDS.AVERAGE.MAXIMUM)
     recs.push('🟠 Refactor complex functions to improve readability');
-  if (a.complexity.max > THRESHOLDS.COMPLEXITY_MAX_MAX)
+  if (a.complexity.max > COMPLEXITY_THRESHOLDS.INDIVIDUAL.MAXIMUM)
     recs.push(`${STATUS.ERROR} Critical: Some functions are too complex (>20)`);
-  if (a.maintainability.index < THRESHOLDS.MAINTAINABILITY_MIN)
+  if (a.maintainability.index < UNIFIED_REPORT_THRESHOLDS.MAINTAINABILITY_MIN)
     recs.push('🟠 Improve code maintainability');
-  if (a.duplication.percentage > THRESHOLDS.DUPLICATION_MAX)
+  if (a.duplication.percentage > UNIFIED_REPORT_THRESHOLDS.DUPLICATION_MAX)
     recs.push(`${STATUS.WARN} Extract duplicated code into shared functions`);
 }
 
@@ -618,10 +614,11 @@ function renderCodeQualitySection(report: UnifiedQualityReport): string[] {
   out.push(`| TypeScript Errors | ${b.typeErrors} | ${typeStatus} |`);
   const lintStatus = b.lintErrors === 0 ? STATUS.OK : STATUS.ERROR;
   out.push(`| ESLint Errors | ${b.lintErrors} | ${lintStatus} |`);
-  const warnStatus = b.lintWarnings <= THRESHOLDS.LINT_WARN_MAX ? STATUS.OK : STATUS.WARN;
+  const warnStatus =
+    b.lintWarnings <= UNIFIED_REPORT_THRESHOLDS.LINT_WARN_MAX ? STATUS.OK : STATUS.WARN;
   out.push(`| ESLint Warnings | ${b.lintWarnings} | ${warnStatus} |`);
   if (b.coverage !== undefined) {
-    const covStatus = b.coverage >= THRESHOLDS.COVERAGE_MIN ? STATUS.OK : STATUS.WARN;
+    const covStatus = b.coverage >= QUALITY_GATE_CONDITIONS.COVERAGE_MIN ? STATUS.OK : STATUS.WARN;
     out.push(`| Test Coverage | ${b.coverage.toFixed(1)}% | ${covStatus} |`);
   }
   out.push('');
@@ -638,16 +635,18 @@ function renderAdvancedSection(report: UnifiedQualityReport): string[] {
   if (!a) return [];
   const out: string[] = ['## 🔬 Advanced Metrics', '', ...TABLE_HEADER];
   const complexityStatus =
-    a.complexity.average <= THRESHOLDS.COMPLEXITY_AVG_MAX ? STATUS.OK : STATUS.WARN;
+    a.complexity.average <= COMPLEXITY_THRESHOLDS.AVERAGE.MAXIMUM ? STATUS.OK : STATUS.WARN;
   out.push(`| Avg Complexity | ${a.complexity.average.toFixed(2)} | ${complexityStatus} |`);
   out.push(`| Max Complexity | ${a.complexity.max} | - |`);
   const maintStatus =
-    a.maintainability.index >= THRESHOLDS.MAINTAINABILITY_MIN ? STATUS.OK : STATUS.WARN;
+    a.maintainability.index >= UNIFIED_REPORT_THRESHOLDS.MAINTAINABILITY_MIN
+      ? STATUS.OK
+      : STATUS.WARN;
   out.push(
     `| Maintainability | ${a.maintainability.index.toFixed(1)} (${a.maintainability.rating}) | ${maintStatus} |`
   );
   const dupStatus =
-    a.duplication.percentage <= THRESHOLDS.DUPLICATION_MAX ? STATUS.OK : STATUS.WARN;
+    a.duplication.percentage <= UNIFIED_REPORT_THRESHOLDS.DUPLICATION_MAX ? STATUS.OK : STATUS.WARN;
   out.push(`| Code Duplication | ${a.duplication.percentage.toFixed(1)}% | ${dupStatus} |`);
   out.push('');
   return out;

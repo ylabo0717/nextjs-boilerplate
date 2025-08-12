@@ -239,6 +239,23 @@ export const QUALITY_GATE_CONDITIONS = {
   /** Maximum acceptable duplication percentage for overall code */
   DUPLICATION_MAX: 3,
 } as const;
+/**
+ * Unified quality report thresholds
+ */
+export const UNIFIED_REPORT_THRESHOLDS = {
+  /**
+   * Maximum acceptable lint warnings count
+   */
+  LINT_WARN_MAX: 10,
+  /**
+   * Minimum acceptable maintainability index (0-100)
+   */
+  MAINTAINABILITY_MIN: 70,
+  /**
+   * Maximum acceptable duplication percentage for individual files
+   */
+  DUPLICATION_MAX: 10,
+} as const;
 
 /**
  * Health Score weights for normalized metrics (sum should be 1.0)

@@ -12,6 +12,7 @@ import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
 import importPlugin from 'eslint-plugin-import';
 import tailwindcssPlugin from 'eslint-plugin-tailwindcss';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
+import vitestPlugin from 'eslint-plugin-vitest';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -186,6 +187,44 @@ const eslintConfig = [
       // React Hooks rules - Hooks validation
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+    },
+  },
+  // Vitest configuration for test files
+  {
+    files: ['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
+    plugins: {
+      vitest: vitestPlugin,
+    },
+    rules: {
+      // Vitest rules - Test quality and best practices
+      'vitest/no-disabled-tests': 'warn',
+      'vitest/no-focused-tests': 'error',
+      'vitest/no-identical-title': 'error',
+      'vitest/no-commented-out-tests': 'warn',
+      'vitest/no-conditional-in-test': 'warn',
+      'vitest/no-conditional-tests': 'warn',
+      'vitest/no-duplicate-hooks': 'error',
+      'vitest/no-test-return-statement': 'error',
+      'vitest/prefer-to-be': 'warn',
+      'vitest/prefer-to-have-length': 'warn',
+      'vitest/prefer-to-contain': 'warn',
+      'vitest/prefer-to-be-truthy': 'warn',
+      'vitest/prefer-to-be-falsy': 'warn',
+      'vitest/prefer-equality-matcher': 'warn',
+      'vitest/prefer-strict-equal': 'warn',
+      'vitest/prefer-spy-on': 'warn',
+      'vitest/prefer-mock-promise-shorthand': 'warn',
+      'vitest/prefer-snapshot-hint': 'warn',
+      'vitest/require-top-level-describe': 'warn',
+      'vitest/consistent-test-it': ['warn', { fn: 'it' }],
+      'vitest/expect-expect': 'error',
+      'vitest/no-alias-methods': 'warn',
+      'vitest/no-interpolation-in-snapshots': 'error',
+      'vitest/no-large-snapshots': ['warn', { maxSize: 50 }],
+      'vitest/no-test-prefixes': 'error',
+      'vitest/valid-describe-callback': 'error',
+      'vitest/valid-expect': 'error',
+      'vitest/valid-title': 'error',
     },
   },
   ...compat.extends('prettier'),

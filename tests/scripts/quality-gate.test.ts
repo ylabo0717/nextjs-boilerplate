@@ -43,7 +43,7 @@ describe('quality-gate', () => {
       const metrics = createMetrics();
       const result = evaluateQualityGate(metrics, DEFAULT_THRESHOLDS);
 
-      expect(result.passed).toBe(true);
+      expect(result.passed).toBeTruthy();
       expect(result.failures).toHaveLength(0);
       expect(result.warnings).toHaveLength(0);
     });
@@ -58,7 +58,7 @@ describe('quality-gate', () => {
       });
       const result = evaluateQualityGate(metrics, DEFAULT_THRESHOLDS);
 
-      expect(result.passed).toBe(false);
+      expect(result.passed).toBeFalsy();
       expect(result.failures[0]).toContain('TypeScript errors');
     });
 
@@ -72,7 +72,7 @@ describe('quality-gate', () => {
       });
       const result = evaluateQualityGate(metrics, DEFAULT_THRESHOLDS);
 
-      expect(result.passed).toBe(false);
+      expect(result.passed).toBeFalsy();
       expect(result.failures[0]).toContain('ESLint errors');
     });
 
@@ -86,7 +86,7 @@ describe('quality-gate', () => {
       });
       const result = evaluateQualityGate(metrics, DEFAULT_THRESHOLDS);
 
-      expect(result.passed).toBe(true);
+      expect(result.passed).toBeTruthy();
       expect(result.warnings[0]).toContain('ESLint warnings');
     });
 
@@ -100,8 +100,8 @@ describe('quality-gate', () => {
       });
       const result = evaluateQualityGate(metrics, DEFAULT_THRESHOLDS);
 
-      expect(result.passed).toBe(false);
-      expect(result.failures.some((f) => f.includes('Test coverage'))).toBe(true);
+      expect(result.passed).toBeFalsy();
+      expect(result.failures.some((f) => f.includes('Test coverage'))).toBeTruthy();
     });
 
     /**
@@ -114,7 +114,7 @@ describe('quality-gate', () => {
       });
       const result = evaluateQualityGate(metrics, DEFAULT_THRESHOLDS);
 
-      expect(result.passed).toBe(true); // bundleSizeは警告のみ
+      expect(result.passed).toBeTruthy(); // bundleSizeは警告のみ
       expect(result.warnings.length).toBeGreaterThan(0);
       expect(result.warnings[0]).toContain('Total build size');
     });
@@ -149,7 +149,7 @@ describe('quality-gate', () => {
       });
       const result = evaluateQualityGate(metrics, DEFAULT_THRESHOLDS);
 
-      expect(result.passed).toBe(false);
+      expect(result.passed).toBeFalsy();
       expect(result.failures.length).toBeGreaterThanOrEqual(3);
     });
   });

@@ -1,19 +1,21 @@
 /**
  * Playwright test framework for end-to-end testing
  */
+import { AxeBuilder } from '@axe-core/playwright';
 import { test, expect } from '@playwright/test';
+
 /**
  * Accessibility test configuration constants
  */
+import { SUPPORTED_LOCALES, isValidLanguageCode } from '@/constants';
+
 import { ACCESSIBILITY_TEST } from '../constants/test-constants';
 /**
  * Localization constants and utilities from the application
  */
-import { SUPPORTED_LOCALES, isValidLanguageCode } from '@/constants';
 /**
  * Axe accessibility testing library for automated accessibility checks
  */
-import AxeBuilder from '@axe-core/playwright';
 
 /**
  * Accessibility test suite
@@ -55,8 +57,12 @@ test.describe('Accessibility', () => {
 
     // Verify heading levels don't skip (e.g., h1 -> h3 without h2)
     for (let i = 1; i < headings.length; i++) {
-      const currentLevel = headings[i].level;
-      const previousLevel = headings[i - 1].level;
+      // eslint-disable-next-line security/detect-object-injection -- Array index is safe here
+      const current = headings[i];
+      const previous = headings[i - 1];
+      if (!current || !previous) continue;
+      const currentLevel = current.level;
+      const previousLevel = previous.level;
 
       // Level should not increase by more than 1
       expect(currentLevel - previousLevel).toBeLessThanOrEqual(1);

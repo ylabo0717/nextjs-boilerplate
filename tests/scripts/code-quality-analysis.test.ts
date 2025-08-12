@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import * as fs from 'node:fs';
 import { execSync } from 'node:child_process';
+import * as fs from 'node:fs';
+
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock modules
 vi.mock('fs');

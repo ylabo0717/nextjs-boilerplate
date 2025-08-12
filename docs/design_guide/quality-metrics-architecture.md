@@ -253,6 +253,64 @@ Lighthouseメトリクスは、Webアプリケーションのユーザー体験�
 | Best Practices | ≥95          | ≥97  | ≥99  | Web開発のベストプラクティス準拠      |
 | SEO            | ≥95          | ≥97  | ≥99  | 検索エンジン最適化                   |
 
+##### パフォーマンススコア90%の妥当性と根拠
+
+**90%という閾値は、以下の公式ドキュメントと統計データに基づく業界標準です：**
+
+###### 1. Google公式基準（出典：[Chrome Developers - Lighthouse Performance Scoring](https://developer.chrome.com/docs/lighthouse/performance/performance-scoring)）
+
+- **0-49点**: Poor（改善が必要）
+- **50-89点**: Needs Improvement（改善の余地あり）
+- **90-100点**: Good（良好）
+
+Googleは90点以上を「Good」と定義し、これがWeb業界における事実上の標準となっています。
+
+###### 2. 統計的根拠（出典：[HTTP Archive](https://httparchive.org/)）
+
+- 90点は全ウェブサイトの**上位8%**に相当する水準
+- HTTPArchiveの実測データでは、第8パーセンタイルが90点の基準点として設定
+- 2024年時点で、モバイルサイトの5.7%のみが90-100点を達成
+
+###### 3. Next.jsにおける達成可能性
+
+Next.js 15.4.6の最適化機能により、90点以上は現実的な目標：
+
+- **App Router & React Server Components**: サーバーサイドレンダリングによる高速化
+- **画像最適化**: Next/Imageコンポーネントによる自動最適化（WebP変換、遅延読み込み）
+- **コード分割**: Dynamic importsによる必要最小限のJavaScript配信
+- **Turbopack**: 開発環境での高速ビルド
+
+2024-2025年の事例では、適切に最適化されたNext.jsアプリケーションで**95点以上**を達成している開発者も多数存在します。
+
+###### 4. Lighthouse CI推奨設定（出典：[GoogleChrome/lighthouse-ci](https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/configuration.md)）
+
+```json
+// lighthouse:recommendedプリセット
+{
+  "assertions": {
+    "categories:performance": ["warn", { "minScore": 0.9 }]
+  }
+}
+```
+
+Google公式のLighthouse CIでも、`lighthouse:recommended`プリセットで90点を警告閾値として採用しています。
+
+###### 5. デスクトップ vs モバイル環境での考慮事項
+
+- **デスクトップ環境**（現在の設定）: より厳格な基準だが、ネットワーク条件が良好なため達成しやすい
+  - LCP: 1.2秒以下で90点以上（モバイルは2.5秒）
+  - 現在の設定: `"preset": "desktop"`により、デスクトップ環境で測定
+- **モバイル環境**: より寛容な基準だが、実際のネットワーク条件が厳しい
+
+###### 6. 運用上の推奨事項
+
+1. **段階的アプローチ**: 初期段階では`warn`レベルから始め、最適化を進めながら`error`レベルへ移行も可能
+2. **継続的改善**: 90点達成後も、95点を目指して継続的に最適化
+3. **根本原因の分析**: スコア低下時は閾値を下げるのではなく、パフォーマンス改善に注力
+4. **個別メトリクスの重視**: Core Web Vitals（LCP、FCP、CLS等）は`error`レベルで厳格に管理
+
+**結論**: 90%の閾値は「非常に厳しい」のではなく、**modern Next.jsアプリケーションとして達成すべき現実的な品質基準**です。
+
 ##### Core Web Vitals（パフォーマンス指標）
 
 | 指標                           | 閾値      | レベル | 説明                                   |

@@ -68,9 +68,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install tsx for scripts
-        run: pnpm add -D tsx
-
       - name: Run tests with coverage
         run: pnpm test:coverage || true
         continue-on-error: true

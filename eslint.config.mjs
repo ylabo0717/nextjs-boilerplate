@@ -8,6 +8,10 @@ import noSecretsPlugin from 'eslint-plugin-no-secrets';
 import sonarjsPlugin from 'eslint-plugin-sonarjs';
 import jsdocPlugin from 'eslint-plugin-jsdoc';
 import unicornPlugin from 'eslint-plugin-unicorn';
+import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
+import importPlugin from 'eslint-plugin-import';
+import tailwindcssPlugin from 'eslint-plugin-tailwindcss';
+import reactHooksPlugin from 'eslint-plugin-react-hooks';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -27,6 +31,14 @@ const eslintConfig = [
         sourceType: 'module',
       },
     },
+    settings: {
+      tailwindcss: {
+        // Tailwind CSS v4 doesn't use a config file
+        config: null,
+        callees: ['classnames', 'clsx', 'ctl', 'cn', 'cv', 'tw'],
+        classRegex: '^(class|className)$',
+      },
+    },
     plugins: {
       '@typescript-eslint': typescriptPlugin,
       security: securityPlugin,
@@ -34,6 +46,10 @@ const eslintConfig = [
       sonarjs: sonarjsPlugin,
       jsdoc: jsdocPlugin,
       unicorn: unicornPlugin,
+      'jsx-a11y': jsxA11yPlugin,
+      import: importPlugin,
+      tailwindcss: tailwindcssPlugin,
+      'react-hooks': reactHooksPlugin,
     },
     rules: {
       '@typescript-eslint/no-unused-vars': [
@@ -84,6 +100,92 @@ const eslintConfig = [
       'unicorn/prefer-module': 'off', // Next.js compatibility
       'unicorn/prevent-abbreviations': 'off', // Too strict for now
       'unicorn/no-null': 'off', // React compatibility
+
+      // JSX A11y rules - Accessibility
+      'jsx-a11y/alt-text': 'error',
+      'jsx-a11y/anchor-is-valid': 'error',
+      'jsx-a11y/aria-props': 'error',
+      'jsx-a11y/aria-proptypes': 'error',
+      'jsx-a11y/aria-unsupported-elements': 'error',
+      'jsx-a11y/heading-has-content': 'error',
+      'jsx-a11y/html-has-lang': 'error',
+      'jsx-a11y/img-redundant-alt': 'error',
+      'jsx-a11y/no-access-key': 'error',
+      'jsx-a11y/no-autofocus': 'warn',
+      'jsx-a11y/no-distracting-elements': 'error',
+      'jsx-a11y/no-redundant-roles': 'error',
+      'jsx-a11y/role-has-required-aria-props': 'error',
+      'jsx-a11y/role-supports-aria-props': 'error',
+      'jsx-a11y/scope': 'error',
+
+      // Import rules - Module management
+      'import/order': [
+        'error',
+        {
+          groups: [
+            'builtin',
+            'external',
+            'internal',
+            ['parent', 'sibling'],
+            'index',
+            'object',
+            'type',
+          ],
+          'newlines-between': 'always',
+          pathGroups: [
+            {
+              pattern: 'react',
+              group: 'external',
+              position: 'before',
+            },
+            {
+              pattern: 'next/**',
+              group: 'external',
+              position: 'before',
+            },
+            {
+              pattern: '@/**',
+              group: 'internal',
+            },
+          ],
+          pathGroupsExcludedImportTypes: ['react', 'next'],
+          alphabetize: {
+            order: 'asc',
+            caseInsensitive: true,
+          },
+        },
+      ],
+      'import/no-duplicates': 'error',
+      'import/no-unused-modules': 'warn',
+      'import/no-cycle': 'error',
+      'import/no-self-import': 'error',
+      'import/newline-after-import': 'error',
+      'import/no-named-as-default': 'warn',
+      'import/no-extraneous-dependencies': [
+        'error',
+        {
+          devDependencies: [
+            'tests/**/*',
+            '**/*.test.{ts,tsx}',
+            '**/*.spec.{ts,tsx}',
+            'scripts/**/*',
+            'vitest.config.ts',
+            'playwright.config.ts',
+          ],
+        },
+      ],
+
+      // Tailwind CSS rules - Styling consistency (v4.0.0-beta.0)
+      'tailwindcss/classnames-order': 'warn',
+      'tailwindcss/enforces-negative-arbitrary-values': 'warn',
+      'tailwindcss/enforces-shorthand': 'warn',
+      'tailwindcss/no-arbitrary-value': 'off',
+      'tailwindcss/no-custom-classname': 'off',
+      'tailwindcss/no-contradicting-classname': 'error',
+
+      // React Hooks rules - Hooks validation
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
   ...compat.extends('prettier'),

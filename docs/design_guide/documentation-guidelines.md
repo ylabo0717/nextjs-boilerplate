@@ -359,9 +359,10 @@ pnpm docs:check:raw
    - TSDoc syntax validation
    - Staged strictness levels
 
-3. **`scripts/check-docs.js`** - Custom validation
+3. **`scripts/check-docs.mjs`** - Custom validation (ES Modules)
    - Filters Zod internal types
    - Removes noise from warnings
+   - Ignores TypeScript version warnings
 
 ### IDE Integration
 

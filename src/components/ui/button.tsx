@@ -5,6 +5,11 @@ import { cva, type VariantProps } from 'class-variance-authority';
 
 import { cn } from '@/lib/utils';
 
+/**
+ * Button variant styles using class-variance-authority
+ *
+ * @public
+ */
 const buttonVariants = cva(
   `
     inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm
@@ -71,6 +76,11 @@ const buttonVariants = cva(
   }
 );
 
+/**
+ * Button component with various style variants
+ *
+ * @public
+ */
 function Button({
   className,
   variant,

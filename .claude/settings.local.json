@@ -58,7 +58,8 @@
       "Bash(pnpm playwright test:*)",
       "Bash(cat:*)",
       "Bash(pnpm lighthouse:collect:*)",
-      "Bash(pnpm lighthouse:assert:*)"
+      "Bash(pnpm lighthouse:assert:*)",
+      "Bash(pnpm docs:*)"
     ],
     "deny": [
       "Bash(sudo *)",

@@ -17,6 +17,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm format` - Format all files with Prettier
 - `pnpm format:check` - Check if files are formatted correctly
 - `pnpm typecheck` - Run TypeScript type checking
+- `pnpm docs` - Generate API documentation with TypeDoc
+- `pnpm docs:watch` - Generate documentation in watch mode
 
 **Important:** This project uses `pnpm` as the package manager, not npm or yarn.
 
@@ -206,32 +208,55 @@ This is a Next.js 15.4.6 application using the App Router architecture with Reac
 
 ## Code Documentation Standards
 
-### JSDoc Comments
+For comprehensive documentation guidelines, see [Documentation Guidelines](docs/design_guide/documentation-guidelines.md).
 
-All code should use JSDoc-style comments for better documentation and IDE support:
+The documentation guide includes:
+
+- TSDoc syntax and best practices
+- Three-stage validation strategy (pre-commit, pre-push, CI)
+- What to document vs what NOT to document
+- Templates for common code patterns
+- Troubleshooting and migration guides
+
+### TSDoc Comments
+
+All code should use TSDoc-style comments for better documentation and IDE support. This project has adopted TSDoc as the official documentation standard, replacing JSDoc.
 
 #### For Constants and Variables
 
 ```typescript
 /**
  * Maximum number of retry attempts for API calls
+ *
+ * @public
  */
 export const MAX_RETRIES = 3;
 ```
 
 #### For Objects with Properties
 
-Use multi-line JSDoc comments for each property:
+Use multi-line TSDoc comments for each property:
 
 ```typescript
+/**
+ * Application configuration constants
+ *
+ * @public
+ */
 export const CONFIG = {
   /**
    * API endpoint base URL
+   *
+   * @remarks
+   * Used for all API requests in production
    */
   API_URL: 'https://api.example.com',
 
   /**
-   * Request timeout in milliseconds
+   * Request timeout
+   *
+   * @remarks
+   * Unit: milliseconds
    */
   TIMEOUT: 5000,
 } as const;
@@ -239,43 +264,157 @@ export const CONFIG = {
 
 #### For Functions and Methods
 
-```typescript
+````typescript
 /**
  * Calculates the total price including tax
+ *
  * @param price - The base price
- * @param taxRate - The tax rate as a decimal (e.g., 0.08 for 8%)
+ * @param taxRate - The tax rate as a decimal
  * @returns The total price including tax
+ *
+ * @remarks
+ * Tax rate should be provided as a decimal (e.g., 0.08 for 8%)
+ *
+ * @example
+ * ```typescript
+ * const total = calculateTotal(100, 0.08); // Returns 108
+ * ```
+ *
+ * @public
  */
 function calculateTotal(price: number, taxRate: number): number {
   return price * (1 + taxRate);
 }
-```
+````
 
 #### For Classes and Interfaces
 
 ```typescript
 /**
  * Represents a user in the system
+ *
+ * @public
  */
 interface User {
-  /** Unique identifier */
+  /**
+   * Unique identifier
+   *
+   * @remarks
+   * Generated UUID v4 format
+   */
   id: string;
 
-  /** User's display name */
+  /**
+   * User's display name
+   */
   name: string;
 
-  /** User's email address */
+  /**
+   * User's email address
+   *
+   * @remarks
+   * Must be a valid email format
+   */
   email: string;
 }
 ```
 
-### Best Practices
+### TSDoc Best Practices
 
-- Use JSDoc comments for all exported constants, functions, classes, and interfaces
-- Keep comments concise but informative
-- Include units of measurement where applicable (e.g., milliseconds, pixels)
+#### Required Documentation
+
+- Use TSDoc comments for all exported constants, functions, classes, and interfaces
+- Mark public APIs with `@public` tag
+- Use `@remarks` for additional explanatory content
+- Add `@example` for complex functions to show usage
+
+#### TSDoc Tags Usage
+
+- `@param` - Parameter descriptions (no type needed, inferred from TypeScript)
+- `@returns` - Return value description
+- `@remarks` - Additional details, units, or constraints
+- `@example` - Code examples showing usage
+- `@public` - Mark as public API
+- `@deprecated` - Mark deprecated functionality
+- `@see` - References to related items
+- `@since` - Version when feature was added
+
+#### Style Guidelines
+
+- Keep main description concise but informative
+- Use `@remarks` for units of measurement (e.g., milliseconds, pixels)
 - Update comments when code changes
 - Avoid redundant comments that merely restate the code
+- Use proper TSDoc syntax to ensure compatibility with documentation generation tools
+
+#### Linting
+
+- ESLint with `eslint-plugin-tsdoc` enforces TSDoc syntax
+- Run `pnpm lint` to check TSDoc compliance
+- Documentation is generated using TypeDoc with `pnpm docs`
+
+### Documentation Validation Strategy
+
+This project implements a **staged documentation validation approach** to balance development speed with code quality:
+
+#### 1. Pre-commit (Development Flexibility)
+
+- **TSDoc warnings only** - Allows quick iterations and WIP commits
+- ESLint checks syntax but doesn't block commits for missing documentation
+- Focus on code functionality and immediate issues
+
+#### 2. Pre-push (Quality Gate)
+
+- **Strict TSDoc validation** - Runs `pnpm docs:check`
+- All exported items must have proper documentation
+- Prevents undocumented code from being shared with the team
+- Catches documentation issues before they reach the repository
+
+#### 3. CI/CD (Final Verification)
+
+- **Complete validation** - Runs as a separate job in CI pipeline
+- Ensures all code in main/develop branches is properly documented
+- Generates documentation to verify it builds successfully
+
+#### Benefits of This Approach
+
+- **Development Speed**: No interruption during local development
+- **Code Quality**: Ensures shared code is well-documented
+- **Team Collaboration**: Everyone gets properly documented code
+- **Gradual Adoption**: Easy to implement in existing projects
+
+#### Commands
+
+- `pnpm docs` - Generate documentation (with warnings as errors)
+- `pnpm docs:check` - Validate documentation without generating files
+- `pnpm lint` - Check code quality (TSDoc as warnings locally)
+
+#### Excluded from Documentation Requirements
+
+The following are intentionally excluded from documentation requirements:
+
+1. **shadcn/ui components** (`src/components/ui/**/*`)
+   - Third-party components copied from shadcn/ui
+   - Not maintained by this project
+   - Excluded via `typedoc.json`
+
+2. **Test files** (`*.test.ts`, `*.test.tsx`, `*.spec.ts`, `*.spec.tsx`)
+   - Test code doesn't need public API documentation
+   - Excluded via `typedoc.json`
+
+3. **Zod schema internal types** (`Schema.__type.*`)
+   - Auto-generated by Zod's `z.object()` and `z.array()`
+   - Impossible to document individually
+   - Filtered out by `scripts/check-docs.js`
+
+These exclusions ensure documentation efforts focus on:
+
+- Custom business logic
+- Public APIs and interfaces
+- Code written and maintained by the team
+- Components that serve as reusable modules
+
+The custom `scripts/check-docs.js` script filters TypeDoc output to remove noise from auto-generated types while still catching missing documentation on important exports.
 
 ## Testing Best Practices
 

@@ -15,11 +15,21 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+/**
+ * Metadata configuration for the application
+ *
+ * @public
+ */
 export const metadata: Metadata = {
   title: 'Next.js Boilerplate',
   description: 'Production-ready Next.js boilerplate for enterprise applications',
 };
 
+/**
+ * Root layout component for the application
+ *
+ * @public
+ */
 export default function RootLayout({
   children,
 }: Readonly<{

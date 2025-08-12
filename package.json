@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "start:test": "NODE_ENV=test next start",
-    "lint": "next lint --max-warnings=0",
+    "lint": "next lint",
+    "lint:ci": "cross-env CI=true next lint --max-warnings=0",
+    "lint:pre-push": "cross-env PRE_PUSH=true next lint --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
@@ -39,7 +41,11 @@
     "lighthouse": "lhci autorun",
     "lighthouse:assert": "lhci assert",
     "lighthouse:collect": "lhci collect",
-    "lighthouse:upload": "lhci upload"
+    "lighthouse:upload": "lhci upload",
+    "docs": "typedoc --treatWarningsAsErrors",
+    "docs:check": "node scripts/check-docs.js",
+    "docs:check:raw": "typedoc --emit none --validation.notDocumented true --validation.notExported true --validation.invalidLink true",
+    "docs:watch": "typedoc --watch"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -87,12 +93,12 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-better-tailwindcss": "~3.7.4",
     "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-jsdoc": "^52.0.4",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-no-secrets": "^2.2.1",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-security": "^3.0.1",
     "eslint-plugin-sonarjs": "^3.0.4",
+    "eslint-plugin-tsdoc": "^0.4.0",
     "eslint-plugin-unicorn": "^60.0.0",
     "eslint-plugin-vitest": "^0.5.4",
     "eslintcc": "^0.8.3",
@@ -107,6 +113,7 @@
     "tailwindcss": "^4",
     "tsx": "^4.20.3",
     "tw-animate-css": "^1.3.6",
+    "typedoc": "^0.27.8",
     "typescript": "^5",
     "vitest": "^3.2.4"
   }

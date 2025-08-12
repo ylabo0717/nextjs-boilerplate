@@ -206,6 +206,119 @@ This is a Next.js 15.4.6 application using the App Router architecture with Reac
 
 ## Code Documentation Standards
 
+### TSDoc Comments
+
+All code should use TSDoc-style comments for better documentation and IDE support. TSDoc is the official TypeScript documentation standard.
+
+#### Key Differences from JSDoc
+
+TSDoc is more strict than JSDoc and focuses on TypeScript-specific features:
+
+- Uses standard TypeScript syntax for generics instead of @template
+- More strict validation of syntax
+- Better integration with TypeScript tooling
+
+#### For Constants and Variables
+
+```typescript
+/** Maximum number of retry attempts for API calls */
+export const MAX_RETRIES = 3;
+```
+
+#### For Objects with Properties
+
+Use multi-line TSDoc comments for each property:
+
+```typescript
+export const CONFIG = {
+  /** API endpoint base URL */
+  API_URL: 'https://api.example.com',
+
+  /** Request timeout in milliseconds */
+  TIMEOUT: 5000,
+} as const;
+```
+
+#### For Functions and Methods
+
+```typescript
+/**
+ * Calculates the total price including tax
+ * @param price - The base price
+ * @param taxRate - The tax rate as a decimal (e.g., 0.08 for 8%)
+ * @returns The total price including tax
+ */
+function calculateTotal(price: number, taxRate: number): number {
+  return price * (1 + taxRate);
+}
+```
+
+#### For Classes and Interfaces
+
+```typescript
+/** Represents a user in the system */
+interface User {
+  /** Unique identifier */
+  id: string;
+
+  /** User's display name */
+  name: string;
+
+  /** User's email address */
+  email: string;
+}
+```
+
+#### For Generic Types
+
+```typescript
+/**
+ * Generic API response wrapper
+ * Provides consistent structure for all API responses
+ */
+interface ApiResponse<T = unknown> {
+  /** Response data payload */
+  data?: T;
+  /** Error information if request failed */
+  error?: ErrorInfo;
+}
+```
+
+### Documentation Generation
+
+The project uses TypeDoc for automatic documentation generation:
+
+```bash
+# Generate API documentation
+pnpm docs:generate
+
+# Serve documentation locally
+pnpm docs:serve
+```
+
+Generated documentation is output to `docs/api/` and should not be committed to version control.
+
+### Best Practices
+
+- Use TSDoc comments for all exported constants, functions, classes, and interfaces
+- Keep comments concise but informative
+- Include units of measurement where applicable (e.g., milliseconds, pixels)
+- Update comments when code changes
+- Avoid redundant comments that merely restate the code
+- Use `@deprecated` with a clear message describing alternatives
+- Use `@example` to provide usage examples for complex functions
+
+### Linting
+
+TSDoc syntax is enforced by eslint-plugin-tsdoc. The following rules are enabled:
+
+- `tsdoc/syntax`: Validates TSDoc comment syntax
+- Reports errors for undefined tags, malformed syntax, and missing required information
+
+## Code Documentation Standards (Legacy JSDoc)
+
+**Note: This section is deprecated. Use TSDoc instead.**
+
 ### JSDoc Comments
 
 All code should use JSDoc-style comments for better documentation and IDE support:

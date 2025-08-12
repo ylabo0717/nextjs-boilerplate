@@ -13,6 +13,7 @@ import importPlugin from 'eslint-plugin-import';
 import eslintPluginBetterTailwindcss from 'eslint-plugin-better-tailwindcss';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import vitestPlugin from 'eslint-plugin-vitest';
+import tsdocPlugin from 'eslint-plugin-tsdoc';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -57,6 +58,7 @@ const eslintConfig = [
       // tailwindcss: removed (migrated to eslint-plugin-better-tailwindcss)
       'better-tailwindcss': eslintPluginBetterTailwindcss,
       'react-hooks': reactHooksPlugin,
+      tsdoc: tsdocPlugin,
     },
     rules: {
       // better-tailwindcss 推奨設定（Flat Config互換: rulesのみをマージ）
@@ -203,6 +205,9 @@ const eslintConfig = [
       // React Hooks rules - Hooks validation
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+
+      // TSDoc rules - Documentation validation
+      'tsdoc/syntax': 'error',
     },
   },
   // Vitest configuration for test files

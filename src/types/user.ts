@@ -1,15 +1,25 @@
+/**
+ * User schema definitions using Zod
+ * Zod schemas for user data validation and type inference
+ */
+
 import { z } from 'zod';
 
-// ユーザーのスキーマ定義
+/** Zod schema for user validation */
 export const UserSchema = z.object({
+  /** User's unique identifier */
   id: z.string(),
+  /** User's display name */
   name: z.string(),
+  /** User's email address */
   email: z.string().email(),
 });
 
-// 複数ユーザーのスキーマ
+/** Zod schema for multiple users */
 export const UsersSchema = z.array(UserSchema);
 
-// 型のエクスポート
+/** User type inferred from UserSchema */
 export type User = z.infer<typeof UserSchema>;
+
+/** Users array type inferred from UsersSchema */
 export type Users = z.infer<typeof UsersSchema>;

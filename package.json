@@ -33,6 +33,8 @@
     "quality:full": "pnpm quality:analyze && pnpm quality:report",
     "precommit:check": "pnpm lint && pnpm format:check && pnpm typecheck",
     "precommit:fix": "pnpm lint --fix && pnpm format && pnpm typecheck",
+    "docs:generate": "typedoc",
+    "docs:serve": "typedoc --serve",
     "lint:tw": "eslint --ext .ts,.tsx \"src/**/*.tsx\" --rule 'better-tailwindcss/enforce-consistent-class-order:error' --rule 'better-tailwindcss/enforce-consistent-line-wrapping:error'",
     "lint:tw:fix": "eslint --ext .ts,.tsx \"src/**/*.tsx\" --rule 'better-tailwindcss/enforce-consistent-class-order:error' --rule 'better-tailwindcss/enforce-consistent-line-wrapping:error' --fix",
     "lint:tw:preview": "eslint --ext .ts,.tsx \"src/**/*.tsx\" --rule 'better-tailwindcss/enforce-consistent-class-order:error' --rule 'better-tailwindcss/enforce-consistent-line-wrapping:error' --fix-dry-run",
@@ -93,6 +95,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-security": "^3.0.1",
     "eslint-plugin-sonarjs": "^3.0.4",
+    "eslint-plugin-tsdoc": "^0.4.0",
     "eslint-plugin-unicorn": "^60.0.0",
     "eslint-plugin-vitest": "^0.5.4",
     "eslintcc": "^0.8.3",
@@ -107,6 +110,7 @@
     "tailwindcss": "^4",
     "tsx": "^4.20.3",
     "tw-animate-css": "^1.3.6",
+    "typedoc": "^0.28.10",
     "typescript": "^5",
     "vitest": "^3.2.4"
   }

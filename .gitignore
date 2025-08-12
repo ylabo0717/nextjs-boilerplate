@@ -46,6 +46,9 @@ next-env.d.ts
 # metrics
 /metrics/
 
+# typedoc output
+/docs/api/
+
 
 # Serena MCP
 .serena/

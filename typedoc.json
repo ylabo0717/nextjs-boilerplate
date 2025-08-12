@@ -1,0 +1,39 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "./src/components",
+    "./src/utils",
+    "./src/types",
+    "./src/constants",
+    "./src/hooks",
+    "./src/lib"
+  ],
+  "entryPointStrategy": "expand",
+  "out": "./docs/api",
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/node_modules/**",
+    "**/*.config.*",
+    "**/app/**"
+  ],
+  "excludePrivate": true,
+  "excludeProtected": false,
+  "excludeExternals": true,
+  "includeVersion": true,
+  "sort": ["source-order"],
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": false
+  },
+  "categoryOrder": ["Components", "Hooks", "Utils", "Types", "Constants", "*"],
+  "searchInComments": true,
+  "treatWarningsAsErrors": false,
+  "githubPages": false,
+  "readme": "./README.md",
+  "name": "Next.js Boilerplate API Documentation",
+  "tsconfig": "./tsconfig.json"
+}

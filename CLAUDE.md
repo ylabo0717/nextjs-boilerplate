@@ -125,6 +125,27 @@ This principle is critical for maintainability and consistency across the codeba
 - **npm/pnpm packages:** Check for security vulnerabilities and latest versions
 - **APIs and SDKs:** Ensure you're using the current recommended approach, not legacy methods
 
+## Documentation Management
+
+### Document Creation Guidelines
+
+**Working Documents Location:**
+
+- Create work-in-progress documents, design notes, and research findings in `docs/work_dir/`
+- Use descriptive file names (e.g., `github-actions-best-practices.md`, `performance-optimization-notes.md`)
+
+**Production Documents Location:**
+
+- Place finalized and reviewed content from `docs/work_dir/` into `docs/design_guide/`
+- `docs/design_guide/` contains official design guides, architecture documents, and established best practices
+
+**Document Management Workflow:**
+
+1. Create new documents initially in `docs/work_dir/`
+2. Once content is finalized and team consensus is reached, move or refine it to `docs/design_guide/`
+3. `docs/work_dir/` contains working documents that may change frequently
+4. `docs/design_guide/` contains stable content that should be modified carefully
+
 ## Architecture
 
 ### Project Structure

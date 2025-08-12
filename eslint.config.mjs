@@ -16,6 +16,7 @@ import vitestPlugin from 'eslint-plugin-vitest';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
@@ -60,10 +61,11 @@ const eslintConfig = [
     rules: {
       // better-tailwindcss 推奨設定（Flat Config互換: rulesのみをマージ）
       ...eslintPluginBetterTailwindcss.configs['recommended-error'].rules,
-      // 整形系ルールは段階導入のため一時OFF（CI安定化優先）
-      // ローカルでの一括整形は `pnpm lint:tw:fix` を使用
+      // 整形系ルールは段階導入
+      // - ローカル: off（CI安定化優先）。ローカル整形は `pnpm lint:tw:fix` を使用
+      // - CI: class-order を warn で有効化（次段で error へ昇格予定）
       'better-tailwindcss/enforce-consistent-line-wrapping': 'off',
-      'better-tailwindcss/enforce-consistent-class-order': 'off',
+      'better-tailwindcss/enforce-consistent-class-order': isCI ? 'warn' : 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {

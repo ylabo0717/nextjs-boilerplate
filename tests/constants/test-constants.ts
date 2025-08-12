@@ -1,34 +1,59 @@
 /**
  * Test timeout constants
+ * 
  * Centralized timeout values for integration and E2E tests
+ * 
+ * @public
  */
 
 /**
  * Wait times for UI interactions and animations
+ * 
+ * @public
  */
 export const UI_WAIT_TIMES = {
   /**
-   * Instant feedback for micro-interactions like hover states and focus (unit: ms)
+   * Instant feedback for micro-interactions like hover states and focus
+   * 
+   * @remarks
+   * Used for: hover states, focus effects, micro-interactions
+   * Unit: milliseconds
    */
   MINIMAL: 100,
 
   /**
-   * Quick transitions for dropdowns, tooltips, and accordion panels (unit: ms)
+   * Quick transitions for dropdowns, tooltips, and accordion panels
+   * 
+   * @remarks
+   * Used for: dropdown menus, tooltips, accordion panels
+   * Unit: milliseconds
    */
   SHORT: 300,
 
   /**
-   * Standard animations for modals, page transitions, and form submissions (unit: ms)
+   * Standard animations for modals, page transitions, and form submissions
+   * 
+   * @remarks
+   * Used for: modal dialogs, page transitions, form submissions
+   * Unit: milliseconds
    */
   STANDARD: 500,
 
   /**
-   * Complex UI updates like data loading, chart rendering, and lazy loading (unit: ms)
+   * Complex UI updates like data loading, chart rendering, and lazy loading
+   * 
+   * @remarks
+   * Used for: data loading, chart rendering, lazy loading components
+   * Unit: milliseconds
    */
   LONG: 1000,
 
   /**
-   * Heavy operations like file uploads, bulk operations, and initial page load (unit: ms)
+   * Heavy operations like file uploads, bulk operations, and initial page load
+   * 
+   * @remarks
+   * Used for: file uploads, bulk operations, initial page loads
+   * Unit: milliseconds
    */
   EXTRA_LONG: 2000,
 } as const;

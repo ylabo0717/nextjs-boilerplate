@@ -11,6 +11,8 @@ import * as path from 'node:path';
 
 import {
   TIME_UNITS,
+  SIZE_UNITS,
+  DISPLAY_FORMATS,
   PERFORMANCE_THRESHOLDS,
   QUALITY_GATE_CONDITIONS,
   QUALITY_SCORE_WEIGHTS,
@@ -526,7 +528,9 @@ function addPerformanceRecommendations(
       } minutes)`
     );
   if (p.bundleSize && p.bundleSize.total > PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET) {
-    const targetMB = (PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET / 1024 / 1024).toFixed(0);
+    const targetMB = (PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET / SIZE_UNITS.BYTES_PER_MB).toFixed(
+      DISPLAY_FORMATS.BUNDLE_SIZE_HINT_DECIMALS
+    );
     recs.push(`${STATUS.WARN} Reduce bundle size (currently > ${targetMB}MB)`);
   }
 }
@@ -632,7 +636,9 @@ function renderPerformanceSection(report: UnifiedQualityReport): string[] {
     out.push(`| Build Time | ${minutes}m ${seconds}s | ${status} |`);
   }
   if (perf.bundleSize) {
-    const sizeMB = (perf.bundleSize.total / 1024 / 1024).toFixed(2);
+    const sizeMB = (perf.bundleSize.total / SIZE_UNITS.BYTES_PER_MB).toFixed(
+      DISPLAY_FORMATS.BUNDLE_SIZE_TABLE_DECIMALS
+    );
     const status =
       perf.bundleSize.total < PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_TARGET ? STATUS.OK : STATUS.WARN;
     out.push(`| Bundle Size | ${sizeMB} MB | ${status} |`);

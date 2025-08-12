@@ -18,6 +18,16 @@ export const TIME_UNITS = {
 } as const;
 
 /**
+ * Size conversion constants
+ */
+export const SIZE_UNITS = {
+  /** Bytes in one Kilobyte */
+  BYTES_PER_KB: 1024,
+  /** Bytes in one Megabyte */
+  BYTES_PER_MB: 1024 * 1024,
+} as const;
+
+/**
  * Performance thresholds for build and test operations
  */
 export const PERFORMANCE_THRESHOLDS = {
@@ -299,6 +309,16 @@ export const HEALTH_SCORE_THRESHOLDS = {
  * Cap applied to health score when Quality Gate fails
  */
 export const QUALITY_GATE_FAILURE_CAP = 59 as const;
+
+/**
+ * Display/format defaults for reports
+ */
+export const DISPLAY_FORMATS = {
+  /** Decimal places for bundle size in table */
+  BUNDLE_SIZE_TABLE_DECIMALS: 2,
+  /** Decimal places for bundle size target hint */
+  BUNDLE_SIZE_HINT_DECIMALS: 0,
+} as const;
 
 /**
  * Get complexity level for a given value

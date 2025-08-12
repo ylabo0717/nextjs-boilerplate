@@ -670,6 +670,57 @@ metrics/
 
 ローカル環境で簡単に品質チェックを実行できるコマンドが用意されており、PRを作成する前に品質の問題を発見・修正することができます。また、具体的な改善方法のガイダンスも提供されており、品質向上のための実践的な知識を身につけることができます。
 
+### 🚀 クイックスタート
+
+品質チェックを今すぐ始めるための最小限のコマンドセットです。
+
+#### 1. 初回セットアップ（1回だけ実行）
+
+```bash
+# 依存関係のインストール
+pnpm install
+
+# ビルドが成功することを確認
+pnpm build
+```
+
+#### 2. PR作成前の必須チェック（毎回実行）
+
+```bash
+# Step 1: 基本的な品質チェック（1分以内）
+pnpm precommit:check
+# → TypeScript、ESLint、Prettierの問題を一括チェック
+
+# Step 2: 品質ゲート確認（2-3分）
+pnpm quality:check
+# → 品質基準を満たしているか確認（Fail時は修正必須）
+
+# Step 3: 詳細レポート確認（オプション）
+pnpm quality:report
+# → ヘルススコアと改善提案を確認
+```
+
+#### 3. 問題が見つかった場合の対処
+
+```bash
+# 自動修正可能な問題を一括修正
+pnpm precommit:fix
+
+# 複雑度が高い場合
+pnpm quality:analyze
+# → 問題のあるファイルを特定してリファクタリング
+
+# バンドルサイズが大きい場合
+pnpm metrics:bundle
+# → サイズの大きいモジュールを特定
+```
+
+#### 💡 Pro Tips
+
+- **毎日の開発フロー**: `pnpm precommit:check` を頻繁に実行
+- **PR作成前**: `pnpm quality:check` で品質ゲートを必ず確認
+- **週次レビュー**: `pnpm quality:report` でプロジェクト全体の健康状態を確認
+
 ### ローカルでの使用方法
 
 #### 基本的な品質チェック
@@ -756,42 +807,187 @@ export const QUALITY_GATE_CONDITIONS = {
 
 ### トラブルシューティング
 
-#### メトリクス計測が失敗する場合
+よくある問題とその解決方法をFAQ形式でまとめています。
 
-1. 依存関係の確認
+#### ❓ Q1: `pnpm quality:check` でFAILになるが、何が問題か分からない
+
+**A:** 以下の順番で原因を特定してください：
 
 ```bash
-pnpm install
+# 1. 個別のチェックを実行して問題を特定
+pnpm typecheck        # TypeScriptエラーの確認
+pnpm lint            # ESLintエラーの確認
+pnpm test:coverage   # テストカバレッジの確認
+
+# 2. 詳細なレポートを確認
+pnpm quality:report  # どのメトリクスが基準を満たしていないか確認
+
+# 3. 最も一般的な原因と対処法
+# - TypeScriptエラー: 型定義の修正
+# - ESLintエラー: pnpm lint --fix で自動修正
+# - カバレッジ不足: テストを追加（80%以上必要）
 ```
 
-1. ビルドの成功確認
+#### ❓ Q2: ビルド時間が5分を超えてエラーになる
+
+**A:** ビルドパフォーマンスの問題です：
 
 ```bash
+# 1. キャッシュをクリアして再ビルド
+rm -rf .next
 pnpm build
+
+# 2. 不要な依存関係の確認
+pnpm list --depth=0  # 使用していない大きなパッケージを削除
+
+# 3. 動的インポートの活用
+# 重いコンポーネントは dynamic import に変更
 ```
 
-1. 個別チェックで問題特定
+#### ❓ Q3: バンドルサイズが大きすぎると警告される
+
+**A:** バンドルサイズの最適化が必要です：
 
 ```bash
-pnpm typecheck
-pnpm lint
-pnpm test:coverage
+# 1. 詳細な分析を実行
+pnpm metrics:bundle
+
+# 2. Next.js Bundle Analyzerで視覚的に確認
+ANALYZE=true pnpm build
+
+# 3. 一般的な対処法
+# - 大きなライブラリを軽量な代替に変更
+# - Tree Shakingが効いているか確認
+# - 画像の最適化（next/imageを使用）
+# - 不要なポリフィルの削除
 ```
 
-#### Lighthouseが失敗する場合
+#### ❓ Q4: 複雑度が高いと警告されるが、どうリファクタリングすべきか
 
-1. ポート3000の確認
+**A:** 複雑度の高いファイルを特定して段階的に改善：
 
-   ```bash
-   lsof -i :3000
-   ```
+```bash
+# 1. 問題のあるファイルを特定
+pnpm quality:analyze
+# → 複雑度が15以上のファイルがリストされる
 
-2. 本番ビルドの確認
+# 2. リファクタリングの基本戦略
+# - 早期リターンで入れ子を減らす
+# - 長い関数を複数の小さな関数に分割
+# - switch文をオブジェクトマップに変更
+# - 条件分岐をポリモーフィズムで置き換え
+```
 
-   ```bash
-   pnpm build
-   pnpm start
-   ```
+#### ❓ Q5: Lighthouseスコアが低い
+
+**A:** パフォーマンス最適化が必要です：
+
+```bash
+# 1. ローカルでLighthouseを実行
+pnpm lighthouse
+
+# 2. レポートを確認（.lighthouseci/に生成される）
+open .lighthouseci/*.html
+
+# 3. 一般的な改善策
+# - 画像の遅延読み込み（loading="lazy"）
+# - Webフォントの最適化
+# - 不要なJavaScriptの削減
+# - Critical CSSのインライン化
+```
+
+#### ❓ Q6: CI/CDでは失敗するがローカルでは成功する
+
+**A:** 環境差異の可能性があります：
+
+```bash
+# 1. Node.jsバージョンの確認
+node --version  # CI環境と同じバージョンか確認
+
+# 2. クリーンインストール
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
+
+# 3. 本番ビルドでテスト
+NODE_ENV=production pnpm build
+NODE_ENV=production pnpm quality:check
+
+# 4. GitHub Actions のログを確認
+# PRページの "Checks" タブで詳細なエラーメッセージを確認
+```
+
+#### ❓ Q7: メトリクス計測が遅い
+
+**A:** 並列実行とキャッシュを活用：
+
+```bash
+# 1. 必要なメトリクスのみ実行
+pnpm metrics:build   # ビルド時間のみ
+pnpm metrics:bundle  # バンドルサイズのみ
+
+# 2. CI環境でのキャッシュ設定確認
+# .github/workflows/metrics.yml でキャッシュが有効か確認
+
+# 3. ローカルでの高速化
+# .next/ ディレクトリをキャッシュとして保持
+```
+
+#### ❓ Q8: 品質レポートの見方が分からない
+
+**A:** レポートの重要な部分を理解しましょう：
+
+```bash
+# 1. レポートを生成
+pnpm quality:report
+
+# 2. 重要な指標の見方
+# - Health Score: 60以上を維持（80以上が理想）
+# - Quality Gate: すべてPASSが必須
+# - 赤色の項目: 即座に対処が必要
+# - 黄色の項目: 改善を推奨
+# - 緑色の項目: 問題なし
+
+# 3. アクションアイテムの優先順位
+# 1st: Quality Gate失敗項目（ビルドブロッカー）
+# 2nd: 複雑度が20を超えるファイル
+# 3rd: カバレッジ80%未満
+# 4th: その他の改善提案
+```
+
+#### ❓ Q9: テストカバレッジが上がらない
+
+**A:** 効率的にカバレッジを向上させる方法：
+
+```bash
+# 1. カバレッジレポートの詳細確認
+pnpm test:coverage
+open coverage/index.html
+
+# 2. カバーされていない箇所を特定
+# 赤くハイライトされた行を確認
+
+# 3. 重要な箇所から順にテストを追加
+# - ビジネスロジック
+# - エラーハンドリング
+# - 条件分岐
+```
+
+#### ❓ Q10: 毎回すべてのチェックを実行するのが面倒
+
+**A:** Git Hooksが自動で実行します：
+
+```bash
+# 1. Huskyが設定済みなので、コミット時に自動チェック
+git commit -m "feat: add feature"
+# → 自動的にprecommit:checkが実行される
+
+# 2. 手動で全チェックを一括実行
+pnpm quality:full
+
+# 3. VS Code拡張機能の活用
+# - ESLint: リアルタイムでエラー表示
+# - Prettier: 保存時に自動フォーマット
+```
 
 ### ベストプラクティス
 

@@ -56,7 +56,9 @@
       "WebFetch(domain:nextjs.org)",
       "Bash(npx eslint:*)",
       "Bash(pnpm playwright test:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(pnpm lighthouse:collect:*)",
+      "Bash(pnpm lighthouse:assert:*)"
     ],
     "deny": [
       "Bash(sudo *)",

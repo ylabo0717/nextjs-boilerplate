@@ -23,6 +23,13 @@ const formSchema = z.object({
   name: z.string().min(2, '名前は2文字以上で入力してください'),
 });
 
+/**
+ * Example page demonstrating form validation and UI components
+ *
+ * @returns Example page with form and validation demo
+ *
+ * @public
+ */
 export default function ExamplePage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

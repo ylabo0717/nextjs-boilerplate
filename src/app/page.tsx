@@ -1,5 +1,12 @@
 import Image from 'next/image';
 
+/**
+ * Home page component
+ *
+ * @returns The main landing page of the application
+ *
+ * @public
+ */
 export default function Home() {
   return (
     <div

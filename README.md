@@ -238,8 +238,8 @@ NEXT_PUBLIC_API_URL=http://localhost:3000/api
 
 ## 📚 Documentation
 
-- [Design Document](./docs/nextjs_boilerplate_design.md) - Architecture and design decisions
-- [Phase 1 Status](./docs/phase1_implementation_status.md) - Implementation progress
+- [Design Document](./docs/work_dir/nextjs_boilerplate_design.md) - Architecture and design decisions
+- [Phase 1 Status](./docs/work_dir/phase1_implementation_status.md) - Implementation progress
 - [CLAUDE.md](./CLAUDE.md) - AI assistant guidelines
 
 ## 🤝 Contributing

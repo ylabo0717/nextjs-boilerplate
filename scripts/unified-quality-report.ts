@@ -5,9 +5,10 @@
  * Combines all quality metrics into a single comprehensive report
  */
 
+import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { execSync } from 'node:child_process';
+
 import {
   TIME_UNITS,
   PERFORMANCE_THRESHOLDS,
@@ -153,12 +154,13 @@ function sumEslintCounts(json: string): { errors: number; warnings: number } {
     const parsed = JSON.parse(json);
     if (!Array.isArray(parsed)) return { errors: 0, warnings: 0 };
 
-    let errors = 0;
-    let warnings = 0;
-    for (const r of parsed as EslintJsonReportEntry[]) {
-      errors += Number(r?.errorCount ?? 0);
-      warnings += Number(r?.warningCount ?? 0);
-    }
+    const { errors, warnings } = (parsed as EslintJsonReportEntry[]).reduce(
+      (acc, r) => ({
+        errors: acc.errors + Number(r?.errorCount ?? 0),
+        warnings: acc.warnings + Number(r?.warningCount ?? 0),
+      }),
+      { errors: 0, warnings: 0 }
+    );
     return { errors, warnings };
   } catch {
     return { errors: 0, warnings: 0 };

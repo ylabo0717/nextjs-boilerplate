@@ -11,6 +11,7 @@ import unicornPlugin from 'eslint-plugin-unicorn';
 import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
 import importPlugin from 'eslint-plugin-import';
 import tailwindcssPlugin from 'eslint-plugin-tailwindcss';
+import eslintPluginBetterTailwindcss from 'eslint-plugin-better-tailwindcss';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import vitestPlugin from 'eslint-plugin-vitest';
 
@@ -34,10 +35,14 @@ const eslintConfig = [
     },
     settings: {
       tailwindcss: {
-        // Tailwind CSS v4 doesn't use a config file
-        config: null,
+        // 明示的に Tailwind 設定を指す（pre-commit の解決エラー回避）
+        config: 'tailwind.config.ts',
         callees: ['classnames', 'clsx', 'ctl', 'cn', 'cv', 'tw'],
         classRegex: '^(class|className)$',
+      },
+      // better-tailwindcss 用のエントリポイント（Tailwind v4）
+      'better-tailwindcss': {
+        entryPoint: 'src/app/globals.css',
       },
     },
     plugins: {
@@ -50,9 +55,15 @@ const eslintConfig = [
       'jsx-a11y': jsxA11yPlugin,
       import: importPlugin,
       tailwindcss: tailwindcssPlugin,
+      'better-tailwindcss': eslintPluginBetterTailwindcss,
       'react-hooks': reactHooksPlugin,
     },
     rules: {
+      // better-tailwindcss 推奨設定（Flat Config互換: rulesのみをマージ）
+      ...eslintPluginBetterTailwindcss.configs['recommended-error'].rules,
+      // 整形系ルールは段階導入のため一時OFF（CI安定化優先）
+      'better-tailwindcss/enforce-consistent-line-wrapping': 'off',
+      'better-tailwindcss/enforce-consistent-class-order': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -176,13 +187,22 @@ const eslintConfig = [
         },
       ],
 
-      // Tailwind CSS rules - Styling consistency (v4.0.0-beta.0)
-      'tailwindcss/classnames-order': 'warn',
-      'tailwindcss/enforces-negative-arbitrary-values': 'warn',
-      'tailwindcss/enforces-shorthand': 'warn',
+      // Tailwind CSS rules - Temporarily disabled due to resolution issue on v4 beta
+      'tailwindcss/classnames-order': 'off',
+      'tailwindcss/enforces-negative-arbitrary-values': 'off',
+      'tailwindcss/enforces-shorthand': 'off',
       'tailwindcss/no-arbitrary-value': 'off',
       'tailwindcss/no-custom-classname': 'off',
-      'tailwindcss/no-contradicting-classname': 'error',
+      'tailwindcss/no-contradicting-classname': 'off',
+
+      // better-tailwindcss - Tailwind v4 対応の正当性チェックを上書き（ignore維持）
+      'better-tailwindcss/no-unregistered-classes': [
+        'error',
+        {
+          ignore: ['toaster'],
+        },
+      ],
+      'better-tailwindcss/no-conflicting-classes': 'error',
 
       // React Hooks rules - Hooks validation
       'react-hooks/rules-of-hooks': 'error',

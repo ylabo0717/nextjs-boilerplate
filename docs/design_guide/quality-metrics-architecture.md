@@ -33,18 +33,9 @@
 - **Core Web Vitals**: Googleが定めるWebパフォーマンス基準
 - **SonarQube Quality Gate**: 業界標準の品質ゲート条件
 
-### 2. Single Source of Truth原則
+### 2. 測定の客観性と再現性
 
-すべての閾値や定数は単一のファイル（`scripts/constants/quality-metrics.ts`）で管理され、システム全体で一貫性を保証します。
-
-```typescript
-// 定数の集中管理例
-export const PERFORMANCE_THRESHOLDS = {
-  BUNDLE_SIZE_TARGET: 5 * 1024 * 1024, // 5MB - 推奨目標
-  BUNDLE_SIZE_WARNING: 50 * 1024 * 1024, // 50MB - 警告閾値
-  BUNDLE_SIZE_MAX: 100 * 1024 * 1024, // 100MB - 最大許容
-};
-```
+すべてのメトリクスは自動化されたツールによって測定され、人的判断を排除することで客観性と再現性を確保しています。同じコードベースに対しては常に同じ結果が得られるよう、測定環境と手法を標準化しています。
 
 ### 3. 段階的な品質レベル
 
@@ -62,13 +53,13 @@ export const PERFORMANCE_THRESHOLDS = {
 
 #### 1. パフォーマンスメトリクス
 
-**ビルド時間**
+##### ビルド時間
 
 - **測定内容**: Next.jsのプロダクションビルドにかかる時間
 - **目的**: CI/CDパイプラインの効率性確保
 - **閾値根拠**: 開発者の生産性を維持するため5分以内を目標
 
-**バンドルサイズ（First Load JS）**
+##### バンドルサイズ（First Load JS）
 
 - **測定内容**: ユーザーが初回アクセス時にダウンロードするJavaScriptサイズ
 - **目的**: ページ読み込み速度の最適化
@@ -84,7 +75,7 @@ export const PERFORMANCE_THRESHOLDS = {
 
 #### 2. コード品質メトリクス
 
-**循環的複雑度（Cyclomatic Complexity）**
+##### 循環的複雑度（Cyclomatic Complexity）
 
 - **測定内容**: コードの制御フローの複雑さ
 - **測定方法**: ESLintCCによるAST解析
@@ -103,13 +94,13 @@ export const PERFORMANCE_THRESHOLDS = {
 | 16-20  | 🟡 警告 | ESLintデフォルト上限   |
 | 21+    | ❌ 危険 | バグ発生率が急増       |
 
-**保守性指数（Maintainability Index）**
+##### 保守性指数（Maintainability Index）
 
 - **測定内容**: コードの保守しやすさを0-100で評価
 - **計算要素**: 複雑度、行数、コメント率の複合指標
 - **閾値根拠**: Microsoft Visual Studioの基準を採用
 
-**コード重複率**
+##### コード重複率
 
 - **測定内容**: 重複コードの割合
 - **測定方法**: ESLint sonarjsプラグインによる検出
@@ -117,17 +108,17 @@ export const PERFORMANCE_THRESHOLDS = {
 
 #### 3. 静的解析メトリクス
 
-**TypeScriptエラー**
+##### TypeScriptエラー
 
 - **測定内容**: 型エラーの件数
 - **目標**: 0件（型安全性の完全保証）
 
-**ESLintエラー/警告**
+##### ESLintエラー/警告
 
 - **測定内容**: コーディング規約違反
 - **目標**: エラー0件、警告10件以下
 
-**テストカバレッジ**
+##### テストカバレッジ
 
 - **測定内容**: テストでカバーされているコードの割合
 - **閾値根拠**: 業界標準（SonarWay）80%以上
@@ -195,7 +186,7 @@ const SCORE_WEIGHTS = {
 
 **カバレッジの正規化**:
 
-```
+```text
 50%以下 → 0点
 50-80% → 線形補間で0-80点
 80-90% → 線形補間で80-90点
@@ -204,7 +195,7 @@ const SCORE_WEIGHTS = {
 
 **複雑度の正規化**:
 
-```
+```text
 CC ≤ 5 → 100点（A評価）
 5 < CC ≤ 10 → 80点（B評価）
 10 < CC ≤ 15 → 60点（C評価）
@@ -294,7 +285,7 @@ PRには以下の情報が自動的にコメントされます：
 
 ### ディレクトリ構造
 
-```
+```text
 scripts/
 ├── constants/
 │   └── quality-metrics.ts    # 全閾値・定数の定義
@@ -421,16 +412,16 @@ pnpm test:coverage
 
 1. ポート3000の確認
 
-```bash
-lsof -i :3000
-```
+   ```bash
+   lsof -i :3000
+   ```
 
 2. 本番ビルドの確認
 
-```bash
-pnpm build
-pnpm start
-```
+   ```bash
+   pnpm build
+   pnpm start
+   ```
 
 ### ベストプラクティス
 

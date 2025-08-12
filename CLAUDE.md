@@ -331,7 +331,13 @@ When you encounter a new numeric value in tests:
 
 ## GitHub Actions
 
-When implementing or modifying GitHub Actions workflows, refer to `docs/github-actions-best-practices.md`.
+When implementing or modifying GitHub Actions workflows, refer to `docs/work_dir/github-actions-best-practices.md` for detailed best practices including:
+
+- Permissions configuration (最小権限の原則)
+- Version management for Actions and tools
+- Security best practices
+- Performance optimization techniques
+- Debugging and troubleshooting
 
 ## Git Commit Convention
 

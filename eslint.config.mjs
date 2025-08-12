@@ -7,6 +7,7 @@ import securityPlugin from 'eslint-plugin-security';
 import noSecretsPlugin from 'eslint-plugin-no-secrets';
 import sonarjsPlugin from 'eslint-plugin-sonarjs';
 import jsdocPlugin from 'eslint-plugin-jsdoc';
+import tsdocPlugin from 'eslint-plugin-tsdoc';
 import unicornPlugin from 'eslint-plugin-unicorn';
 import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
 import importPlugin from 'eslint-plugin-import';
@@ -51,6 +52,7 @@ const eslintConfig = [
       'no-secrets': noSecretsPlugin,
       sonarjs: sonarjsPlugin,
       jsdoc: jsdocPlugin,
+      tsdoc: tsdocPlugin,
       unicorn: unicornPlugin,
       'jsx-a11y': jsxA11yPlugin,
       import: importPlugin,
@@ -91,7 +93,8 @@ const eslintConfig = [
       'sonarjs/no-unused-collection': 'error',
       'sonarjs/no-use-of-empty-return-value': 'error',
 
-      // JSDoc rules - Documentation quality
+      // TSDoc rules - Documentation quality (replacing JSDoc)
+      'tsdoc/syntax': 'error',
       'jsdoc/require-description': 'off', // Optional, enable for stricter docs
       'jsdoc/require-param-description': 'warn',
       'jsdoc/require-returns-description': 'warn',

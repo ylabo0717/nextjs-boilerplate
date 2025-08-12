@@ -60,6 +60,9 @@ jobs:
       - name: Run Prettier check
         run: pnpm format:check
 
+      - name: Tailwind line-wrapping preview (non-blocking)
+        run: pnpm exec eslint --ext .ts,.tsx "src/**/*.tsx" --rule 'better-tailwindcss/enforce-consistent-line-wrapping:warn'
+
       - name: Run pre-commit (lint-staged) simulation
         run: pnpm exec lint-staged --debug --quiet || (echo "lint-staged failed" && exit 1)
 

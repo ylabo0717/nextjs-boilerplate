@@ -241,24 +241,6 @@ export const MAINTAINABILITY_INDEX_THRESHOLDS = {
 } as const;
 
 /**
- * Quality gate scoring weights
- */
-export const QUALITY_GATE_WEIGHTS = {
-  /**
-   * Build time penalty for exceeding threshold
-   */
-  BUILD_TIME_PENALTY: 5,
-  /**
-   * Test coverage bonus for good coverage
-   */
-  TEST_COVERAGE_BONUS: 10,
-  /**
-   * Lighthouse score weight
-   */
-  LIGHTHOUSE_WEIGHT: 0.25,
-} as const;
-
-/**
  * Quality Gate default conditions (aligned with Sonar way for overall code fallback)
  *
  * Purpose:
@@ -398,32 +380,6 @@ export const DISPLAY_FORMATS = {
   /** Decimal places for bundle size target hint */
   BUNDLE_SIZE_HINT_DECIMALS: 0,
 } as const;
-
-/**
- * Get complexity level for a given value
- */
-export function getComplexityLevel(value: number): {
-  label: string;
-  emoji: string;
-  description: string;
-} {
-  if (value <= COMPLEXITY_LEVELS.EXCELLENT.maxValue) {
-    return COMPLEXITY_LEVELS.EXCELLENT;
-  }
-  if (value <= COMPLEXITY_LEVELS.GOOD.maxValue) {
-    return COMPLEXITY_LEVELS.GOOD;
-  }
-  if (value <= COMPLEXITY_LEVELS.FAIR.maxValue) {
-    return COMPLEXITY_LEVELS.FAIR;
-  }
-  if (value <= COMPLEXITY_LEVELS.WARNING.maxValue) {
-    return COMPLEXITY_LEVELS.WARNING;
-  }
-  if (value <= COMPLEXITY_LEVELS.CRITICAL.maxValue) {
-    return COMPLEXITY_LEVELS.CRITICAL;
-  }
-  return COMPLEXITY_LEVELS.DANGEROUS;
-}
 
 /**
  * Get indicator emoji for quality gate

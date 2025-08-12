@@ -13,6 +13,7 @@ import {
   TIME_UNITS,
   SIZE_UNITS,
   DISPLAY_FORMATS,
+  DISPLAY_LIMITS,
   PERFORMANCE_THRESHOLDS,
   QUALITY_GATE_CONDITIONS,
   QUALITY_SCORE_WEIGHTS,
@@ -756,7 +757,7 @@ export async function main() {
 
   if (report.recommendations.length > 0) {
     console.log('\n💡 Top Recommendations:');
-    report.recommendations.slice(0, 3).forEach((rec) => {
+    report.recommendations.slice(0, DISPLAY_LIMITS.TOP_RECOMMENDATIONS).forEach((rec) => {
       console.log(`  ${rec}`);
     });
   }

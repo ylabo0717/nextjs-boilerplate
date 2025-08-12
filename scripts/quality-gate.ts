@@ -13,6 +13,8 @@ import {
   getComplexityIndicator,
   PERFORMANCE_THRESHOLDS,
   LIGHTHOUSE_THRESHOLDS,
+  FIRST_LOAD_JS_THRESHOLDS,
+  DISPLAY_LIMITS,
 } from './constants/quality-metrics';
 
 /**
@@ -139,10 +141,10 @@ const DEFAULT_THRESHOLDS: QualityThresholds = {
     warning: PERFORMANCE_THRESHOLDS.BUNDLE_SIZE_WARNING, // 50MB
   },
   firstLoadJS: {
-    excellent: 100, // 100KB
-    good: 150, // 150KB
-    warning: 200, // 200KB
-    maximum: 250, // 250KB
+    excellent: FIRST_LOAD_JS_THRESHOLDS.EXCELLENT,
+    good: FIRST_LOAD_JS_THRESHOLDS.GOOD,
+    warning: FIRST_LOAD_JS_THRESHOLDS.WARNING,
+    maximum: FIRST_LOAD_JS_THRESHOLDS.MAXIMUM,
   },
   complexity: {
     averageWarning: COMPLEXITY_THRESHOLDS.AVERAGE.WARNING,
@@ -457,11 +459,11 @@ function evaluateQualityGate(
       // Show top 10 files or all files with complexity > warning threshold
       const filesToShow = metrics.complexity.files
         .filter((f) => f.complexity > thresholds.complexity.individualWarning)
-        .slice(0, 10);
+        .slice(0, DISPLAY_LIMITS.TOP_FILES_DETAILED);
 
       if (filesToShow.length === 0) {
         // If no files exceed warning threshold, show top 5
-        metrics.complexity.files.slice(0, 5).forEach((f) => {
+        metrics.complexity.files.slice(0, DISPLAY_LIMITS.TOP_FILES_SUMMARY).forEach((f) => {
           fileList.push(`   - ${f.file}: ${f.complexity}`);
         });
       } else {
@@ -590,7 +592,7 @@ async function main() {
     // Show top 5 files by complexity
     if (metrics.complexity.files && metrics.complexity.files.length > 0) {
       console.log('   Top files by complexity:');
-      metrics.complexity.files.slice(0, 5).forEach((f) => {
+      metrics.complexity.files.slice(0, DISPLAY_LIMITS.TOP_FILES_SUMMARY).forEach((f) => {
         console.log(`     - ${f.file}: ${f.complexity}`);
       });
     }

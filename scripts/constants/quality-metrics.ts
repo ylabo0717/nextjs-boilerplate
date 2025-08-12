@@ -284,6 +284,67 @@ export const UNIFIED_REPORT_THRESHOLDS = {
    */
   DUPLICATION_MAX: 10,
 } as const;
+/**
+ * File size thresholds for code analysis
+ */
+export const FILE_SIZE_THRESHOLDS = {
+  /**
+   * Warning threshold for large files (lines of code)
+   */
+  LARGE_FILE_LINES: 300,
+  /**
+   * Warning threshold for average lines per file
+   */
+  AVG_LINES_WARNING: 200,
+  /**
+   * Maximum recommended lines per file
+   */
+  MAX_RECOMMENDED_LINES: 500,
+  /**
+   * Maximum recommended lines per function
+   */
+  MAX_FUNCTION_LINES: 50,
+} as const;
+
+/**
+ * Display limits for reports and analysis
+ */
+export const DISPLAY_LIMITS = {
+  /**
+   * Maximum number of files to show in detailed reports
+   */
+  TOP_FILES_DETAILED: 10,
+  /**
+   * Maximum number of files to show in summary reports
+   */
+  TOP_FILES_SUMMARY: 5,
+  /**
+   * Maximum number of recommendations to show
+   */
+  TOP_RECOMMENDATIONS: 3,
+} as const;
+
+/**
+ * First Load JS bundle size thresholds (in KB)
+ */
+export const FIRST_LOAD_JS_THRESHOLDS = {
+  /**
+   * Excellent bundle size
+   */
+  EXCELLENT: 100,
+  /**
+   * Good bundle size
+   */
+  GOOD: 150,
+  /**
+   * Warning threshold
+   */
+  WARNING: 200,
+  /**
+   * Maximum acceptable size
+   */
+  MAXIMUM: 250,
+} as const;
 
 /**
  * Health Score weights for normalized metrics (sum should be 1.0)

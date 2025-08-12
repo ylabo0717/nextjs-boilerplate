@@ -14,79 +14,9 @@ import {
   ESLINT_COMPLEXITY_RULES,
   COMPLEXITY_LEVELS,
   SCORE_RATINGS,
+  FILE_SIZE_THRESHOLDS,
 } from './constants/quality-metrics';
 
-/**
- * SonarQube quality rating grades based on technical debt ratio.
- * These grades follow the industry-standard SonarQube methodology.
- * @see https://docs.sonarqube.org/latest/user-guide/metric-definitions/
- */
-const _SONARQUBE_RATINGS = {
-  A: { maxDebtRatio: 0.05, label: 'A', color: '🟢' },
-  B: { maxDebtRatio: 0.1, label: 'B', color: '🟡' },
-  C: { maxDebtRatio: 0.2, label: 'C', color: '🟠' },
-  D: { maxDebtRatio: 0.5, label: 'D', color: '🔴' },
-  E: { maxDebtRatio: Infinity, label: 'E', color: '⚫' },
-} as const;
-
-/**
- * Default remediation costs in minutes based on SonarQube standards.
- * These values represent the estimated time needed to fix various code issues.
- */
-const _REMEDIATION_COSTS = {
-  /** Minutes required to fix each point of complexity exceeding threshold */
-  COMPLEXITY_PER_POINT: 30,
-  /** Minutes required to fix each duplicated code block */
-  DUPLICATION_PER_BLOCK: 120,
-  /** Minutes required to add tests for each 1% of missing coverage */
-  COVERAGE_PER_PERCENT: 10,
-  /** Minutes required to refactor each large file */
-  LARGE_FILE: 60,
-  /** Minutes required to improve each file with low maintainability */
-  LOW_MAINTAINABILITY: 90,
-} as const;
-
-/**
- * SonarQube quality gate thresholds.
- * These are the standard thresholds used to determine if code meets quality standards.
- */
-const _QUALITY_GATE_THRESHOLDS = {
-  /** Maximum acceptable cyclomatic complexity per function */
-  COMPLEXITY: 10,
-  /** Maximum acceptable cognitive complexity per function */
-  COGNITIVE_COMPLEXITY: 15,
-  /** Maximum acceptable code duplication percentage */
-  DUPLICATION: 3,
-  /** Minimum required test coverage percentage */
-  COVERAGE: 80,
-  /** Maximum acceptable lines per file */
-  FILE_LINES: 500,
-  /** Maximum acceptable lines per function */
-  FUNCTION_LINES: 50,
-} as const;
-
-/**
- * Technical debt information calculated based on SonarQube methodology.
- * Technical debt represents the effort required to fix all code issues.
- */
-interface _TechnicalDebt {
-  /** Total remediation time in minutes */
-  totalMinutes: number;
-  /** Technical debt breakdown by category */
-  byCategory: {
-    complexity: number;
-    duplication: number;
-    coverage: number;
-    fileSize: number;
-    maintainability: number;
-  };
-  /** Estimated development cost in minutes */
-  developmentCost: number;
-  /** Technical debt ratio (remediation cost / development cost) */
-  debtRatio: number;
-  /** Overall quality rating (A-E) */
-  rating: 'A' | 'B' | 'C' | 'D' | 'E';
-}
 
 /**
  * Code quality metrics
@@ -216,7 +146,7 @@ function analyzeSourceFiles(config: AnalysisConfig = {}): {
         const lines = content.split('\n').length;
         lineCounts.push(lines);
 
-        if (lines > 300) {
+        if (lines > FILE_SIZE_THRESHOLDS.LARGE_FILE_LINES) {
           largeFiles.push(relativePath);
         }
       }
@@ -437,7 +367,7 @@ function calculateMaintainabilityMetrics(
   }
 
   // Penalty for large files
-  if (fileMetrics.avgLinesPerFile > 200) {
+  if (fileMetrics.avgLinesPerFile > FILE_SIZE_THRESHOLDS.AVG_LINES_WARNING) {
     index -= 10;
   }
 

@@ -63,9 +63,9 @@ const eslintConfig = [
       ...eslintPluginBetterTailwindcss.configs['recommended-error'].rules,
       // 整形系ルールは段階導入
       // - ローカル: off（CI安定化優先）。ローカル整形は `pnpm lint:tw:fix` を使用
-      // - CI: class-order を warn で有効化（次段で error へ昇格予定）
+      // - CI: class-order を error で有効化
       'better-tailwindcss/enforce-consistent-line-wrapping': 'off',
-      'better-tailwindcss/enforce-consistent-class-order': isCI ? 'warn' : 'off',
+      'better-tailwindcss/enforce-consistent-class-order': isCI ? 'error' : 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {

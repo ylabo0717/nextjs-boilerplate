@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "start:test": "NODE_ENV=test next start",
-    "lint": "next lint --max-warnings=0",
+    "lint": "next lint",
+    "lint:ci": "cross-env CI=true next lint --max-warnings=0",
+    "lint:pre-push": "cross-env PRE_PUSH=true next lint --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
@@ -41,7 +43,8 @@
     "lighthouse:collect": "lhci collect",
     "lighthouse:upload": "lhci upload",
     "docs": "typedoc --treatWarningsAsErrors",
-    "docs:check": "typedoc --treatWarningsAsErrors --emit none",
+    "docs:check": "node scripts/check-docs.js",
+    "docs:check:raw": "typedoc --emit none --validation.notDocumented true --validation.notExported true --validation.invalidLink true",
     "docs:watch": "typedoc --watch"
   },
   "dependencies": {

@@ -18,6 +18,8 @@ import vitestPlugin from 'eslint-plugin-vitest';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+const isPrePush = process.env.PRE_PUSH === 'true';
+const strictDocs = isCI || isPrePush;
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
@@ -94,12 +96,14 @@ const eslintConfig = [
       'sonarjs/no-use-of-empty-return-value': 'error',
 
       // TSDoc rules - Documentation quality (replacing JSDoc)
-      'tsdoc/syntax': 'error',
+      // In pre-commit: warn only (for development flexibility)
+      // In pre-push/CI: error (strict validation)
+      'tsdoc/syntax': strictDocs ? 'error' : 'warn',
       'jsdoc/require-description': 'off', // Optional, enable for stricter docs
-      'jsdoc/require-param-description': 'warn',
-      'jsdoc/require-returns-description': 'warn',
+      'jsdoc/require-param-description': strictDocs ? 'error' : 'warn',
+      'jsdoc/require-returns-description': strictDocs ? 'error' : 'warn',
       'jsdoc/check-alignment': 'warn',
-      'jsdoc/check-param-names': 'error',
+      'jsdoc/check-param-names': strictDocs ? 'error' : 'warn',
 
       // Unicorn rules - Best practices
       'unicorn/filename-case': [

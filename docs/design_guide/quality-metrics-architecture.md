@@ -62,6 +62,11 @@
 - **測定内容**: ユーザーが初回アクセス時にダウンロードするJavaScriptサイズ
 - **目的**: ページ読み込み速度の最適化
 - **計算式**: フレームワーク + 共通チャンク + ページ固有コード
+- **測定対象外**:
+  - `.next/server/` - サーバーサイドコード
+  - `.next/cache/` - ビルドキャッシュ
+  - ソースマップ（`.map`ファイル）
+  - 開発用依存関係
 - **閾値根拠**:
 
 | サイズ | 3G回線での読み込み時間 | 評価        |
@@ -71,20 +76,35 @@
 | <200KB | 約1.2秒                | ⚠️ 許容範囲 |
 | <250KB | 約1.5秒                | ❌ 要改善   |
 
+##### Bundle Size（Total）
+
+- **測定内容**: `.next`生成物からJS/CSSを合算した総サイズ
+- **目的**: ビルド成果物全体のサイズ管理
+- **閾値設定**:
+
+| 種別               | 定数名              | 値    | 用途               |
+| ------------------ | ------------------- | ----- | ------------------ |
+| 推奨（ターゲット） | BUNDLE_SIZE_TARGET  | 5MB   | ✅/⚠️の表示判定    |
+| 警告               | BUNDLE_SIZE_WARNING | 50MB  | 品質ゲート警告閾値 |
+| 最大（エラー）     | BUNDLE_SIZE_MAX     | 100MB | 品質ゲート失敗閾値 |
+
 #### 2. コード品質メトリクス
 
 ##### 循環的複雑度（Cyclomatic Complexity）
 
 - **測定内容**: コードの制御フローの複雑さ
 - **測定方法**: ESLintCCによるAST解析
+- **測定対象**: 自チームが作成・管理するコードのみ（`src/components/ui/`等のshadcn/uiコンポーネントは除外）
 - **カウント対象**:
   - 条件分岐（if/else、switch/case）
   - ループ（for、while、do-while）
   - 論理演算子（&&、||）
   - try-catch文
 - **Quality Gate**:
-  - 個別ファイル最大: 20以下
-  - プロジェクト平均: 10以下
+  - 個別ファイル最大: 20以下（ESLint標準デフォルト値）
+  - 個別ファイル警告: 15以下（SonarQube推奨値）
+  - プロジェクト平均警告: 8以下（ベストプラクティス）
+  - プロジェクト平均最大: 10以下（McCabe推奨値）
 - **評価基準**:
 
 | 複雑度 | 評価    | スコアリング | 根拠                   |
@@ -130,19 +150,33 @@
 
 #### 4. Lighthouseメトリクス
 
-**測定カテゴリー**:
+##### 測定カテゴリー（スコア）
 
-- Performance: ページ読み込み速度
-- Accessibility: アクセシビリティ対応
-- Best Practices: Web開発のベストプラクティス
-- SEO: 検索エンジン最適化
+| カテゴリー     | Quality Gate | 推奨 | 優秀 | 説明                                 |
+| -------------- | ------------ | ---- | ---- | ------------------------------------ |
+| Performance    | ≥80          | ≥90  | ≥95  | ページの読み込み速度とパフォーマンス |
+| Accessibility  | ≥90          | ≥95  | ≥98  | アクセシビリティ（障害者対応）       |
+| Best Practices | ≥90          | ≥95  | ≥98  | Web開発のベストプラクティス準拠      |
+| SEO            | ≥90          | ≥95  | ≥98  | 検索エンジン最適化                   |
 
-**Core Web Vitals**:
+##### Core Web Vitals（パフォーマンス指標）
 
-- FCP (First Contentful Paint): 1.8秒以下
-- LCP (Largest Contentful Paint): 2.5秒以下
-- CLS (Cumulative Layout Shift): 0.1以下
-- TBT (Total Blocking Time): 300ms以下
+| 指標                           | 閾値      | レベル | 説明                                   |
+| ------------------------------ | --------- | ------ | -------------------------------------- |
+| FCP (First Contentful Paint)   | 1.8秒以下 | Warn   | 最初のコンテンツが表示されるまでの時間 |
+| LCP (Largest Contentful Paint) | 2.5秒以下 | Warn   | 最大のコンテンツが表示されるまでの時間 |
+| CLS (Cumulative Layout Shift)  | 0.1以下   | Warn   | レイアウトのずれ（視覚的安定性）       |
+| TBT (Total Blocking Time)      | 300ms以下 | Warn   | メインスレッドがブロックされる時間     |
+| Speed Index                    | 3.4秒以下 | Warn   | ページ内容が視覚的に表示される速度     |
+| TTI (Time to Interactive)      | 3.8秒以下 | Warn   | ページが完全に操作可能になるまでの時間 |
+| Max Potential FID              | 250ms以下 | Warn   | 最大入力遅延時間                       |
+
+##### 測定設定
+
+- **測定対象URL**: `/`, `/example`（設定可能）
+- **実行回数**: 3回（平均値を算出）
+- **環境**: デスクトップ/モバイル両方で測定
+- **タイムアウト**: 30秒
 
 ## 品質ゲートシステム
 
@@ -209,17 +243,44 @@ CC ≤ 5 → 100点（A評価）
 CC > 30 → 0点（F評価）
 ```
 
-#### 2. 総合スコア計算
+#### 2. 詳細な正規化マッピング
+
+##### カバレッジの正規化詳細
+
+- **ブレークポイント**: 50% (ZERO), 80% (GOOD), 90% (GREAT)
+- **スコア**: 50%以下→0点, 80%→80点, 90%→90点, 100%→100点
+- **根拠**: 80%は業界標準（SonarWay）、50%未満は品質信号として0点域
+
+##### 複雑度の正規化詳細
+
+- **平均複雑度ブレークポイント**: 5(A), 10(B), 15(C), 20(D), 30(E)
+- **平均複雑度スコア**: 100(A), 80(B), 60(C), 40(D), 20(E), 0(F)
+- **最大複雑度**: 20以下→100点、20-40→線形減点、40超→0点
+
+##### 重複率の正規化詳細
+
+- **ブレークポイント**: 0%, 3%, 10%, 20%
+- **スコア**: 0%→100点, 3%→95点, 10%→60点, 20%→30点, 30%以上→0点
+- **根拠**: SonarQube推奨値3%を警告域の開始点
+
+#### 3. 総合スコア計算
 
 ```typescript
 // 総合ヘルススコア計算
 healthScore = Σ(weight[i] × normalizedScore[i])
 
-// ゲート失敗時のキャップ
+// ゲート失敗時のキャップ（59点以下に制限）
 if (gateStatus === 'FAIL') {
   healthScore = Math.min(healthScore, 59);
 }
 ```
+
+**重み配分の根拠**:
+
+- **保守性ブロック（55%）**: コードの長期的な品質を重視
+- **テスト品質（15%）**: 変更時の安全性を確保
+- **静的不具合（10%）**: 即座に修正すべき問題の検出
+- **パフォーマンス（20%）**: 開発効率とユーザー体験
 
 ### スコアの解釈
 
@@ -236,29 +297,55 @@ if (gateStatus === 'FAIL') {
 
 #### 1. メトリクス計測ワークフロー（`.github/workflows/metrics.yml`）
 
-```yaml
-jobs:
-  metrics:
-    # メトリクス収集と品質ゲートチェック
-    - pnpm metrics:build
-    - pnpm metrics:bundle
-    - pnpm quality:check
+PR作成・更新時に自動実行される包括的な品質チェック：
 
-  lighthouse:
-    # Lighthouseによるパフォーマンス測定
-    - pnpm lighthouse:collect
-    - pnpm lighthouse:assert
+**ジョブ構成**:
 
-  quality-summary:
-    # 統合レポート生成とPRコメント投稿
-    - pnpm quality:report
-```
+1. **metrics** - メトリクス収集と品質ゲートチェック
+   - ビルド時間の計測
+   - バンドルサイズの計算
+   - TypeScript/ESLintエラーチェック
+   - テストカバレッジ測定
+
+2. **lighthouse** - Lighthouse CI実行
+   - Performance、Accessibility、Best Practices、SEOスコア測定
+   - Core Web Vitalsの検証
+   - デスクトップ/モバイル両環境での測定
+
+3. **bundle-analysis** - バンドルサイズ分析
+   - ページ別のJSサイズ分析
+   - First Load JSの計測
+   - 前回との差分比較
+
+4. **quality-summary** - 結果サマリー生成
+   - 全メトリクスの統合レポート作成
+   - PRへの自動コメント投稿
+   - GitHub Summaryへの出力
 
 #### 2. コード品質ワークフロー（`.github/workflows/code-quality.yml`）
 
+**実行タイミング**:
+
 - 週次定期実行（毎週月曜日00:00 UTC）
 - PR作成時の自動実行
-- 詳細な品質分析レポート生成
+- 手動実行（workflow_dispatch）
+
+**機能**:
+
+- ESLintによる詳細な複雑度分析
+- 保守性指数の計算
+- 重複コードの検出
+- 統合ヘルススコアの算出
+- 品質低下時のIssue自動作成（スコア60未満）
+
+#### 3. Lighthouse CI ワークフロー（`.github/workflows/lighthouse.yml`）
+
+**測定内容**:
+
+- 本番ビルドでの実測値
+- 3回実行の平均値算出
+- デスクトップ/モバイル設定の切り替え
+- Artifactとしてのレポート保存
 
 ### PRへの自動フィードバック
 
@@ -370,24 +457,53 @@ pnpm lighthouse
 
 ### 閾値のカスタマイズ
 
-すべての閾値は`scripts/constants/quality-metrics.ts`で管理されています：
+すべての閾値は`scripts/constants/quality-metrics.ts`で一元管理されています。このファイルがSingle Source of Truthとして機能し、全スクリプトから参照されます。
+
+#### 主要な定数グループ
 
 ```typescript
-// 閾値を変更する場合
+// パフォーマンス閾値
+export const PERFORMANCE_THRESHOLDS = {
+  BUILD_TIME_MAX: 300000, // 5分
+  BUILD_TIME_TARGET: 120000, // 2分（目標）
+  BUNDLE_SIZE_MAX: 104857600, // 100MB
+  BUNDLE_SIZE_WARNING: 52428800, // 50MB
+  BUNDLE_SIZE_TARGET: 5242880, // 5MB（推奨）
+};
+
+// 複雑度閾値
 export const COMPLEXITY_THRESHOLDS = {
   INDIVIDUAL: {
-    WARNING: 15, // この値を変更
-    MAXIMUM: 20, // この値を変更
+    WARNING: 15, // SonarQube推奨値
+    MAXIMUM: 20, // ESLintデフォルト
   },
+  AVERAGE: {
+    WARNING: 8, // ベストプラクティス
+    MAXIMUM: 10, // McCabe推奨値
+  },
+};
+
+// 品質ゲート条件
+export const QUALITY_GATE_CONDITIONS = {
+  TS_ERRORS_MAX: 0,
+  LINT_ERRORS_MAX: 0,
+  COVERAGE_MIN: 80, // SonarWay標準
+  DUPLICATION_MAX: 3, // SonarQube推奨
 };
 ```
 
-変更後は以下で確認：
+#### 変更手順
 
-```bash
-pnpm quality:analyze
-pnpm quality:check
-```
+1. `scripts/constants/quality-metrics.ts`を編集
+2. ローカルで影響を確認：
+
+   ```bash
+   pnpm quality:analyze
+   pnpm quality:check
+   pnpm quality:report
+   ```
+
+3. PRを作成してCIで検証
 
 ### トラブルシューティング
 

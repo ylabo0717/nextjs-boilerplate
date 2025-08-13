@@ -57,6 +57,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Running these checks before committing prevents failures in the pre-commit hooks. Always resolve ESLint and TypeScript errors before committing.
 
+### Coding Guidelines
+
+**For comprehensive development standards, see [Coding Guidelines](docs/design_guide/coding-guidelines.md).**
+
+The coding guidelines document includes:
+- **TypeScript best practices** and naming conventions
+- **Next.js development patterns** with Server/Client Components usage
+- **Security guidelines** with strict prohibitions for client-side implementations
+- **Performance optimization** strategies and Core Web Vitals improvements
+- **Accessibility standards** and WCAG compliance
+- **Component design patterns** and state management
+- **Testing strategies** and error handling
+- **Styling guidelines** for Tailwind CSS 4.0
+
+**Key Security Principles:**
+- Never implement authentication on client-side
+- Never expose sensitive data (API keys, DB URLs) to client
+- Always perform authorization checks on server-side only
+- Use Server Components as default, Client Components only when necessary
+
+**Key Performance Principles:**
+- Server Components by default for better performance and SEO
+- Dynamic imports for code splitting and reduced initial bundle size
+- Next.js Image component for Core Web Vitals optimization
+- Proper memoization strategies to prevent unnecessary re-renders
+
 ### IMPORTANT: Verify Latest Versions and Best Practices
 
 **Before implementing any feature or using any library/tool:**

@@ -20,6 +20,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm docs` - Generate API documentation with TypeDoc
 - `pnpm docs:watch` - Generate documentation in watch mode
 
+### Quality Checks and Debugging
+
+- `pnpm quality:check` - Run quality gate checks (type errors, lint, coverage, etc.)
+- `pnpm quality:check:verbose` - Run quality checks with detailed debug output
+- `pnpm quality:analyze` - Analyze code quality metrics
+- `pnpm quality:analyze:verbose` - Analyze code quality with detailed debug output
+- `pnpm quality:report` - Generate unified quality report
+- `pnpm quality:report:verbose` - Generate report with detailed debug output
+
+**Verbose Mode:** Add `--verbose` flag to any quality script for detailed debugging information. This is especially useful when troubleshooting CI/CD failures.
+
 **Important:** This project uses `pnpm` as the package manager, not npm or yarn.
 
 ## Development Guidelines

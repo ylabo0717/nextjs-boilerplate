@@ -100,6 +100,7 @@ sequenceDiagram
     Manager->>Manager: リリースPR確認
     Manager->>Manager: リリースタイミング判断
     Manager->>Main: リリースPRマージ
+    GHA->>GHA: Changesetファイル自動削除
     GHA->>Release: タグ作成
     GHA->>Release: GitHub Release作成
     GHA->>Release: アセットアップロード
@@ -111,6 +112,7 @@ sequenceDiagram
 
 - 開発者が作成するChangesetは、次回リリースに含めたい変更の記録
 - 複数のChangesetが蓄積され、まとめてリリースされる
+- リリース完了時に使用済みChangesetファイルは自動削除される
 
 #### 🤖 **リリースPRは自動生成**
 
@@ -137,6 +139,7 @@ sequenceDiagram
 
 月曜日: 管理者「よし、リリースしよう」→ リリースPRマージ
         → v0.2.0 リリース完了！
+        → Changesetファイルは自動削除される
 ```
 
 ## 2. アーキテクチャ
@@ -220,6 +223,7 @@ on:
    └─ changesets/action@v1
 
 5. リリースPR承認・マージ
+   └─ Changesetファイルが自動削除される
 
 6. タグ作成とGitHub Release生成
    └─ scripts/ci/create-github-release.sh

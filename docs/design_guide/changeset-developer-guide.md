@@ -257,15 +257,16 @@ rm .changeset/fuzzy-lions-eat.md
 1. **mainブランチへマージ**
    - あなたのChangesetがmainブランチに含まれる
 
-2. **自動リリースPR作成**
+2. **自動リリースPR作成/更新**
    - GitHub Actionsが全てのChangesetを集約
    - バージョン番号を計算
    - CHANGELOGを生成
-   - リリースPRを自動作成
+   - リリースPRを自動作成（既存のPRがあれば更新）
 
 3. **リリース実行**
    - リリース管理者がPRを承認・マージ
    - 自動的にタグ作成とGitHub Release生成
+   - 使用済みのChangesetファイルは自動削除される
 
 ## 10. よくある質問
 

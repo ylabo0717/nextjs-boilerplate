@@ -27,7 +27,7 @@ export class Logger {
   /**
    * Creates a new Logger instance
    *
-   * @param verbose - Whether to enable verbose logging
+   * @param verbose - Whether to enable verbose logging (default: false)
    *
    * @public
    */
@@ -136,8 +136,17 @@ export class Logger {
 /**
  * Parse command line arguments for verbose flag
  *
+ * Checks for both `--verbose` and `-v` flags in the provided arguments.
+ *
  * @param args - Command line arguments (typically process.argv.slice(2))
- * @returns Whether verbose mode is enabled
+ * @returns Whether verbose mode is enabled (true if --verbose or -v is found)
+ *
+ * @example
+ * ```typescript
+ * const args = process.argv.slice(2);
+ * const isVerbose = parseVerboseFlag(args);
+ * const logger = new Logger(isVerbose);
+ * ```
  *
  * @public
  */

@@ -45,7 +45,13 @@
     "docs": "typedoc --treatWarningsAsErrors",
     "docs:check": "node scripts/check-docs.mjs",
     "docs:check:raw": "typedoc --emit none --validation.notDocumented true --validation.notExported true --validation.invalidLink true",
-    "docs:watch": "typedoc --watch"
+    "docs:watch": "typedoc --watch",
+    "changeset": "changeset",
+    "changeset:add": "changeset add",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish",
+    "release": "pnpm build && pnpm changeset:publish",
+    "release:check": "changeset status --verbose"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -71,6 +77,8 @@
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.1",
     "@axe-core/playwright": "^4.10.2",
+    "@changesets/changelog-github": "^0.5.1",
+    "@changesets/cli": "^2.29.5",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@eslint/eslintrc": "^3",

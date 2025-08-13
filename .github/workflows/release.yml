@@ -1,0 +1,295 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release type (patch/minor/major)'
+        required: false
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      prerelease:
+        description: 'Prerelease identifier (beta/alpha/rc)'
+        required: false
+        type: choice
+        options:
+          - ''
+          - beta
+          - alpha
+          - rc
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  packages: write
+
+jobs:
+  check-changes:
+    name: Check for changesets
+    runs-on: ubuntu-latest
+    outputs:
+      has-changesets: ${{ steps.check.outputs.has-changesets }}
+      should-release: ${{ steps.check.outputs.should-release }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for changesets
+        id: check
+        run: |
+          if [ -n "$(ls -A .changeset/*.md 2>/dev/null | grep -v README.md)" ]; then
+            echo "has-changesets=true" >> $GITHUB_OUTPUT
+          else
+            echo "has-changesets=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Execute release for tagged releases or manual triggers
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] || [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "should-release=true" >> $GITHUB_OUTPUT
+          else
+            echo "should-release=false" >> $GITHUB_OUTPUT
+          fi
+
+  release:
+    name: Create Release Pull Request or Publish
+    runs-on: ubuntu-latest
+    needs: check-changes
+    if: needs.check-changes.outputs.has-changesets == 'true' || needs.check-changes.outputs.should-release == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run quality checks
+        run: |
+          pnpm lint
+          pnpm typecheck
+          pnpm test:unit
+
+      - name: Build application
+        run: pnpm build
+
+      - name: Create Release Pull Request
+        if: github.event_name == 'push' && needs.check-changes.outputs.has-changesets == 'true'
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          title: 'chore: release package'
+          commit: 'chore: version packages'
+          version: pnpm exec changeset version
+          publish: pnpm exec changeset publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Manual version bump
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
+        run: |
+          # Update version based on selected release type
+          VERSION_TYPE="${{ github.event.inputs.version }}"
+          PRERELEASE="${{ github.event.inputs.prerelease }}"
+
+          # Get current version
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+
+          # Create a changeset
+          if [ -n "$PRERELEASE" ]; then
+            echo "Creating $VERSION_TYPE-$PRERELEASE changeset..."
+            cat > .changeset/manual-release.md << EOF
+          ---
+          "nextjs-boilerplate": $VERSION_TYPE
+          ---
+
+          Manual release: $VERSION_TYPE-$PRERELEASE
+          EOF
+          else
+            echo "Creating $VERSION_TYPE changeset..."
+            cat > .changeset/manual-release.md << EOF
+          ---
+          "nextjs-boilerplate": $VERSION_TYPE
+          ---
+
+          Manual release: $VERSION_TYPE
+          EOF
+          fi
+
+          # Update versions
+          pnpm exec changeset version
+
+          # Get new version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "New version: $NEW_VERSION"
+
+          # Commit and create tag
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore: release v$NEW_VERSION"
+          git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
+          git push origin main --tags
+
+      - name: Create GitHub Release
+        if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          # Get version
+          VERSION=$(node -p "require('./package.json').version")
+
+          # Extract latest release notes from CHANGELOG
+          RELEASE_NOTES=""
+          if [ -f "CHANGELOG.md" ]; then
+            RELEASE_NOTES=$(awk "/^## $VERSION/,/^## [0-9]/" CHANGELOG.md | head -n -1 | tail -n +2)
+          fi
+
+          if [ -z "$RELEASE_NOTES" ]; then
+            RELEASE_NOTES="Release v$VERSION"
+          fi
+
+          # Create GitHub Release
+          gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --notes "$RELEASE_NOTES" \
+            --target main \
+            ${{ github.event.inputs.prerelease && '--prerelease' || '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload build artifacts
+        if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+
+          # Archive build artifacts
+          tar -czf nextjs-boilerplate-v$VERSION.tar.gz \
+            .next \
+            public \
+            package.json \
+            pnpm-lock.yaml \
+            README.md
+
+          # Upload to GitHub Release
+          gh release upload "v$VERSION" \
+            nextjs-boilerplate-v$VERSION.tar.gz \
+            --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate release metrics
+        if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+
+          # Generate release metrics
+          cat > release-metrics.json << EOF
+          {
+            "version": "$VERSION",
+            "date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "commit": "${{ github.sha }}",
+            "build_time": "$(cat .next/build-time.txt 2>/dev/null || echo 'N/A')",
+            "bundle_size": "$(du -sh .next | cut -f1)",
+            "test_coverage": "$(cat coverage/coverage-summary.json 2>/dev/null | jq '.total.lines.pct' || echo 'N/A')"
+          }
+          EOF
+
+          echo "### Release Metrics for v$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | $VERSION |" >> $GITHUB_STEP_SUMMARY
+          echo "| Date | $(date -u +%Y-%m-%dT%H:%M:%SZ) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bundle Size | $(du -sh .next | cut -f1) |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Post release notification
+        if: (steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch') && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = require('./package.json').version;
+            const releaseUrl = `https://github.com/${{ github.repository }}/releases/tag/v${version}`;
+
+            // Find the latest 'release' issue and comment
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'release'
+            });
+
+            if (issues.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues.data[0].number,
+                body: `🎉 **Version ${version} has been released!**\n\n[View Release](${releaseUrl})`
+              });
+            }
+
+            // Add to job summary
+            await core.summary
+              .addHeading(`🚀 Release v${version} Published`)
+              .addLink('View Release', releaseUrl)
+              .write();
+
+  cleanup:
+    name: Cleanup old releases
+    runs-on: ubuntu-latest
+    needs: release
+    if: success()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cleanup old prereleases
+        run: |
+          # Delete old pre-releases (keep the latest 5)
+          PRERELEASES=$(gh release list --limit 100 | grep -E 'Pre-release|beta|alpha|rc' | tail -n +6 | cut -f1)
+
+          for release in $PRERELEASES; do
+            echo "Deleting old prerelease: $release"
+            gh release delete "$release" --yes
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

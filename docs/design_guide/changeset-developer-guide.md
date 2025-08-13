@@ -1,12 +1,41 @@
 # Changeset開発者ガイド
 
-## 1. 概要
+## 1. はじめに理解すること
 
-このドキュメントは、開発者がChangesetsを使用してリリース管理に参加するための実践的なガイドです。
+### 1.1 リリースの仕組み（3行で）
+
+1. **あなた（開発者）**: 機能開発時にChangesetを作成してPRに含める
+2. **GitHub Actions**: Changesetを集めてリリースPRを自動作成
+3. **管理者**: リリースPRをマージしてリリース実行
+
+### 1.2 全体の流れ
+
+```mermaid
+sequenceDiagram
+    participant You as あなた（開発者）
+    participant Team as 他の開発者
+    participant Main as mainブランチ
+    participant Bot as GitHub Actions
+    participant Admin as 管理者
+
+    You->>You: 機能開発
+    You->>You: Changeset作成
+    You->>Main: PR（コード+Changeset）
+    Admin->>Main: マージ
+
+    Team->>Main: 他のPR（Changeset付き）もマージ
+
+    Bot->>Bot: Changesetを検出
+    Bot->>Main: リリースPR自動作成
+    Note right of Bot: 全員の変更をまとめる
+
+    Admin->>Main: リリースPRマージ
+    Bot->>Bot: v0.2.0 リリース！
+```
 
 ## 2. Changesetとは
 
-Changesetは、あなたが行った変更の「リリースノート」です。各開発者が自分の変更に対してChangesetを作成することで、リリース時に自動的にCHANGELOGが生成されます。
+Changesetは、あなたが行った変更の「リリース予約票」です。これを作成しておくと、次回のリリースに自動的に含まれます。
 
 ## 3. いつChangesetを作成するか
 

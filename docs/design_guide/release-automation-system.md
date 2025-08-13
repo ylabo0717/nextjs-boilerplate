@@ -2,18 +2,83 @@
 
 ## 1. システム概要
 
-### 1.1 目的
+### 1.1 基本的な仕組み
 
-本リリース自動化システムは、Next.jsボイラープレートプロジェクトにおいて、セマンティックバージョニングに基づく一貫性のあるリリースプロセスを実現するために設計されています。
+このシステムは、**開発者**、**GitHub Actions**、**プロジェクト管理者**の3者が協調して動作する自動リリースシステムです。
 
-### 1.2 主要機能
+#### 登場人物と役割
 
-- **自動バージョン管理**: Changesetsを使用したセマンティックバージョニング
-- **リリースPR自動生成**: 変更内容を集約したPRの自動作成
-- **GitHub Release作成**: タグとリリースノートの自動生成
-- **ビルドアーティファクト管理**: リリース成果物の自動アップロード
-- **プレリリース管理**: alpha/beta/rcバージョンのサポート
-- **古いリリースの自動クリーンアップ**: プレリリースの定期削除
+| 登場人物               | 役割                    | 必要な作業                                   |
+| ---------------------- | ----------------------- | -------------------------------------------- |
+| **開発者**             | 機能開発とChangeset作成 | Changesetファイルを作成してPRに含める        |
+| **GitHub Actions**     | 自動化処理              | リリースPR作成、バージョン計算、リリース実行 |
+| **プロジェクト管理者** | リリース判断            | リリースPRをレビューしてマージ               |
+
+### 1.2 リリースフローの全体像
+
+```mermaid
+sequenceDiagram
+    participant Dev as 開発者
+    participant Main as mainブランチ
+    participant GHA as GitHub Actions
+    participant Manager as プロジェクト管理者
+    participant Release as リリース
+
+    Note over Dev,Release: 日常の開発フェーズ（繰り返し）
+    Dev->>Dev: 機能開発
+    Dev->>Dev: pnpm changeset:add でChangeset作成
+    Dev->>Main: PR作成（コード + Changeset）
+    Manager->>Main: PRレビュー & マージ
+    Main->>Main: Changesetが蓄積される
+
+    Note over Dev,Release: リリース準備フェーズ（自動）
+    GHA->>GHA: mainブランチ監視
+    GHA->>GHA: Changesetを検出
+    GHA->>Main: リリースPRを自動作成/更新
+    Note right of GHA: ・バージョン番号計算<br/>・CHANGELOG生成<br/>・Changeset統合
+
+    Note over Dev,Release: リリース実行フェーズ（管理者判断）
+    Manager->>Manager: リリースPR確認
+    Manager->>Manager: リリースタイミング判断
+    Manager->>Main: リリースPRマージ
+    GHA->>Release: タグ作成
+    GHA->>Release: GitHub Release作成
+    GHA->>Release: アセットアップロード
+```
+
+### 1.3 重要なポイント
+
+#### 🔄 **Changesetは「リリース予約票」**
+
+- 開発者が作成するChangesetは、次回リリースに含めたい変更の記録
+- 複数のChangesetが蓄積され、まとめてリリースされる
+
+#### 🤖 **リリースPRは自動生成**
+
+- 人間がバージョン番号を考える必要なし
+- CHANGELOGも自動生成
+- 複数の変更を1つのリリースにまとめる
+
+#### 👤 **最終判断は人間**
+
+- リリースPRのマージ = リリース実行のトリガー
+- タイミングは管理者が制御（金曜夕方を避ける等）
+
+### 1.4 具体例で理解する
+
+```text
+月曜日: 開発者A「ダークモード追加」→ Changeset付きPR → マージ
+火曜日: 開発者B「バグ修正」→ Changeset付きPR → マージ
+水曜日: 開発者C「性能改善」→ Changeset付きPR → マージ
+
+木曜日: GitHub Actions「リリースPR作成しました（v0.2.0予定）」
+        内容: 3つの変更をまとめたCHANGELOG
+
+金曜日: 管理者「今日はやめておこう」→ 何もしない
+
+月曜日: 管理者「よし、リリースしよう」→ リリースPRマージ
+        → v0.2.0 リリース完了！
+```
 
 ## 2. アーキテクチャ
 
@@ -82,7 +147,7 @@ on:
 
 #### 3.2.1 自動リリースフロー（Changesets経由）
 
-```
+```text
 1. 開発者がchangesetを作成
    └─ pnpm changeset:add
 
@@ -103,7 +168,7 @@ on:
 
 #### 3.2.2 手動リリースフロー（workflow_dispatch）
 
-```
+```text
 1. GitHub Actions UIから手動実行
    └─ バージョンタイプとプレリリースを選択
 

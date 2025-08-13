@@ -1,6 +1,6 @@
 # Next.js 開発パターンとReact設計
 
-このドキュメントは、Next.js 15.4.6 + React 19.1.0 + TypeScript プロジェクトにおけるNext.js固有の開発パターンとReactコンポーネント設計のベストプラクティスを定義します。
+このドキュメントは、Next.js 15.x + React 19 + TypeScript プロジェクトにおけるNext.js固有の開発パターンとReactコンポーネント設計のベストプラクティスを定義します。
 
 ## 目次
 
@@ -22,6 +22,17 @@
 1. **デフォルトはServer Components** - インタラクションが不要な限り
 2. **Client Componentsは最小限** - 必要な部分のみ
 3. **境界を明確に** - 'use client'ディレクティブの配置を慎重に
+
+**Decision チャート（簡易）**:
+
+- UI イベント（onClick / onChange / focus 管理）が必要? → Client
+- ブラウザ専用 API (window / localStorage / IntersectionObserver / DOM) を直接利用? → Client
+- 機密データアクセス / シークレット / DB / サーバー FS? → Server
+- 取得データが SEO に寄与 or 初期表示最適化が重要? → Server
+- 表示のみ / 静的 + インタラクション不要? → Server
+- それ以外で局所的なインタラクションのみ? → 小さな Client Component に分離し親は Server を維持
+
+> Client へ昇格する場合は “どの UI 要件が必要か” をコメントで簡潔に残すと後で Server 化を再検討しやすい。
 
 ```tsx
 // ✅ Good - Server Component（デフォルト）
@@ -191,7 +202,9 @@ export default function DashboardPage() {
 export default async function UserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  // 並列でデータ取得
+  // 並列でデータ取得（I/O 待ちを短縮）
+  // NOTE: それぞれの fetch 内で `cache: 'force-cache' | 'no-store'` や
+  // `revalidate: 60` 等の戦略を明示すると意図が共有しやすい。
   const [user, posts, comments] = await Promise.all([
     getUser(id),
     getUserPosts(id),
@@ -345,7 +358,7 @@ Card.Footer = ({ children, className }: CardProps) => (
 
 ```tsx
 // ✅ Good - Context を活用した Compound Components
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 interface AccordionContextType {
   activeItem: string | null;

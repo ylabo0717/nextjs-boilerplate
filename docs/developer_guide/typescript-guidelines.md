@@ -1,6 +1,6 @@
 # TypeScript ガイドライン
 
-このドキュメントは、Next.js + React + TypeScript プロジェクトにおけるTypeScript関連のベストプラクティスを定義します。
+このドキュメントは、Next.js 15.x + React 19 + TypeScript プロジェクトにおけるTypeScript関連のベストプラクティスを定義します。
 
 ## 目次
 
@@ -10,6 +10,7 @@
 4. [型ガード](#型ガード)
 5. [Zodによるスキーマ検証](#zodによるスキーマ検証)
 6. [インポート・エクスポート規約](#インポートエクスポート規約)
+7. [any / unknown / satisfies の指針](#any--unknown--satisfies-の指針)
 
 ---
 
@@ -314,6 +315,91 @@ import { Button, Input, Card } from '@/components/ui';
 ---
 
 ## まとめ
+
+## any / unknown / satisfies の指針
+
+**目的**: 過剰な `any` による型安全性低下を防ぎ、表現力と安全性を両立する。
+
+### any を避ける理由
+
+| 観点       | any  | unknown              |
+| ---------- | ---- | -------------------- |
+| 型チェック | 無効 | 利用前に絞り込み必須 |
+| 保守性     | 低い | 高い（意図を強制）   |
+| 推論支援   | 弱い | 絞り込み後強い       |
+
+### 基本ルール
+
+1. `any` 禁止（型定義困難なサードパーティ例外時のみ、理由コメント必須）
+2. 値の型が未確定なら `unknown` を使用し、型ガード or Zod で絞り込む
+3. リテラルオブジェクトの構造チェックと総称型推論を両立したい場合 `satisfies` を使う
+
+### 例: unknown + 型ガード
+
+```ts
+function isUser(v: unknown): v is User {
+  return typeof v === 'object' && v !== null && 'id' in v && typeof (v as any).id === 'string';
+}
+
+async function handle(data: unknown) {
+  if (!isUser(data)) return;
+  // data はここで User
+  console.log(data.id);
+}
+```
+
+### 例: unknown + Zod
+
+```ts
+const PayloadSchema = z.object({ kind: z.literal('X'), value: z.number().int() });
+type Payload = z.infer<typeof PayloadSchema>;
+
+function parsePayload(input: unknown): Payload | null {
+  const result = PayloadSchema.safeParse(input);
+  return result.success ? result.data : null;
+}
+```
+
+### 例: satisfies で過不足検出
+
+```ts
+const ROLES = ['admin', 'user', 'viewer'] as const;
+
+// 役割に対応するラベルを定義。typo や欠落があればコンパイルエラー
+const ROLE_LABELS = {
+  admin: '管理者',
+  user: '一般ユーザー',
+  viewer: '閲覧者',
+} satisfies Record<(typeof ROLES)[number], string>;
+
+// enum 風のユニオンを作る際も satisfies で過不足検証
+const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE'] as const;
+type HttpMethod = (typeof HTTP_METHODS)[number];
+
+// OK
+const METHOD_COLORS = {
+  GET: 'green',
+  POST: 'blue',
+  PUT: 'orange',
+  DELETE: 'red',
+} satisfies Record<HttpMethod, string>;
+```
+
+### 例: 不適切な any
+
+```ts
+// ❌ Bad
+function parse(json: string): any {
+  return JSON.parse(json); // 呼び出し側が完全に型安全性を失う
+}
+
+// ✅ Good
+function parseUnknown(json: string): unknown {
+  return JSON.parse(json);
+}
+```
+
+> NOTE: JSON.parse の結果には `unknown` を返し、呼び出し側で文脈に応じた検証を行う。
 
 このTypeScriptガイドラインに従うことで：
 

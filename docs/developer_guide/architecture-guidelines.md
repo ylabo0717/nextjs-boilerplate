@@ -1,6 +1,6 @@
 # アーキテクチャ設計ガイドライン
 
-このドキュメントは、Next.js + React + TypeScript プロジェクトにおけるアーキテクチャ設計のベストプラクティスを定義します。
+このドキュメントは、Next.js 15.x + React 19 + TypeScript プロジェクトにおけるアーキテクチャ設計のベストプラクティスを定義します。
 
 ## 目次
 
@@ -104,7 +104,7 @@ class UserProfile extends Component<UserProfileProps> {
 
 **🎯 原則**: **純粋関数型を最優先**とし、99%のケースで型定義 + 純粋関数による実装を選択する。
 
-### 基本アプローチ（95%以上のケースで適用）
+### 基本アプローチ（99%のケースで適用）
 
 ```typescript
 // ✅ Good - 型定義 + 純粋関数アプローチ
@@ -545,7 +545,49 @@ export const OrderForm = () => {
 ### クラス化の検討基準
 
 - **99%のケース**: 純粋関数 + 型定義で実装
-- **<1%のケース**: 極めて複雑な状態管理が必要で、純粋関数では実装困難な場合のみ
+- **<1%のケース**: 極めて複雑な内部状態 / パフォーマンスチューニングが純粋関数合成で過度に複雑化する場合のみ（根拠コメント必須）
+
+---
+
+## エラーハンドリング指針（Result型 & 例外）
+
+**目的**: 失敗制御フローの一貫性を高め再現性と観測性を向上させる。
+
+### 分類
+
+| 種別            | 例                              | 表現                      | ログ             | リトライ       |
+| --------------- | ------------------------------- | ------------------------- | ---------------- | -------------- |
+| ValidationError | 入力不備 / スキーマ違反         | Result 失敗               | WARN (構造化)    | 不要           |
+| DomainError     | ビジネス制約違反 (上限超過等)   | Result 失敗               | INFO/WARN        | 条件付き       |
+| InfraError      | DB / 外部API失敗 / ネットワーク | Result 失敗 or 例外ラップ | ERROR            | 冪等なら再試行 |
+| UnexpectedError | バグ / 想定外状態               | 例外送出                  | ERROR + アラート | 原則不可       |
+
+### ポリシー
+
+1. ドメイン/ユースケース境界: `Result<T, E>` を戻り値で返し早期 return
+2. 外部 I/O ラッパー: 低レベル例外を `InfraError` に変換（メッセージ + 原因保持）
+3. UI 層: Result を解釈しユーザー向けメッセージと技術ログを分離
+4. 予期せぬ例外は最上位 Error Boundary / 監視基盤に送出
+5. ログは (timestamp, category, correlationId, errorType, message, metadata) を JSON 形式で構造化
+
+### Result ヘルパー例
+
+```ts
+export type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };
+
+export const ok = <T>(value: T): Result<T, never> => ({ ok: true, value });
+export const err = <E>(error: E): Result<never, E> => ({ ok: false, error });
+```
+
+### サンプル利用
+
+```ts
+const r = createOrder(customerId, items);
+if (!r.ok) {
+  logger.warn({ errorType: r.error.name, message: r.error.message }, 'order.create.validation');
+  return r;
+}
+```
 
 この方針により、TypeScriptとNext.jsの恩恵を最大限に活用し、長期的に保守可能なアーキテクチャを実現します。
 

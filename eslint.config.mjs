@@ -13,6 +13,7 @@ import importPlugin from 'eslint-plugin-import';
 import eslintPluginBetterTailwindcss from 'eslint-plugin-better-tailwindcss';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import vitestPlugin from 'eslint-plugin-vitest';
+import ymlPlugin from 'eslint-plugin-yml';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -245,5 +246,18 @@ const eslintConfig = [
   },
   ...compat.extends('prettier'),
 ];
+
+// YAML/YML files configuration
+eslintConfig.push(...ymlPlugin.configs['flat/recommended'], {
+  files: ['**/*.yml', '**/*.yaml'],
+  rules: {
+    'yml/indent': ['error', 2],
+    'yml/quotes': ['error', { prefer: 'single', avoidEscape: true }],
+    'yml/no-multiple-empty-lines': ['error', { max: 1 }],
+    'yml/key-spacing': 'error',
+    'yml/no-trailing-zeros': 'error',
+    'yml/require-string-key': 'error',
+  },
+});
 
 export default eslintConfig;

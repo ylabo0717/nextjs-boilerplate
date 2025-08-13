@@ -8,8 +8,11 @@ module.exports = {
   // CSS/SCSS files
   '*.{css,scss}': ['prettier --write'],
 
-  // JSON, Markdown, YAML files
-  '*.{json,md,yml,yaml}': ['prettier --write'],
+  // JSON, Markdown files
+  '*.{json,md}': ['prettier --write'],
+
+  // YAML files - Prettier first, then ESLint for YAML-specific rules
+  '*.{yml,yaml}': ['prettier --write', 'eslint --fix'],
 
   // TypeScript type checking (run on all TS files when any TS file changes)
   '**/*.{ts,tsx}': () => 'pnpm typecheck',

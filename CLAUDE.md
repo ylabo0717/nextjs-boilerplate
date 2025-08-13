@@ -499,6 +499,51 @@ When implementing or modifying GitHub Actions workflows, refer to `docs/work_dir
 - Performance optimization techniques
 - Debugging and troubleshooting
 
+### YAML Script Separation Policy
+
+**Complex scripts in YAML files should be extracted to separate script files.**
+
+When working with GitHub Actions workflows or other YAML configuration files:
+
+1. **Keep YAML files simple and readable**
+   - YAML should contain only configuration and simple one-line commands
+   - Complex logic should not be embedded in YAML files
+
+2. **Extract scripts to dedicated files**
+   - Multi-line bash scripts should be moved to `scripts/ci/` directory
+   - Use descriptive names for script files (e.g., `check-changesets.sh`, `create-github-release.sh`)
+   - Make scripts executable with `chmod +x`
+
+3. **Benefits of separation**
+   - **Better maintainability**: Scripts can be edited and tested independently
+   - **Tool compatibility**: Avoids conflicts with YAML parsers and formatters (e.g., Prettier)
+   - **Reusability**: Scripts can be used across multiple workflows
+   - **Testability**: Scripts can be unit tested and validated separately
+   - **Syntax highlighting**: Proper syntax highlighting in editors
+
+4. **Example**
+
+   ```yaml
+   # ❌ Bad - complex script in YAML
+   - name: Process release
+     run: |
+       if [ -f "CHANGELOG.md" ]; then
+         VERSION=$(node -p "require('./package.json').version")
+         NOTES=$(awk "/^## $VERSION/,/^## [0-9]/" CHANGELOG.md)
+         # ... more complex logic
+       fi
+
+   # ✅ Good - script in separate file
+   - name: Process release
+     run: ./scripts/ci/process-release.sh
+   ```
+
+5. **Script organization**
+   - Place CI/CD scripts in `scripts/ci/`
+   - Use consistent error handling (`set -euo pipefail`)
+   - Add clear comments and usage instructions
+   - Include validation for required environment variables
+
 ## Git Commit Convention
 
 This project uses **Conventional Commits** specification. All commit messages are validated by commitlint.

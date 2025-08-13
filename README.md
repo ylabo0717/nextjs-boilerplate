@@ -250,12 +250,14 @@ NEXT_PUBLIC_API_URL=http://localhost:3000/api
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Implement your changes
 4. **Create a Changeset for your changes** (required for features and fixes):
+
    ```bash
    pnpm changeset:add
    ```
 
    - Select the appropriate version bump (patch/minor/major)
    - Write a clear description of what changed
+
 5. Commit your changes (`git commit -m 'feat: add amazing feature'`)
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request

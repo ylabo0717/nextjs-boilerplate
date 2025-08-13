@@ -55,11 +55,62 @@ echo ""
 CURRENT_DATE=$(date +%s)
 CUTOFF_DATE=$((CURRENT_DATE - (DAYS_OLD * 86400)))
 
+# Function to fetch all prereleases with pagination support
+fetch_all_prereleases() {
+  local page=1
+  local per_page=100
+  local all_releases=""
+  
+  while true; do
+    local batch=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=$per_page&page=$page" 2>/dev/null || echo "[]")
+    
+    if [ -z "$batch" ] || [ "$batch" = "[]" ]; then
+      break
+    fi
+    
+    # Filter for prereleases and non-drafts
+    local filtered=$(echo "$batch" | jq -r '.[] | select(.prerelease == true and .draft == false) | "\(.created_at)|\(.tag_name)"')
+    
+    if [ -n "$filtered" ]; then
+      if [ -n "$all_releases" ]; then
+        all_releases="$all_releases
+$filtered"
+      else
+        all_releases="$filtered"
+      fi
+    fi
+    
+    # Check if we got less than per_page results (last page)
+    local count=$(echo "$batch" | jq 'length')
+    if [ "$count" -lt "$per_page" ]; then
+      break
+    fi
+    
+    page=$((page + 1))
+    
+    # Prevent infinite loops
+    if [ "$page" -gt 50 ]; then
+      echo "⚠️  Warning: Too many pages, stopping at page 50"
+      break
+    fi
+  done
+  
+  echo -e "$all_releases"
+}
+
 # Get list of all prereleases with their dates
 echo "📋 Fetching prerelease list..."
-RELEASES=$(gh release list --limit 100 --json tagName,createdAt,isPrerelease,isDraft | \
-  jq -r '.[] | select(.isPrerelease == true and .isDraft == false) | "\(.createdAt)|\(.tagName)"' | \
-  sort -r)
+
+# Check if GITHUB_REPOSITORY is set, otherwise try to detect it
+if [ -z "$GITHUB_REPOSITORY" ]; then
+  GITHUB_REPOSITORY=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null)
+  if [ -z "$GITHUB_REPOSITORY" ]; then
+    echo "❌ Error: Could not determine repository. Please set GITHUB_REPOSITORY environment variable."
+    exit 1
+  fi
+fi
+
+RELEASES=$(fetch_all_prereleases | sort -r)
 
 if [ -z "$RELEASES" ]; then
   echo "ℹ️ No prereleases found"
@@ -95,7 +146,12 @@ while IFS='|' read -r created_at tag_name; do
   if [ "$RELEASE_DATE" -lt "$CUTOFF_DATE" ]; then
     # Validate tag format (should match semantic versioning with prerelease)
     if [[ "$tag_name" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta|rc|pre|canary|next|dev)\.[0-9]+$ ]]; then
-      RELEASES_TO_DELETE="$RELEASES_TO_DELETE$tag_name\n"
+      if [ -z "$RELEASES_TO_DELETE" ]; then
+        RELEASES_TO_DELETE="$tag_name"
+      else
+        RELEASES_TO_DELETE="$RELEASES_TO_DELETE
+$tag_name"
+      fi
       DELETE_COUNT=$((DELETE_COUNT + 1))
       
       # Calculate age in days
@@ -131,17 +187,19 @@ if [ "$DRY_RUN" = true ]; then
   echo ""
   echo "🔍 DRY RUN MODE - No releases will be deleted"
   echo "The following releases would be deleted:"
-  echo -e "$RELEASES_TO_DELETE" | head -n -1
+  printf "%s" "$RELEASES_TO_DELETE" | sed '/^$/d'
 else
   echo ""
   echo "🗑️  Deleting prereleases..."
   
-  # Delete each release
-  echo -e "$RELEASES_TO_DELETE" | head -n -1 | while read -r release; do
+  # Delete each release with rate limit consideration
+  echo "$RELEASES_TO_DELETE" | while IFS= read -r release; do
     if [ -n "$release" ]; then
       echo "  Deleting: $release"
       if gh release delete "$release" --yes; then
         echo "  ✅ Deleted: $release"
+        # Add small delay to avoid hitting API rate limits
+        sleep 0.5
       else
         echo "  ❌ Failed to delete: $release"
       fi
@@ -152,7 +210,7 @@ else
   echo "✅ Cleanup completed successfully"
 fi
 
-# Show remaining prereleases count
-REMAINING=$(gh release list --limit 100 | grep -c -E 'Pre-release|beta|alpha|rc' || echo "0")
+# Show remaining prereleases count (calculated from previous data to avoid extra API call)
+REMAINING=$((TOTAL_COUNT - DELETE_COUNT))
 echo ""
 echo "📈 Remaining prereleases: $REMAINING"

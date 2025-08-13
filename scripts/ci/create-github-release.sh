@@ -15,7 +15,20 @@ echo "Creating GitHub release for v$VERSION"
 # Extract latest release notes from CHANGELOG
 RELEASE_NOTES=""
 if [ -f "CHANGELOG.md" ]; then
-  RELEASE_NOTES=$(awk "/^## $VERSION/,/^## [0-9]/" CHANGELOG.md | head -n -1 | tail -n +2)
+  # Use awk with exact string matching instead of regex
+  # This is more reliable for versions with special characters
+  RELEASE_NOTES=$(awk -v version="$VERSION" '
+    BEGIN { found = 0 }
+    /^## / {
+      if ($2 == version) {
+        found = 1
+        next
+      } else if (found) {
+        exit
+      }
+    }
+    found { print }
+  ' CHANGELOG.md)
 fi
 
 if [ -z "$RELEASE_NOTES" ]; then

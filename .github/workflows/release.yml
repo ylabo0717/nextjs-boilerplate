@@ -48,30 +48,10 @@ jobs:
 
       - name: Check for changesets
         id: check
-        run: |
-          # Check if there are pending changesets to process
-          if [ -n "$(ls -A .changeset/*.md 2>/dev/null | grep -v README.md)" ]; then
-            echo "has-changesets=true" >> $GITHUB_OUTPUT
-            echo "✅ Found pending changesets"
-          else
-            echo "has-changesets=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ No pending changesets found"
-          fi
-
-          # Determine if a release should be triggered
-          # Release conditions:
-          # 1. Manual workflow dispatch (workflow_dispatch event)
-          # 2. Git tag push (refs/tags/v* pattern)
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "should-release=true" >> $GITHUB_OUTPUT
-            echo "🚀 Manual release triggered via workflow_dispatch"
-          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            echo "should-release=true" >> $GITHUB_OUTPUT
-            echo "🏷️ Tag release triggered for ${{ github.ref }}"
-          else
-            echo "should-release=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ Standard push to main branch - checking for changesets only"
-          fi
+        run: ./scripts/ci/check-changesets.sh
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF: ${{ github.ref }}
 
   release:
     name: Create Release Pull Request or Publish
@@ -102,8 +82,7 @@ jobs:
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+        run: ./scripts/ci/get-pnpm-store.sh
 
       - name: Setup pnpm cache
         uses: actions/cache@v4
@@ -117,10 +96,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run quality checks
-        run: |
-          pnpm lint
-          pnpm typecheck
-          pnpm test:unit
+        run: ./scripts/ci/run-quality-checks.sh
 
       - name: Build application
         run: pnpm build
@@ -142,123 +118,27 @@ jobs:
       - name: Manual version bump
         # Handle manual releases triggered via workflow_dispatch with version input
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
-        run: |
-          # Update version based on selected release type
-          VERSION_TYPE="${{ github.event.inputs.version }}"
-          PRERELEASE="${{ github.event.inputs.prerelease }}"
-
-          # Get current version
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          echo "Current version: $CURRENT_VERSION"
-
-          # Create a changeset
-          if [ -n "$PRERELEASE" ]; then
-            echo "Creating $VERSION_TYPE-$PRERELEASE changeset..."
-            cat > .changeset/manual-release.md << EOF
-          ---
-          "nextjs-boilerplate": $VERSION_TYPE
-          ---
-
-          Manual release: $VERSION_TYPE-$PRERELEASE
-          EOF
-          else
-            echo "Creating $VERSION_TYPE changeset..."
-            cat > .changeset/manual-release.md << EOF
-          ---
-          "nextjs-boilerplate": $VERSION_TYPE
-          ---
-
-          Manual release: $VERSION_TYPE
-          EOF
-          fi
-
-          # Update versions
-          pnpm exec changeset version
-
-          # Get new version
-          NEW_VERSION=$(node -p "require('./package.json').version")
-          echo "New version: $NEW_VERSION"
-
-          # Commit and create tag
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "chore: release v$NEW_VERSION"
-          git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
-          git push origin main --tags
+        run: ./scripts/ci/manual-version-bump.sh "${{ github.event.inputs.version }}" "${{ github.event.inputs.prerelease }}"
 
       - name: Create GitHub Release
         # Create GitHub release after successful changeset publish or manual version bump
         if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
-        run: |
-          # Get version
-          VERSION=$(node -p "require('./package.json').version")
-
-          # Extract latest release notes from CHANGELOG
-          RELEASE_NOTES=""
-          if [ -f "CHANGELOG.md" ]; then
-            RELEASE_NOTES=$(awk "/^## $VERSION/,/^## [0-9]/" CHANGELOG.md | head -n -1 | tail -n +2)
-          fi
-
-          if [ -z "$RELEASE_NOTES" ]; then
-            RELEASE_NOTES="Release v$VERSION"
-          fi
-
-          # Create GitHub Release
-          gh release create "v$VERSION" \
-            --title "v$VERSION" \
-            --notes "$RELEASE_NOTES" \
-            --target main \
-            ${{ github.event.inputs.prerelease && '--prerelease' || '' }}
+        run: ./scripts/ci/create-github-release.sh "${{ github.event.inputs.prerelease && 'true' || 'false' }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload build artifacts
         # Upload artifacts to the created GitHub release
         if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-
-          # Archive build artifacts
-          tar -czf nextjs-boilerplate-v$VERSION.tar.gz \
-            .next \
-            public \
-            package.json \
-            pnpm-lock.yaml \
-            README.md
-
-          # Upload to GitHub Release
-          gh release upload "v$VERSION" \
-            nextjs-boilerplate-v$VERSION.tar.gz \
-            --clobber
+        run: ./scripts/ci/upload-build-artifacts.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate release metrics
         if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-
-          # Generate release metrics
-          cat > release-metrics.json << EOF
-          {
-            "version": "$VERSION",
-            "date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "commit": "${{ github.sha }}",
-            "build_time": "$(cat .next/build-time.txt 2>/dev/null || echo 'N/A')",
-            "bundle_size": "$(du -sh .next | cut -f1)",
-            "test_coverage": "$(cat coverage/coverage-summary.json 2>/dev/null | jq '.total.lines.pct' || echo 'N/A')"
-          }
-          EOF
-
-          echo "### Release Metrics for v$VERSION" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Version | $VERSION |" >> $GITHUB_STEP_SUMMARY
-          echo "| Date | $(date -u +%Y-%m-%dT%H:%M:%SZ) |" >> $GITHUB_STEP_SUMMARY
-          echo "| Commit | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Bundle Size | $(du -sh .next | cut -f1) |" >> $GITHUB_STEP_SUMMARY
+        run: ./scripts/ci/generate-release-metrics.sh
+        env:
+          GITHUB_SHA: ${{ github.sha }}
 
       - name: Post release notification
         if: (steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch') && always()
@@ -301,13 +181,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Cleanup old prereleases
-        run: |
-          # Delete old pre-releases (keep the latest 5)
-          PRERELEASES=$(gh release list --limit 100 | grep -E 'Pre-release|beta|alpha|rc' | tail -n +6 | cut -f1)
-
-          for release in $PRERELEASES; do
-            echo "Deleting old prerelease: $release"
-            gh release delete "$release" --yes
-          done
+        run: ./scripts/ci/cleanup-old-prereleases.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -148,6 +148,34 @@ This principle is critical for maintainability and consistency across the codeba
 3. `docs/work_dir/` contains working documents that may change frequently
 4. `docs/design_guide/` contains stable content that should be modified carefully
 
+## Boilerplate Configuration
+
+### Repository Setup for New Projects
+
+When using this boilerplate for a new project:
+
+1. **Automatic Setup (Recommended)**
+   - Run `./scripts/setup-repository.sh` after cloning
+   - This script automatically configures the repository name in all necessary files
+
+2. **GitHub Actions Integration**
+   - The `.changeset/config.json` uses a placeholder value by default
+   - GitHub Actions automatically updates this configuration during CI/CD using the `GITHUB_REPOSITORY` environment variable
+   - The `scripts/ci/update-changeset-config.sh` script handles this dynamic configuration
+
+3. **Files Updated During Setup**
+   - `package.json` - project name
+   - `.changeset/config.json` - GitHub repository for changelog generation
+   - `README.md` - project title (optional)
+
+### Changeset Configuration
+
+The changeset configuration is designed to work seamlessly with GitHub Actions:
+
+- Default config has placeholder values: `PLACEHOLDER_OWNER/PLACEHOLDER_REPO`
+- During GitHub Actions workflow execution, the config is dynamically updated
+- This ensures changelog links work correctly regardless of the repository name
+
 ## Architecture
 
 ### Project Structure

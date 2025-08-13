@@ -101,6 +101,11 @@ jobs:
       - name: Build application
         run: pnpm build
 
+      - name: Update changeset config with repository name
+        run: ./scripts/ci/update-changeset-config.sh
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
       - name: Create Release Pull Request
         # Create PR only for automatic pushes to main with pending changesets
         if: github.event_name == 'push' && needs.check-changes.outputs.has-changesets == 'true'

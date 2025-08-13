@@ -17,6 +17,11 @@ DAYS_OLD=30
 FORCE=false
 KEEP_LATEST=5
 
+# Semantic versioning pattern for prerelease tags
+# Matches: v1.2.3-alpha.1, 2.0.0-beta.2, v3.1.0-rc.1, etc.
+# Format: [v]major.minor.patch-prerelease.number
+PRERELEASE_PATTERN='^v?[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta|rc|pre|canary|next|dev)\.[0-9]+$'
+
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -145,7 +150,7 @@ while IFS='|' read -r created_at tag_name; do
   # Check if release is older than cutoff
   if [ "$RELEASE_DATE" -lt "$CUTOFF_DATE" ]; then
     # Validate tag format (should match semantic versioning with prerelease)
-    if [[ "$tag_name" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta|rc|pre|canary|next|dev)\.[0-9]+$ ]]; then
+    if [[ "$tag_name" =~ $PRERELEASE_PATTERN ]]; then
       if [ -z "$RELEASES_TO_DELETE" ]; then
         RELEASES_TO_DELETE="$tag_name"
       else

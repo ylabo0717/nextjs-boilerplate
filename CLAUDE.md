@@ -57,6 +57,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Running these checks before committing prevents failures in the pre-commit hooks. Always resolve ESLint and TypeScript errors before committing.
 
+### IMPORTANT: Create Changeset for User-Facing Changes
+
+**When implementing features, fixing bugs, or making any user-facing changes, always create a Changeset:**
+
+1. **Create a Changeset after implementing your changes**
+
+   ```bash
+   pnpm changeset:add
+   ```
+
+   - Select the appropriate version bump (patch for fixes, minor for features, major for breaking changes)
+   - Write a clear description of what changed from the user's perspective
+
+2. **Include the Changeset in your PR**
+   - Commit the generated `.changeset/*.md` file along with your code changes
+   - This ensures your changes are properly documented for the next release
+
+3. **When to create a Changeset**
+   - ✅ New features or functionality
+   - ✅ Bug fixes
+   - ✅ Performance improvements
+   - ✅ Breaking changes
+   - ❌ Internal refactoring (no user impact)
+   - ❌ Test additions/modifications
+   - ❌ Documentation updates (unless significant)
+
+For detailed instructions, see [Changeset Developer Guide](docs/design_guide/changeset-developer-guide.md).
+
 ### IMPORTANT: Verify Latest Versions and Best Practices
 
 **Before implementing any feature or using any library/tool:**

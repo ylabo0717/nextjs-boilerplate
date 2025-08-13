@@ -61,7 +61,8 @@
       "Bash(pnpm lighthouse:assert:*)",
       "Bash(pnpm docs:*)",
       "Bash(pnpm release:check:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(pnpm changeset:add:*)"
     ],
     "deny": [
       "Bash(sudo *)",

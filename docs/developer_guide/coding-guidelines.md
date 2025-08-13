@@ -206,16 +206,55 @@ export default function Button() {}
 **目的**: 型安全性を実行時まで保証する。
 
 ```typescript
-// ✅ Good - 型ガードの活用
+// ✅ Good - 厳密な型ガードの実装
 function isUser(obj: unknown): obj is User {
-  return typeof obj === 'object' && obj !== null && 'id' in obj && 'name' in obj && 'email' in obj;
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'id' in obj &&
+    'name' in obj &&
+    'email' in obj &&
+    typeof (obj as any).id === 'string' &&
+    typeof (obj as any).name === 'string' &&
+    typeof (obj as any).email === 'string' &&
+    (obj as any).id.length > 0 &&
+    (obj as any).name.length > 0 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((obj as any).email)
+  );
+}
+
+// より複雑な型の場合は、Zodを使用することを推奨
+import { z } from 'zod';
+
+const UserSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  email: z.string().email(),
+  role: z.enum(['admin', 'user', 'viewer']),
+  createdAt: z.date(),
+  settings: z
+    .object({
+      theme: z.enum(['light', 'dark', 'system']),
+      language: z.enum(['ja', 'en']),
+    })
+    .optional(),
+});
+
+function isValidUser(obj: unknown): obj is User {
+  try {
+    UserSchema.parse(obj);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // 使用例
 const data: unknown = await fetchUser();
-if (isUser(data)) {
-  // dataは確実にUser型
+if (isValidUser(data)) {
+  // dataは確実にUser型かつバリデーション済み
   console.log(data.name); // 型安全
+  console.log(data.email); // メール形式も保証済み
 }
 
 // ❌ Bad - 型アサーション
@@ -339,6 +378,12 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 ### データ取得パターン
 
 **目的**: Next.js 15のサーバーコンポーネントとキャッシュ機能を活用する。
+
+**Next.js 15での重要な変更点**:
+
+- `params`と`searchParams`が非同期（Promise）になった
+- 従来の同期的アクセス`const { id } = params`ではなく`const { id } = await params`が必要
+- この変更により、動的ルートとクエリパラメータの処理がより安全になった
 
 ```tsx
 // ✅ Good - Server Componentsでのデータ取得

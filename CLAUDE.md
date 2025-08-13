@@ -489,7 +489,9 @@ When you encounter a new numeric value in tests:
    - A JSDoc comment explaining its purpose and unit
 4. **Import and use** the constant in your test files
 
-## GitHub Actions
+## GitHub Actions and YAML Guidelines
+
+### GitHub Actions Best Practices
 
 When implementing or modifying GitHub Actions workflows, refer to `docs/work_dir/github-actions-best-practices.md` for detailed best practices including:
 
@@ -499,50 +501,19 @@ When implementing or modifying GitHub Actions workflows, refer to `docs/work_dir
 - Performance optimization techniques
 - Debugging and troubleshooting
 
-### YAML Script Separation Policy
+### YAML Guidelines
 
-**Complex scripts in YAML files should be extracted to separate script files.**
+**For comprehensive YAML writing and maintenance guidelines, see [YAML Guidelines](docs/design_guide/yaml-guidelines.md).**
 
-When working with GitHub Actions workflows or other YAML configuration files:
+The YAML guidelines document covers:
 
-1. **Keep YAML files simple and readable**
-   - YAML should contain only configuration and simple one-line commands
-   - Complex logic should not be embedded in YAML files
+- **Script Separation Policy**: When and how to extract complex scripts from YAML files
+- **Formatting Standards**: Linting rules and automated checks
+- **Best Practices**: Directory structure, error handling, and organization
+- **Migration Guide**: How to refactor existing YAML files
+- **Troubleshooting**: Common issues and solutions
 
-2. **Extract scripts to dedicated files**
-   - Multi-line bash scripts should be moved to `scripts/ci/` directory
-   - Use descriptive names for script files (e.g., `check-changesets.sh`, `create-github-release.sh`)
-   - Make scripts executable with `chmod +x`
-
-3. **Benefits of separation**
-   - **Better maintainability**: Scripts can be edited and tested independently
-   - **Tool compatibility**: Avoids conflicts with YAML parsers and formatters (e.g., Prettier)
-   - **Reusability**: Scripts can be used across multiple workflows
-   - **Testability**: Scripts can be unit tested and validated separately
-   - **Syntax highlighting**: Proper syntax highlighting in editors
-
-4. **Example**
-
-   ```yaml
-   # ❌ Bad - complex script in YAML
-   - name: Process release
-     run: |
-       if [ -f "CHANGELOG.md" ]; then
-         VERSION=$(node -p "require('./package.json').version")
-         NOTES=$(awk "/^## $VERSION/,/^## [0-9]/" CHANGELOG.md)
-         # ... more complex logic
-       fi
-
-   # ✅ Good - script in separate file
-   - name: Process release
-     run: ./scripts/ci/process-release.sh
-   ```
-
-5. **Script organization**
-   - Place CI/CD scripts in `scripts/ci/`
-   - Use consistent error handling (`set -euo pipefail`)
-   - Add clear comments and usage instructions
-   - Include validation for required environment variables
+Key principle: Keep YAML files simple and declarative. Extract complex logic to separate script files in `scripts/ci/` for better maintainability and testability.
 
 ## Git Commit Convention
 

@@ -59,7 +59,10 @@
       "Bash(cat:*)",
       "Bash(pnpm lighthouse:collect:*)",
       "Bash(pnpm lighthouse:assert:*)",
-      "Bash(pnpm docs:*)"
+      "Bash(pnpm docs:*)",
+      "Bash(pnpm release:check:*)",
+      "WebSearch",
+      "Bash(pnpm changeset:add:*)"
     ],
     "deny": [
       "Bash(sudo *)",

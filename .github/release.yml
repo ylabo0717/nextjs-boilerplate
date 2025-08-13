@@ -1,0 +1,65 @@
+# GitHub Release settings
+# Automatic release note generation settings
+
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - skip-changelog
+    authors:
+      - dependabot
+      - renovate-bot
+  categories:
+    - title: '🚀 Features'
+      labels:
+        - feature
+        - enhancement
+        - feat
+    - title: '🐛 Bug Fixes'
+      labels:
+        - fix
+        - bugfix
+        - bug
+    - title: '📚 Documentation'
+      labels:
+        - documentation
+        - docs
+    - title: '⚡ Performance'
+      labels:
+        - performance
+        - perf
+    - title: '🔧 Maintenance'
+      labels:
+        - chore
+        - maintenance
+        - deps
+        - dependencies
+    - title: '🔐 Security'
+      labels:
+        - security
+    - title: '♻️ Refactoring'
+      labels:
+        - refactor
+        - refactoring
+    - title: '🧪 Testing'
+      labels:
+        - test
+        - testing
+    - title: '🎨 Styling'
+      labels:
+        - style
+        - styling
+        - ui
+    - title: '🏗️ Infrastructure'
+      labels:
+        - ci
+        - cd
+        - infrastructure
+        - build
+    - title: '📦 Dependencies'
+      labels:
+        - dependencies
+        - deps
+    - title: Other Changes
+      labels:
+        - '*'

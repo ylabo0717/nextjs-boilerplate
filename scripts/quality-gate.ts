@@ -8,6 +8,7 @@
 import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+
 import {
   COMPLEXITY_THRESHOLDS,
   getComplexityIndicator,
@@ -16,6 +17,7 @@ import {
   FIRST_LOAD_JS_THRESHOLDS,
   DISPLAY_LIMITS,
 } from './constants/quality-metrics';
+import { Logger, parseVerboseFlag } from './utils/logger';
 
 /**
  * Type definition for exec error with stdout/stderr
@@ -164,15 +166,26 @@ const DEFAULT_THRESHOLDS: QualityThresholds = {
  * Checks for TypeScript compilation errors
  * @returns Number of TypeScript errors found
  */
-function checkTypeErrors(): number {
+function checkTypeErrors(logger?: Logger): number {
   console.log('🔍 Checking TypeScript errors...');
+  const startTime = Date.now();
+  logger?.command('pnpm typecheck');
+
   try {
     execSync('pnpm typecheck', { stdio: 'pipe' });
+    logger?.timing('TypeScript check', Date.now() - startTime);
+    logger?.debug('No TypeScript errors found');
     return 0;
   } catch (error) {
     const execError = error as ExecError;
     const output = execError.stdout?.toString() || '';
-    return (output.match(/error TS/g) || []).length;
+    const errorCount = (output.match(/error TS/g) || []).length;
+    logger?.timing('TypeScript check', Date.now() - startTime);
+    logger?.debug(`Found ${errorCount} TypeScript errors`);
+    if (logger?.isVerbose() && output) {
+      logger.debug('TypeScript output:\n' + output);
+    }
+    return errorCount;
   }
 }
 
@@ -180,8 +193,11 @@ function checkTypeErrors(): number {
  * Checks for ESLint errors and warnings
  * @returns Object containing error and warning counts
  */
-function checkLintIssues(): { errors: number; warnings: number } {
+function checkLintIssues(logger?: Logger): { errors: number; warnings: number } {
   console.log('🔍 Checking ESLint issues...');
+  const startTime = Date.now();
+  logger?.command('pnpm lint --format json');
+
   try {
     const result = execSync('pnpm lint --format json', { stdio: 'pipe' }).toString();
     const reports = JSON.parse(result);
@@ -192,6 +208,23 @@ function checkLintIssues(): { errors: number; warnings: number } {
     for (const report of reports) {
       totalErrors += report.errorCount || 0;
       totalWarnings += report.warningCount || 0;
+    }
+
+    logger?.timing('ESLint check', Date.now() - startTime);
+    logger?.debug(`Found ${totalErrors} errors and ${totalWarnings} warnings`);
+
+    if (logger?.isVerbose() && reports.length > 0) {
+      const filesWithIssues = reports.filter(
+        (r: { errorCount: number; warningCount: number }) => r.errorCount > 0 || r.warningCount > 0
+      );
+      if (filesWithIssues.length > 0) {
+        logger.debug(`Files with issues: ${filesWithIssues.length}`);
+        filesWithIssues
+          .slice(0, 5)
+          .forEach((r: { filePath: string; errorCount: number; warningCount: number }) => {
+            logger.debug(`  ${r.filePath}: ${r.errorCount} errors, ${r.warningCount} warnings`);
+          });
+      }
     }
 
     return { errors: totalErrors, warnings: totalWarnings };
@@ -209,8 +242,15 @@ function checkLintIssues(): { errors: number; warnings: number } {
         totalWarnings += report.warningCount || 0;
       }
 
+      logger?.timing('ESLint check', Date.now() - startTime);
+      logger?.debug(
+        `Found ${totalErrors} errors and ${totalWarnings} warnings (from error output)`
+      );
+
       return { errors: totalErrors, warnings: totalWarnings };
     } catch {
+      logger?.timing('ESLint check', Date.now() - startTime);
+      logger?.error('Failed to parse ESLint output');
       return { errors: 1, warnings: 0 };
     }
   }
@@ -220,20 +260,38 @@ function checkLintIssues(): { errors: number; warnings: number } {
  * Checks test coverage from the coverage report
  * @returns Coverage percentage or undefined if report not found
  */
-function checkCoverage(): number | undefined {
+function checkCoverage(logger?: Logger): number | undefined {
   console.log('🔍 Checking test coverage...');
+  const startTime = Date.now();
   const coveragePath = path.join(process.cwd(), 'coverage', 'coverage-summary.json');
 
   if (!fs.existsSync(coveragePath)) {
     console.log('⚠️  Coverage report not found. Run tests with coverage first.');
+    logger?.debug(`Coverage path: ${coveragePath}`);
+    logger?.timing('Coverage check', Date.now() - startTime);
     return undefined;
   }
 
   try {
     const coverage = JSON.parse(fs.readFileSync(coveragePath, 'utf-8'));
-    return coverage.total?.statements?.pct || 0;
+    const pct = coverage.total?.statements?.pct || 0;
+
+    logger?.timing('Coverage check', Date.now() - startTime);
+    logger?.debug(`Coverage percentage: ${pct}%`);
+
+    if (logger?.isVerbose()) {
+      logger.debug('Coverage details:');
+      logger.debug(`  Lines: ${coverage.total?.lines?.pct || 0}%`);
+      logger.debug(`  Statements: ${coverage.total?.statements?.pct || 0}%`);
+      logger.debug(`  Functions: ${coverage.total?.functions?.pct || 0}%`);
+      logger.debug(`  Branches: ${coverage.total?.branches?.pct || 0}%`);
+    }
+
+    return pct;
   } catch (error) {
     console.error('Error reading coverage:', error);
+    logger?.timing('Coverage check', Date.now() - startTime);
+    logger?.error(`Failed to parse coverage report: ${error}`);
     return undefined;
   }
 }
@@ -245,15 +303,25 @@ const METRICS_PATH = path.join(process.cwd(), 'metrics', 'latest.json');
  * Retrieves build time from the latest metrics
  * @returns Build time in milliseconds or undefined if not available
  */
-function checkBuildTime(): number | undefined {
+function checkBuildTime(logger?: Logger): number | undefined {
+  logger?.debug(`Checking build time from ${METRICS_PATH}`);
+
   if (!fs.existsSync(METRICS_PATH)) {
+    logger?.debug('Metrics file not found');
     return undefined;
   }
 
   try {
     const metrics = JSON.parse(fs.readFileSync(METRICS_PATH, 'utf-8'));
-    return metrics.buildTime;
-  } catch {
+    const buildTime = metrics.buildTime;
+
+    if (buildTime !== undefined) {
+      logger?.debug(`Build time: ${(buildTime / 1000).toFixed(1)}s`);
+    }
+
+    return buildTime;
+  } catch (error) {
+    logger?.error(`Failed to read metrics: ${error}`);
     return undefined;
   }
 }
@@ -262,15 +330,31 @@ function checkBuildTime(): number | undefined {
  * Retrieves bundle size from the latest metrics
  * @returns Bundle size in bytes or undefined if not available
  */
-function checkBundleSize(): number | undefined {
+function checkBundleSize(logger?: Logger): number | undefined {
+  logger?.debug(`Checking bundle size from ${METRICS_PATH}`);
+
   if (!fs.existsSync(METRICS_PATH)) {
+    logger?.debug('Metrics file not found');
     return undefined;
   }
 
   try {
     const metrics = JSON.parse(fs.readFileSync(METRICS_PATH, 'utf-8'));
-    return metrics.bundleSize?.total;
-  } catch {
+    const bundleSize = metrics.bundleSize?.total;
+
+    if (bundleSize !== undefined) {
+      logger?.debug(`Bundle size: ${(bundleSize / 1024 / 1024).toFixed(2)}MB`);
+
+      if (logger?.isVerbose() && metrics.bundleSize) {
+        logger.debug('Bundle breakdown:');
+        logger.debug(`  JavaScript: ${(metrics.bundleSize.javascript / 1024 / 1024).toFixed(2)}MB`);
+        logger.debug(`  CSS: ${(metrics.bundleSize.css / 1024 / 1024).toFixed(2)}MB`);
+      }
+    }
+
+    return bundleSize;
+  } catch (error) {
+    logger?.error(`Failed to read metrics: ${error}`);
     return undefined;
   }
 }
@@ -279,8 +363,11 @@ function checkBundleSize(): number | undefined {
  * Retrieves First Load JS metrics from the latest metrics
  * @returns First Load JS metrics or undefined if not available
  */
-function checkFirstLoadJS(): { max: number; maxRoute: string } | undefined {
+function checkFirstLoadJS(logger?: Logger): { max: number; maxRoute: string } | undefined {
+  logger?.debug(`Checking First Load JS from ${METRICS_PATH}`);
+
   if (!fs.existsSync(METRICS_PATH)) {
+    logger?.debug('Metrics file not found');
     return undefined;
   }
 
@@ -289,14 +376,31 @@ function checkFirstLoadJS(): { max: number; maxRoute: string } | undefined {
     const firstLoadJS = metrics.bundleSize?.firstLoadJS;
 
     if (firstLoadJS && firstLoadJS.max && firstLoadJS.maxRoute) {
+      logger?.debug(
+        `First Load JS: ${firstLoadJS.max.toFixed(1)}KB on route ${firstLoadJS.maxRoute}`
+      );
+
+      if (logger?.isVerbose() && firstLoadJS.routes) {
+        logger.debug('First Load JS by route:');
+        const routes = firstLoadJS.routes as Record<string, number>;
+        Object.entries(routes)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .forEach(([route, size]) => {
+            logger.debug(`  ${route}: ${size.toFixed(1)}KB`);
+          });
+      }
+
       return {
         max: firstLoadJS.max,
         maxRoute: firstLoadJS.maxRoute,
       };
     }
 
+    logger?.debug('First Load JS metrics not available');
     return undefined;
-  } catch {
+  } catch (error) {
+    logger?.error(`Failed to read metrics: ${error}`);
     return undefined;
   }
 }
@@ -305,8 +409,11 @@ function checkFirstLoadJS(): { max: number; maxRoute: string } | undefined {
  * Checks code complexity metrics
  * @returns Complexity metrics or undefined if analysis fails
  */
-async function checkCodeComplexity(): Promise<QualityMetrics['complexity'] | undefined> {
+async function checkCodeComplexity(
+  logger?: Logger
+): Promise<QualityMetrics['complexity'] | undefined> {
   console.log('🔍 Checking code complexity (excluding shadcn/ui)...');
+  const startTime = Date.now();
 
   try {
     // Dynamic import to avoid circular dependencies
@@ -314,11 +421,26 @@ async function checkCodeComplexity(): Promise<QualityMetrics['complexity'] | und
     const { analyzeCodeQualityAsync } = codeQualityModule;
 
     // Run analysis excluding shadcn/ui
+    logger?.debug('Running code quality analysis...');
     const metrics = await analyzeCodeQualityAsync({
       includeShadcnUI: false,
     });
 
     if (metrics && metrics.complexity) {
+      logger?.timing('Complexity analysis', Date.now() - startTime);
+      logger?.debug(`Average complexity: ${metrics.complexity.averageComplexity?.toFixed(1)}`);
+      logger?.debug(`Maximum complexity: ${metrics.complexity.maxComplexity}`);
+      logger?.debug(
+        `High complexity files: ${metrics.complexity.highComplexityFiles?.length || 0}`
+      );
+
+      if (logger?.isVerbose() && metrics.complexity.highComplexityFiles) {
+        logger.debug('Top complex files:');
+        metrics.complexity.highComplexityFiles.slice(0, 5).forEach((f) => {
+          logger.debug(`  ${f.file}: ${f.complexity}`);
+        });
+      }
+
       return {
         average: metrics.complexity.averageComplexity || 0,
         max: metrics.complexity.maxComplexity || 0,
@@ -330,9 +452,12 @@ async function checkCodeComplexity(): Promise<QualityMetrics['complexity'] | und
       };
     }
 
+    logger?.debug('No complexity metrics available');
     return undefined;
   } catch (error) {
     console.error('❌ Failed to analyze code complexity:', error);
+    logger?.timing('Complexity analysis', Date.now() - startTime);
+    logger?.error(`Complexity analysis failed: ${error}`);
     // Return undefined to skip complexity check rather than failing the entire quality gate
     // This allows other checks to continue even if complexity analysis fails
     console.log('⚠️  Skipping complexity check due to analysis failure');
@@ -488,10 +613,7 @@ function evaluateQualityGate(
 
 /**
  * Outputs results to GitHub Actions summary and output variables
- * @param result - Quality gate evaluation result
- * @param result.passed - Whether the quality gate passed
- * @param result.failures - List of failure messages
- * @param result.warnings - List of warning messages
+ * @param result - Quality gate evaluation result with passed status, failures, and warnings
  */
 function outputToGitHub(result: { passed: boolean; failures: string[]; warnings: string[] }) {
   if (process.env.GITHUB_OUTPUT) {
@@ -533,7 +655,14 @@ function outputToGitHub(result: { passed: boolean; failures: string[]; warnings:
  * Collects metrics, evaluates against thresholds, and reports results
  */
 async function main() {
+  const args = process.argv.slice(2);
+  const logger = new Logger(parseVerboseFlag(args));
+
   console.log('🚪 Running Quality Gate Checks...\n');
+  logger.config({
+    verbose: logger.isVerbose(),
+    thresholds: DEFAULT_THRESHOLDS,
+  });
 
   const metrics: QualityMetrics = {
     typeErrors: 0,
@@ -542,17 +671,17 @@ async function main() {
   };
 
   // Collect all metrics
-  metrics.typeErrors = checkTypeErrors();
+  metrics.typeErrors = checkTypeErrors(logger);
 
-  const lintResult = checkLintIssues();
+  const lintResult = checkLintIssues(logger);
   metrics.lintErrors = lintResult.errors;
   metrics.lintWarnings = lintResult.warnings;
 
-  metrics.coverage = checkCoverage();
-  metrics.buildTime = checkBuildTime();
-  metrics.bundleSize = checkBundleSize();
-  metrics.firstLoadJS = checkFirstLoadJS();
-  metrics.complexity = await checkCodeComplexity();
+  metrics.coverage = checkCoverage(logger);
+  metrics.buildTime = checkBuildTime(logger);
+  metrics.bundleSize = checkBundleSize(logger);
+  metrics.firstLoadJS = checkFirstLoadJS(logger);
+  metrics.complexity = await checkCodeComplexity(logger);
 
   // Evaluate quality gate
   const result = evaluateQualityGate(metrics, DEFAULT_THRESHOLDS);

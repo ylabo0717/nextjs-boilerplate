@@ -1,0 +1,98 @@
+# GitHub Labels Configuration
+# Run: gh label create --batch < .github/labels.yml
+
+# Type labels
+- name: feature
+  color: '0e8a16'
+  description: 'New feature or request'
+
+- name: bug
+  color: 'd73a4a'
+  description: "Something isn't working"
+
+- name: enhancement
+  color: 'a2eeef'
+  description: 'Improvement to existing functionality'
+
+- name: documentation
+  color: '0075ca'
+  description: 'Improvements or additions to documentation'
+
+- name: security
+  color: 'd40000'
+  description: 'Security vulnerability or improvement'
+
+- name: performance
+  color: 'f9d71c'
+  description: 'Performance improvement'
+
+- name: refactor
+  color: '7b55d7'
+  description: 'Code refactoring'
+
+- name: test
+  color: 'bfd4f2'
+  description: 'Testing related changes'
+
+- name: chore
+  color: 'fef2c0'
+  description: 'Maintenance and housekeeping'
+
+- name: ci
+  color: '1d76db'
+  description: 'Continuous Integration'
+
+- name: dependencies
+  color: '0366d6'
+  description: 'Dependency updates'
+
+# Priority labels
+- name: 'priority: critical'
+  color: 'b60205'
+  description: 'Critical priority'
+
+- name: 'priority: high'
+  color: 'ff5630'
+  description: 'High priority'
+
+- name: 'priority: medium'
+  color: 'fbca04'
+  description: 'Medium priority'
+
+- name: 'priority: low'
+  color: 'c2e0c6'
+  description: 'Low priority'
+
+# Status labels
+- name: 'status: ready'
+  color: '0e8a16'
+  description: 'Ready for implementation'
+
+- name: 'status: in progress'
+  color: 'fbca04'
+  description: 'Work in progress'
+
+- name: 'status: review needed'
+  color: 'd4c5f9'
+  description: 'Needs review'
+
+- name: 'status: blocked'
+  color: 'ee0701'
+  description: 'Blocked by another issue'
+
+# Release labels
+- name: release
+  color: '5319e7'
+  description: 'Release related'
+
+- name: breaking-change
+  color: 'd93f0b'
+  description: 'Breaking change'
+
+- name: skip-changelog
+  color: 'e4e669'
+  description: 'Skip from changelog'
+
+- name: ignore-for-release
+  color: 'd3d3d3'
+  description: 'Ignore for release notes'

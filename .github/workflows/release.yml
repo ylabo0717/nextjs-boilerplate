@@ -1,0 +1,173 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release type (patch/minor/major)'
+        required: false
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      prerelease:
+        description: 'Prerelease identifier (beta/alpha/rc)'
+        required: false
+        type: choice
+        options:
+          - ''
+          - beta
+          - alpha
+          - rc
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  packages: write
+
+jobs:
+  check-changes:
+    name: Check for changesets
+    runs-on: ubuntu-latest
+    outputs:
+      has-changesets: ${{ steps.check.outputs.has-changesets }}
+      should-release: ${{ steps.check.outputs.should-release }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for changesets
+        id: check
+        run: ./scripts/ci/check-changesets.sh
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF: ${{ github.ref }}
+
+  release:
+    name: Create Release Pull Request or Publish
+    runs-on: ubuntu-latest
+    needs: check-changes
+    # Execute this job if:
+    # - There are pending changesets (for creating PR), OR
+    # - A release should be triggered (manual dispatch or tag push)
+    if: needs.check-changes.outputs.has-changesets == 'true' || needs.check-changes.outputs.should-release == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: ./scripts/ci/get-pnpm-store.sh
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run quality checks
+        run: ./scripts/ci/run-quality-checks.sh
+
+      - name: Build application
+        run: pnpm build
+
+      - name: Update changeset config with repository name
+        run: ./scripts/ci/update-changeset-config.sh
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Create Release Pull Request
+        # Create PR only for automatic pushes to main with pending changesets
+        if: github.event_name == 'push' && needs.check-changes.outputs.has-changesets == 'true'
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          title: 'chore: release package'
+          commit: 'chore: version packages'
+          version: pnpm exec changeset version
+          publish: pnpm exec changeset publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Manual version bump
+        # Handle manual releases triggered via workflow_dispatch with version input
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
+        run: ./scripts/ci/manual-version-bump.sh "${{ github.event.inputs.version }}" "${{ github.event.inputs.prerelease }}"
+
+      - name: Create GitHub Release
+        # Create GitHub release after successful changeset publish or manual version bump
+        if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          # Determine if this is a prerelease
+          IS_PRERELEASE="false"
+          if [[ "${{ github.event.inputs.prerelease }}" != "" ]]; then
+            IS_PRERELEASE="true"
+          fi
+          ./scripts/ci/create-github-release.sh "$IS_PRERELEASE"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload build artifacts
+        # Upload artifacts to the created GitHub release
+        if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
+        run: ./scripts/ci/upload-build-artifacts.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate release metrics
+        if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
+        run: ./scripts/ci/generate-release-metrics.sh
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+
+      - name: Post release notification
+        if: (steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch') && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { postReleaseNotification } = await import('./scripts/ci/post-release-notification.mjs');
+            await postReleaseNotification({ github, context, core });
+
+  cleanup:
+    name: Cleanup old releases
+    runs-on: ubuntu-latest
+    needs: release
+    if: success()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cleanup old prereleases
+        run: ./scripts/ci/cleanup-old-prereleases.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

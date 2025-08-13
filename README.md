@@ -244,11 +244,40 @@ NEXT_PUBLIC_API_URL=http://localhost:3000/api
 
 ## 🤝 Contributing
 
+### Development Workflow
+
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Implement your changes
+4. **Create a Changeset for your changes** (required for features and fixes):
+
+   ```bash
+   pnpm changeset:add
+   ```
+
+   - Select the appropriate version bump (patch/minor/major)
+   - Write a clear description of what changed
+
+5. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+### When to Create a Changeset
+
+**Required for:**
+
+- ✅ New features or functionality
+- ✅ Bug fixes
+- ✅ Performance improvements
+- ✅ Breaking changes
+
+**Not required for:**
+
+- ❌ Internal refactoring (no user impact)
+- ❌ Test additions/modifications
+- ❌ Documentation updates (unless significant)
+
+For detailed instructions, see [Changeset Developer Guide](./docs/design_guide/changeset-developer-guide.md).
 
 ## 🔐 Security
 
@@ -377,3 +406,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 Built with ❤️ using Next.js and modern web technologies
+test

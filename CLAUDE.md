@@ -20,6 +20,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm docs` - Generate API documentation with TypeDoc
 - `pnpm docs:watch` - Generate documentation in watch mode
 
+### Quality Checks and Debugging
+
+- `pnpm quality:check` - Run quality gate checks (type errors, lint, coverage, etc.)
+- `pnpm quality:check:verbose` - Run quality checks with detailed debug output
+- `pnpm quality:analyze` - Analyze code quality metrics
+- `pnpm quality:analyze:verbose` - Analyze code quality with detailed debug output
+- `pnpm quality:report` - Generate unified quality report
+- `pnpm quality:report:verbose` - Generate report with detailed debug output
+
+**Verbose Mode:** Add `--verbose` flag to any quality script for detailed debugging information. This is especially useful when troubleshooting CI/CD failures.
+
 **Important:** This project uses `pnpm` as the package manager, not npm or yarn.
 
 ## Development Guidelines
@@ -56,6 +67,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    ```
 
 Running these checks before committing prevents failures in the pre-commit hooks. Always resolve ESLint and TypeScript errors before committing.
+
+### IMPORTANT: Create Changeset for User-Facing Changes
+
+**When implementing features, fixing bugs, or making any user-facing changes, always create a Changeset:**
+
+1. **Create a Changeset after implementing your changes**
+
+   ```bash
+   pnpm changeset:add
+   ```
+
+   - Select the appropriate version bump (patch for fixes, minor for features, major for breaking changes)
+   - Write a clear description of what changed from the user's perspective
+
+2. **Include the Changeset in your PR**
+   - Commit the generated `.changeset/*.md` file along with your code changes
+   - This ensures your changes are properly documented for the next release
+
+3. **When to create a Changeset**
+   - ✅ New features or functionality
+   - ✅ Bug fixes
+   - ✅ Performance improvements
+   - ✅ Breaking changes
+   - ❌ Internal refactoring (no user impact)
+   - ❌ Test additions/modifications
+   - ❌ Documentation updates (unless significant)
+
+For detailed instructions, see [Changeset Developer Guide](docs/design_guide/changeset-developer-guide.md).
 
 ### IMPORTANT: Verify Latest Versions and Best Practices
 
@@ -148,6 +187,34 @@ This principle is critical for maintainability and consistency across the codeba
 3. `docs/work_dir/` contains working documents that may change frequently
 4. `docs/design_guide/` contains stable content that should be modified carefully
 
+## Boilerplate Configuration
+
+### Repository Setup for New Projects
+
+When using this boilerplate for a new project:
+
+1. **Automatic Setup (Recommended)**
+   - Run `./scripts/setup-repository.sh` after cloning
+   - This script automatically configures the repository name in all necessary files
+
+2. **GitHub Actions Integration**
+   - The `.changeset/config.json` uses a placeholder value by default
+   - GitHub Actions automatically updates this configuration during CI/CD using the `GITHUB_REPOSITORY` environment variable
+   - The `scripts/ci/update-changeset-config.sh` script handles this dynamic configuration
+
+3. **Files Updated During Setup**
+   - `package.json` - project name
+   - `.changeset/config.json` - GitHub repository for changelog generation
+   - `README.md` - project title (optional)
+
+### Changeset Configuration
+
+The changeset configuration is designed to work seamlessly with GitHub Actions:
+
+- Default config has placeholder values: `PLACEHOLDER_OWNER/PLACEHOLDER_REPO`
+- During GitHub Actions workflow execution, the config is dynamically updated
+- This ensures changelog links work correctly regardless of the repository name
+
 ## Architecture
 
 ### Project Structure
@@ -202,7 +269,10 @@ This is a Next.js 15.4.6 application using the App Router architecture with Reac
 ### Development Notes
 
 - Turbopack is enabled for faster development builds
-- No testing framework is currently configured
+- **Testing Frameworks:**
+  - **Vitest** - Unit and integration testing (`pnpm test:unit`, `pnpm test:integration`)
+  - **Playwright** - E2E testing (`pnpm test:e2e`)
+  - Coverage reporting with V8 (`pnpm test:coverage`)
 - ESLint is configured with Next.js and TypeScript rules
 - The project is ready for Vercel deployment
 
@@ -489,7 +559,9 @@ When you encounter a new numeric value in tests:
    - A JSDoc comment explaining its purpose and unit
 4. **Import and use** the constant in your test files
 
-## GitHub Actions
+## GitHub Actions and YAML Guidelines
+
+### GitHub Actions Best Practices
 
 When implementing or modifying GitHub Actions workflows, refer to `docs/work_dir/github-actions-best-practices.md` for detailed best practices including:
 
@@ -498,6 +570,20 @@ When implementing or modifying GitHub Actions workflows, refer to `docs/work_dir
 - Security best practices
 - Performance optimization techniques
 - Debugging and troubleshooting
+
+### YAML Guidelines
+
+**For comprehensive YAML writing and maintenance guidelines, see [YAML Guidelines](docs/design_guide/yaml-guidelines.md).**
+
+The YAML guidelines document covers:
+
+- **Script Separation Policy**: When and how to extract complex scripts from YAML files
+- **Formatting Standards**: Linting rules and automated checks
+- **Best Practices**: Directory structure, error handling, and organization
+- **Migration Guide**: How to refactor existing YAML files
+- **Troubleshooting**: Common issues and solutions
+
+Key principle: Keep YAML files simple and declarative. Extract complex logic to separate script files in `scripts/ci/` for better maintainability and testability.
 
 ## Git Commit Convention
 

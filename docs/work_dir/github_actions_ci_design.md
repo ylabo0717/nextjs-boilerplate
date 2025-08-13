@@ -1,6 +1,6 @@
 # GitHub Actions CI/CD 詳細設計書
 
-## 実装状況サマリー（2025年8月10日更新）
+## 実装状況サマリー（2025年8月12日更新）
 
 ### ✅ 完了済み
 
@@ -12,20 +12,29 @@
   - 57個のE2Eテストケース実装済み
   - CI内でchromium/firefox両ブラウザでテスト実行中
   - テストレポート・アーティファクト保存機能実装済み
-
-### ✅ 最近完了
-
 - **Phase 3: セキュリティ・品質** - 実装完了（2025年8月10日）
   - security.yml: セキュリティスキャンワークフロー実装済み
   - dependabot.yml: 依存関係自動更新設定済み
   - CodeQL: JavaScript/TypeScript解析設定済み
   - Gitleaks: シークレットスキャン設定済み（権限エラー対策済み）
   - フォールバックスクリプト: simple-secret-scan.sh追加
+- **Phase 4: メトリクス・品質ゲート** - 実装完了（2025年8月11日）
+  - Lighthouse CI統合
+  - 品質ゲートスクリプト実装
+  - メトリクス計測・レポート機能実装
+
+### ✅ 最近完了
+
+- **Phase 5: リリース自動化** - 実装完了（2025年8月12日）
+  - release.yml: リリース自動化ワークフロー実装済み
+  - changesets統合: セマンティックバージョニング対応
+  - GitHub Release自動作成機能実装
+  - CHANGELOG自動生成機能実装
+  - リリースアセット自動アップロード機能実装
+  - デプロイメント環境設定ドキュメント作成済み
 
 ### 📋 今後の実装予定
 
-- Phase 4: メトリクス・品質ゲート
-- Phase 5: リリース自動化
 - Phase 6: 通知・監視
 
 ### 現在のCI実行状況
@@ -846,23 +855,23 @@ continue-on-error: false
 - [x] PRコメントへの自動投稿（scripts/report-metrics.ts実装済み）
 - [x] メトリクス履歴の保存方法検討（metricsディレクトリに保存、アーティファクトとして30日間保持）
 
-### Phase 5: リリース自動化（Day 10-12）
+### Phase 5: リリース自動化（✅ 完了済み）
 
 #### release.yml実装
 
-- [ ] リリースワークフロー作成
-- [ ] セマンティックバージョニング設定
-- [ ] Changelog自動生成
-  - [ ] conventional-changelogの設定
-  - [ ] リリースノートテンプレート
-- [ ] タグ作成自動化
-- [ ] GitHub Release作成
-- [ ] アセットアップロード設定
+- [x] リリースワークフロー作成
+- [x] セマンティックバージョニング設定
+- [x] Changelog自動生成
+  - [x] changesets設定（@changesets/cli, @changesets/changelog-github）
+  - [x] リリースノートテンプレート（.github/release-template.md）
+- [x] タグ作成自動化
+- [x] GitHub Release作成
+- [x] アセットアップロード設定
 
 #### デプロイメント連携準備
 
-- [ ] 環境別デプロイ設定
-- [ ] ロールバック手順の文書化
+- [x] 環境別デプロイ設定ドキュメント作成（docs/work_dir/deployment-environments.md）
+- [x] ロールバック手順の文書化
 
 ### Phase 6: 通知・監視（Day 13）
 

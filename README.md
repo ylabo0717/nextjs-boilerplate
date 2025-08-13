@@ -277,7 +277,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3000/api
 - ❌ Test additions/modifications
 - ❌ Documentation updates (unless significant)
 
-For detailed instructions, see [Changeset Developer Guide](./docs/design_guide/changeset-developer-guide.md).
+For detailed instructions, see [Changeset Developer Guide](./docs/developer_guide/changeset-developer-guide.md).
 
 ## 🔐 Security
 

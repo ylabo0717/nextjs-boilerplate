@@ -94,7 +94,7 @@ Running these checks before committing prevents failures in the pre-commit hooks
    - ❌ Test additions/modifications
    - ❌ Documentation updates (unless significant)
 
-For detailed instructions, see [Changeset Developer Guide](docs/design_guide/changeset-developer-guide.md).
+For detailed instructions, see [Changeset Developer Guide](docs/developer_guide/changeset-developer-guide.md).
 
 ### IMPORTANT: Verify Latest Versions and Best Practices
 
@@ -177,15 +177,15 @@ This principle is critical for maintainability and consistency across the codeba
 
 **Production Documents Location:**
 
-- Place finalized and reviewed content from `docs/work_dir/` into `docs/design_guide/`
-- `docs/design_guide/` contains official design guides, architecture documents, and established best practices
+- Place finalized and reviewed content from `docs/work_dir/` into `docs/developer_guide/`
+- `docs/developer_guide/` contains official design guides, architecture documents, and established best practices
 
 **Document Management Workflow:**
 
 1. Create new documents initially in `docs/work_dir/`
-2. Once content is finalized and team consensus is reached, move or refine it to `docs/design_guide/`
+2. Once content is finalized and team consensus is reached, move or refine it to `docs/developer_guide/`
 3. `docs/work_dir/` contains working documents that may change frequently
-4. `docs/design_guide/` contains stable content that should be modified carefully
+4. `docs/developer_guide/` contains stable content that should be modified carefully
 
 ## Boilerplate Configuration
 
@@ -278,7 +278,7 @@ This is a Next.js 15.4.6 application using the App Router architecture with Reac
 
 ## Code Documentation Standards
 
-For comprehensive documentation guidelines, see [Documentation Guidelines](docs/design_guide/documentation-guidelines.md).
+For comprehensive documentation guidelines, see [Documentation Guidelines](docs/developer_guide/documentation-guidelines.md).
 
 The documentation guide includes:
 
@@ -573,7 +573,7 @@ When implementing or modifying GitHub Actions workflows, refer to `docs/work_dir
 
 ### YAML Guidelines
 
-**For comprehensive YAML writing and maintenance guidelines, see [YAML Guidelines](docs/design_guide/yaml-guidelines.md).**
+**For comprehensive YAML writing and maintenance guidelines, see [YAML Guidelines](docs/developer_guide/yaml-guidelines.md).**
 
 The YAML guidelines document covers:
 

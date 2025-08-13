@@ -257,7 +257,38 @@ import type { User } from '@/types/user';
 import type { ComponentProps } from 'react';
 ```
 
-### エクスポート規約
+#### ESLintによる自動検証
+
+プロジェクトでは `eslint-plugin-import` の `import/order` ルールを使用し、以下の順序と空行を強制しています。
+
+グループ順序:
+
+1. builtin (Node組込: path, fs 等)
+2. external (npm依存 / react, next)
+3. internal (`@/**` エイリアス)
+4. parent / sibling (相対参照)
+5. index (ディレクトリ index)
+6. object (`import * as X`)
+7. type (型専用 import / `import type`)
+
+追加規則:
+
+- `react` と `next/**` は他の external より前に並べる（pathGroups指定）
+- 各グループ間は 1 空行 (`newlines-between: always`)
+- アルファベット昇順 (caseInsensitive)
+- 型専用 import は最末尾でまとめる
+
+整形方法:
+
+```bash
+pnpm lint --fix
+```
+
+または IDE の ESLint Fix (保存時フォーマット) を利用。
+
+CI で順序不一致はエラーになります。手動で並び替える代わりに自動整形を活用してください。
+
+### エクスポート規約（命名・再エクスポート）
 
 ```typescript
 // ✅ Good - Named Exports（推奨）

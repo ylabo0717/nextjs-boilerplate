@@ -127,7 +127,13 @@ jobs:
       - name: Create GitHub Release
         # Create GitHub release after successful changeset publish or manual version bump
         if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
-        run: ./scripts/ci/create-github-release.sh "${{ github.event.inputs.prerelease != '' && 'true' || 'false' }}"
+        run: |
+          # Determine if this is a prerelease
+          IS_PRERELEASE="false"
+          if [[ "${{ github.event.inputs.prerelease }}" != "" ]]; then
+            IS_PRERELEASE="true"
+          fi
+          ./scripts/ci/create-github-release.sh "$IS_PRERELEASE"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -33,22 +33,35 @@ CHANGESET_FILE=".changeset/manual-release.md"
 
 if [ -n "$PRERELEASE" ]; then
   echo "Creating $VERSION_TYPE-$PRERELEASE changeset..."
-  cat > "$CHANGESET_FILE" << EOF
+  # Create changeset file with proper HEREDOC formatting
+  # Note: EOF marker must be at the beginning of the line (no indentation)
+  cat > "$CHANGESET_FILE" << 'EOF_PRERELEASE'
 ---
-"nextjs-boilerplate": $VERSION_TYPE
+"nextjs-boilerplate": VERSION_TYPE_PLACEHOLDER
 ---
 
-Manual release: $VERSION_TYPE-$PRERELEASE
-EOF
+Manual release: VERSION_TYPE_PLACEHOLDER-PRERELEASE_PLACEHOLDER
+EOF_PRERELEASE
+  
+  # Replace placeholders with actual values to avoid variable expansion issues
+  sed -i.bak "s/VERSION_TYPE_PLACEHOLDER/$VERSION_TYPE/g" "$CHANGESET_FILE"
+  sed -i.bak "s/PRERELEASE_PLACEHOLDER/$PRERELEASE/g" "$CHANGESET_FILE"
+  rm -f "${CHANGESET_FILE}.bak"
 else
   echo "Creating $VERSION_TYPE changeset..."
-  cat > "$CHANGESET_FILE" << EOF
+  # Create changeset file with proper HEREDOC formatting
+  # Note: EOF marker must be at the beginning of the line (no indentation)
+  cat > "$CHANGESET_FILE" << 'EOF_CHANGESET'
 ---
-"nextjs-boilerplate": $VERSION_TYPE
+"nextjs-boilerplate": VERSION_TYPE_PLACEHOLDER
 ---
 
-Manual release: $VERSION_TYPE
-EOF
+Manual release: VERSION_TYPE_PLACEHOLDER
+EOF_CHANGESET
+  
+  # Replace placeholders with actual values to avoid variable expansion issues
+  sed -i.bak "s/VERSION_TYPE_PLACEHOLDER/$VERSION_TYPE/g" "$CHANGESET_FILE"
+  rm -f "${CHANGESET_FILE}.bak"
 fi
 
 echo "✅ Changeset created at $CHANGESET_FILE"

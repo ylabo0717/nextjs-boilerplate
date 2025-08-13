@@ -7,17 +7,18 @@
 1. [基本方針](#基本方針)
 2. [Single Source of Truth (SSOT) 原則](#single-source-of-truth-ssot-原則)
 3. [TypeScript ガイドライン](#typescript-ガイドライン)
-4. [Next.js 開発パターン](#nextjs-開発パターン)
-5. [React コンポーネント設計](#react-コンポーネント設計)
-6. [セキュリティガイドライン](#セキュリティガイドライン)
-7. [パフォーマンス最適化](#パフォーマンス最適化)
-8. [アクセシビリティガイドライン](#アクセシビリティガイドライン)
-9. [状態管理](#状態管理)
-10. [エラーハンドリング](#エラーハンドリング)
-11. [スタイリング (Tailwind CSS)](#スタイリング-tailwind-css)
-12. [テスト戦略](#テスト戦略)
-13. [インポート・エクスポート規約](#インポートエクスポート規約)
-14. [禁止事項](#禁止事項)
+4. [オブジェクト指向設計とアーキテクチャ](#オブジェクト指向設計とアーキテクチャ)
+5. [Next.js 開発パターン](#nextjs-開発パターン)
+6. [React コンポーネント設計](#react-コンポーネント設計)
+7. [セキュリティガイドライン](#セキュリティガイドライン)
+8. [パフォーマンス最適化](#パフォーマンス最適化)
+9. [アクセシビリティガイドライン](#アクセシビリティガイドライン)
+10. [状態管理](#状態管理)
+11. [エラーハンドリング](#エラーハンドリング)
+12. [スタイリング (Tailwind CSS)](#スタイリング-tailwind-css)
+13. [テスト戦略](#テスト戦略)
+14. [インポート・エクスポート規約](#インポートエクスポート規約)
+15. [禁止事項](#禁止事項)
 
 ---
 
@@ -260,6 +261,582 @@ if (isValidUser(data)) {
 // ❌ Bad - 型アサーション
 const data = (await fetchUser()) as User; // 危険！
 ```
+
+---
+
+## オブジェクト指向設計とアーキテクチャ
+
+### 🎯 基本原則：純粋関数型ファースト
+
+**このプロジェクトの中核となる設計思想**
+
+このプロジェクトでは、**純粋関数を中心とした関数型プログラミング**を強く推奨し、基本的な設計パラダイムとして採用します。オブジェクト指向的なクラス設計は、極めて限定的な場面でのみ検討する例外的な選択肢として位置付けます。
+
+#### なぜ純粋関数型を強く推奨するのか
+
+1. **テスタビリティの圧倒的な向上**
+   - 同じ入力に対して常に同じ出力を返す
+   - 副作用がないため、単体テストが簡潔で信頼性が高い
+   - モック不要でテストが高速に実行される
+
+2. **予測可能性とデバッグの容易さ**
+   - 関数の振る舞いが入力のみに依存し、予期しない動作が発生しない
+   - スタックトレースが理解しやすく、問題の特定が迅速
+
+3. **並行処理の安全性**
+   - 不変性により、競合状態やデッドロックが発生しない
+   - Next.jsのReact Server Componentsとの親和性が高い
+
+4. **メンテナンス性の向上**
+   - 関数間の依存関係が明確で、変更の影響範囲が限定的
+   - リファクタリングが安全で、機能追加が容易
+
+5. **TypeScriptとの高い親和性**
+   - 型推論が効果的に働き、コンパイル時エラー検出が充実
+   - 純粋関数は型安全性を最大限に活用できる
+
+### 基本理念：純粋関数優先・例外的クラス活用
+
+**目的**: ステートレスで純粋関数を**最優先**とした実装を基本とし、**極めて特殊な場合にのみ**オブジェクト指向の利点を慎重に活用する。
+
+**効果**:
+
+- テスタビリティの向上
+- 保守性とスケーラビリティの確保
+- Next.jsのシリアライゼーション境界との適合性
+
+### アーキテクチャ層別の設計方針
+
+**🚨 重要**: すべての層において純粋関数型アプローチを最優先とし、クラス使用は最後の手段として検討する。
+
+```typescript
+/**
+ * プレゼンテーション層: 純粋関数型アプローチ（絶対原則）
+ * - React関数コンポーネント + Hooks のみ使用
+ * - ステートレス実装を強制
+ * - クラス化は一切禁止
+ */
+
+// ✅ Good - 関数コンポーネントによるプレゼンテーション層
+interface UserProfileProps {
+  user: User;
+  onEdit: (user: User) => void;
+}
+
+export const UserProfile = ({ user, onEdit }: UserProfileProps) => {
+  return (
+    <div className="user-profile">
+      <img src={user.avatar} alt={`${user.name}のプロフィール画像`} />
+      <h2>{user.name}</h2>
+      <p>{user.email}</p>
+      <button onClick={() => onEdit(user)} type="button">
+        編集
+      </button>
+    </div>
+  );
+};
+
+// ❌ Bad - UIコンポーネントでのクラス使用
+class UserProfile extends Component<UserProfileProps> {
+  render() {
+    // React Hooksの恩恵を受けられない
+  }
+}
+```
+
+### ドメイン層の設計戦略
+
+**🎯 原則**: **純粋関数型を最優先**とし、99%のケースで型定義 + 純粋関数による実装を選択する。クラス化は非常に特殊で複雑なドメインロジックがある場合の最後の選択肢。
+
+#### 1. 基本アプローチ（95%以上のケースで適用）
+
+```typescript
+// ✅ Good - 型定義 + 純粋関数アプローチ
+interface User {
+  readonly id: string;
+  readonly name: string;
+  readonly email: string;
+  readonly createdAt: Date;
+}
+
+// 純粋関数によるビジネスロジック
+export const createUser = (name: string, email: string): Result<User, ValidationError> => {
+  if (!isValidEmail(email)) {
+    return Result.error(new ValidationError('無効なメールアドレスです'));
+  }
+
+  if (name.trim().length === 0) {
+    return Result.error(new ValidationError('名前は必須です'));
+  }
+
+  return Result.success({
+    id: generateId(),
+    name: name.trim(),
+    email: email.toLowerCase(),
+    createdAt: new Date(),
+  });
+};
+
+export const updateUserEmail = (user: User, newEmail: string): Result<User, ValidationError> => {
+  if (!isValidEmail(newEmail)) {
+    return Result.error(new ValidationError('無効なメールアドレスです'));
+  }
+
+  return Result.success({
+    ...user,
+    email: newEmail.toLowerCase(),
+  });
+};
+```
+
+#### 2. 例外的なケース（極めて稀な場合のみ検討）
+
+**⚠️ 警告**: 以下の例は例外的なケースです。まず純粋関数による実装を十分に検討し、それでも実装が困難な場合のみ慎重に選択してください。
+
+```typescript
+// ⚠️ 例外的ケース - 極めて複雑なビジネスルールでクラスが必要な場合のみ
+export class Order {
+  private readonly _id: OrderId;
+  private readonly _customerId: CustomerId;
+  private _items: OrderItem[];
+  private _status: OrderStatus;
+  private readonly _createdAt: Date;
+
+  constructor(customerId: CustomerId, items: OrderItem[]) {
+    if (items.length === 0) {
+      throw new Error('注文には最低1つの商品が必要です');
+    }
+
+    this._id = OrderId.generate();
+    this._customerId = customerId;
+    this._items = [...items];
+    this._status = OrderStatus.PENDING;
+    this._createdAt = new Date();
+  }
+
+  // ビジネスロジックをカプセル化
+  public addItem(item: OrderItem): Result<void, OrderError> {
+    if (this._status !== OrderStatus.PENDING) {
+      return Result.error(new OrderError('確定済みの注文には商品を追加できません'));
+    }
+
+    if (this.getTotalAmount().add(item.amount).isGreaterThan(ORDER_LIMIT)) {
+      return Result.error(new OrderError('注文金額が上限を超えています'));
+    }
+
+    this._items.push(item);
+    return Result.success(undefined);
+  }
+
+  public confirm(): Result<void, OrderError> {
+    if (this._items.length === 0) {
+      return Result.error(new OrderError('空の注文は確定できません'));
+    }
+
+    this._status = OrderStatus.CONFIRMED;
+    return Result.success(undefined);
+  }
+
+  // 不変性を保証するgetter
+  public get id(): OrderId {
+    return this._id;
+  }
+
+  public get items(): readonly OrderItem[] {
+    return Object.freeze([...this._items]);
+  }
+
+  public getTotalAmount(): Money {
+    return this._items.reduce((total, item) => total.add(item.amount), Money.zero());
+  }
+
+  // シリアライゼーション用
+  public toPlainObject(): PlainOrder {
+    return {
+      id: this._id.value,
+      customerId: this._customerId.value,
+      items: this._items.map((item) => item.toPlainObject()),
+      status: this._status,
+      createdAt: this._createdAt.toISOString(),
+    };
+  }
+
+  public static fromPlainObject(plain: PlainOrder): Order {
+    const order = Object.create(Order.prototype);
+    order._id = new OrderId(plain.id);
+    order._customerId = new CustomerId(plain.customerId);
+    order._items = plain.items.map(OrderItem.fromPlainObject);
+    order._status = plain.status;
+    order._createdAt = new Date(plain.createdAt);
+    return order;
+  }
+}
+```
+
+### サービス・ユースケース層
+
+**🎯 原則**: **まず純粋関数による実装を検討**し、状態管理や依存性注入が真に必要な場合のみクラスを使用する。
+
+```typescript
+// ✅ Good - サービスクラスによる機能の組織化
+export class UserService {
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly emailService: EmailService,
+    private readonly logger: Logger
+  ) {}
+
+  public async registerUser(userData: CreateUserRequest): Promise<Result<User, RegistrationError>> {
+    try {
+      // バリデーション
+      const validationResult = this.validateUserData(userData);
+      if (validationResult.isError()) {
+        return Result.error(validationResult.error);
+      }
+
+      // 重複チェック
+      const existingUser = await this.userRepository.findByEmail(userData.email);
+      if (existingUser.isSome()) {
+        return Result.error(new RegistrationError('メールアドレスは既に使用されています'));
+      }
+
+      // ユーザー作成
+      const userResult = createUser(userData.name, userData.email);
+      if (userResult.isError()) {
+        return Result.error(new RegistrationError(userResult.error.message));
+      }
+
+      // 永続化
+      const savedUser = await this.userRepository.save(userResult.value);
+
+      // ウェルカムメール送信（副作用）
+      await this.emailService.sendWelcomeEmail(savedUser);
+
+      this.logger.info('新規ユーザー登録完了', { userId: savedUser.id });
+
+      return Result.success(savedUser);
+    } catch (error) {
+      this.logger.error('ユーザー登録エラー', error);
+      return Result.error(new RegistrationError('ユーザー登録に失敗しました'));
+    }
+  }
+
+  private validateUserData(userData: CreateUserRequest): Result<void, ValidationError> {
+    // 純粋関数に委譲
+    return validateCreateUserRequest(userData);
+  }
+}
+```
+
+### APIクライアント
+
+**🎯 原則**: APIクライアントも**純粋関数で実装**し、Next.js 15の最新パターンを活用する。
+
+```typescript
+// ✅ Good - 純粋関数によるAPIクライアント
+import { API_CONFIG } from '@/constants';
+
+interface ApiResponse<T> {
+  data: T;
+  success: boolean;
+  error?: string;
+}
+
+// 基本的なfetch関数
+async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<Result<T, ApiError>> {
+  try {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    });
+
+    if (!response.ok) {
+      return Result.error(
+        new ApiError(`API Error: ${response.status}`, response.status)
+      );
+    }
+
+    const data = await response.json();
+    return Result.success(data);
+  } catch (error) {
+    return Result.error(new ApiError('ネットワークエラーが発生しました'));
+  }
+}
+
+// ユーザー関連のAPI関数群
+export const getUserById = async (id: string): Promise<Result<User, ApiError>> => {
+  const result = await apiRequest<UserResponse>(`/users/${id}`);
+
+  if (result.isError()) {
+    return Result.error(result.error);
+  }
+
+  return Result.success(mapResponseToUser(result.value));
+};
+
+export const createUser = async (
+  userData: CreateUserRequest
+): Promise<Result<User, ApiError>> => {
+  const result = await apiRequest<UserResponse>('/users', {
+    method: 'POST',
+    body: JSON.stringify(userData),
+  });
+
+  if (result.isError()) {
+    return Result.error(result.error);
+  }
+
+  return Result.success(mapResponseToUser(result.value));
+};
+
+export const updateUser = async (
+  id: string,
+  userData: UpdateUserRequest
+): Promise<Result<User, ApiError>> => {
+  const result = await apiRequest<UserResponse>(`/users/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(userData),
+  });
+
+  if (result.isError()) {
+    return Result.error(result.error);
+  }
+
+  return Result.success(mapResponseToUser(result.value));
+};
+
+// 純粋関数によるデータマッピング
+const mapResponseToUser = (response: UserResponse): User => ({
+  id: response.id,
+  name: response.name,
+  email: response.email,
+  createdAt: new Date(response.created_at),
+});
+
+// Server Component での使用例（Next.js 15 推奨パターン）
+export default async function UserPage({ params }: { params: { id: string } }) {
+  const userResult = await getUserById(params.id);
+
+  if (userResult.isError()) {
+    return <div>Error: {userResult.error.message}</div>;
+  }
+
+  return <UserProfile user={userResult.value} />;
+}
+
+// Client Component での使用例
+'use client';
+
+export const UserForm = () => {
+  const [isPending, startTransition] = useTransition();
+
+  const handleSubmit = (formData: FormData) => {
+    startTransition(async () => {
+      const userData = {
+        name: formData.get('name') as string,
+        email: formData.get('email') as string,
+      };
+
+      const result = await createUser(userData);
+
+      if (result.isSuccess()) {
+        console.log('ユーザー作成成功:', result.value);
+      } else {
+        console.error('ユーザー作成失敗:', result.error.message);
+      }
+    });
+  };
+
+  return (
+    <form action={handleSubmit}>
+      {/* フォーム要素 */}
+    </form>
+  );
+};
+```
+
+### シリアライゼーション境界の対応
+
+**原則**: Next.js App Routerのシリアライゼーション制約に対応した設計を行う。
+
+```typescript
+// ✅ Good - シリアライゼーション境界を意識した設計
+
+// サーバーサイド（API Route / Server Action）
+export async function createOrderAction(formData: FormData): Promise<ActionResult> {
+  try {
+    // 1. サーバーサイドでビジネスロジックを実行
+    const orderService = new OrderService(dependencies);
+    const orderResult = await orderService.createOrder({
+      customerId: formData.get('customerId') as string,
+      items: JSON.parse(formData.get('items') as string),
+    });
+
+    if (orderResult.isError()) {
+      return { success: false, error: orderResult.error.message };
+    }
+
+    // 2. プレーンオブジェクトとしてクライアントに送信
+    return {
+      success: true,
+      data: orderResult.value.toPlainObject(), // シリアライズ可能
+    };
+  } catch (error) {
+    return { success: false, error: 'システムエラーが発生しました' };
+  }
+}
+
+// クライアントサイド（Client Component）
+'use client';
+
+export const OrderForm = () => {
+  const [isPending, startTransition] = useTransition();
+
+  const handleSubmit = (formData: FormData) => {
+    startTransition(async () => {
+      // サーバーアクションを呼び出し（シリアライゼーション境界を越える）
+      const result = await createOrderAction(formData);
+
+      if (result.success) {
+        // プレーンオブジェクトを受け取り
+        console.log('注文作成成功:', result.data);
+      } else {
+        console.error('注文作成失敗:', result.error);
+      }
+    });
+  };
+
+  return (
+    <form action={handleSubmit}>
+      {/* フォーム要素 */}
+    </form>
+  );
+};
+```
+
+### 🚨 クラス化検討の厳格な指針
+
+#### 純粋関数を絶対優先すべきケース（99%のケース）
+
+**必ず純粋関数で実装する**：
+
+1. **UIコンポーネント（例外なし）**
+   - プレゼンテーション層のすべて
+   - React関数コンポーネント
+   - **クラスコンポーネントは完全禁止**
+
+2. **ユーティリティ関数（例外なし）**
+   - データ変換・フォーマット
+   - バリデーション
+   - 計算処理
+
+3. **ビジネスロジック（強く推奨）**
+   - CRUD操作
+   - 条件分岐
+   - データマッピング
+   - ドメインロジックの大部分
+
+4. **API呼び出し（推奨）**
+   - HTTPリクエスト（純粋関数で実装）
+   - データ取得・送信・変換
+
+#### クラス化を検討する極めて限定的なケース（<1%のケース）
+
+**⚠️ 以下すべての条件を満たす場合のみ、慎重に検討**：
+
+1. **極めて複雑な状態管理が不可避**
+   - 純粋関数では表現が困難な複雑な状態遷移
+   - 複雑な依存性注入が真に必要な場合
+   - ステートフルな設定管理（APIクライアントは純粋関数で実装）
+
+2. **クラス化の前に必ず検討すべき代替案**
+   - 関数の組み合わせによる解決
+   - 高階関数の活用
+   - カリー化による部分適用
+   - Closure による状態管理
+
+3. **クラス化が許可される条件**
+   - チームレビューで純粋関数による代替案を十分検討
+   - 技術的負債を生まない設計
+   - テスタビリティが確保される
+   - シリアライゼーション境界を適切に処理
+
+### 実装例の比較
+
+```typescript
+// ❌ Bad - UIコンポーネントでのクラス使用
+class UserList extends Component<UserListProps, UserListState> {
+  constructor(props: UserListProps) {
+    super(props);
+    this.state = { selectedUser: null };
+  }
+
+  handleUserSelect = (user: User) => {
+    this.setState({ selectedUser: user });
+    this.props.onUserSelect(user);
+  };
+
+  render() {
+    return (
+      <div>
+        {this.props.users.map(user => (
+          <UserCard
+            key={user.id}
+            user={user}
+            onClick={this.handleUserSelect}
+            selected={this.state.selectedUser?.id === user.id}
+          />
+        ))}
+      </div>
+    );
+  }
+}
+
+// ✅ Good - 関数コンポーネント + Hooks
+interface UserListProps {
+  users: User[];
+  onUserSelect: (user: User) => void;
+}
+
+export const UserList = ({ users, onUserSelect }: UserListProps) => {
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  const handleUserSelect = useCallback((user: User) => {
+    setSelectedUser(user);
+    onUserSelect(user);
+  }, [onUserSelect]);
+
+  return (
+    <div>
+      {users.map(user => (
+        <UserCard
+          key={user.id}
+          user={user}
+          onClick={handleUserSelect}
+          selected={selectedUser?.id === user.id}
+        />
+      ))}
+    </div>
+  );
+};
+```
+
+### まとめ
+
+この**純粋関数型ファーストアプローチ**により、以下の利点を実現します：
+
+1. **🎯 純粋関数型の最優先**: テスタビリティと予測可能性の圧倒的な向上
+2. **🔒 例外的なクラス活用**: 極めて限定的な場面での慎重な選択
+3. **⚡ Next.js最適化**: シリアライゼーション境界との完全な整合性
+4. **🚀 チーム開発の効率化**: 明確で一貫した設計原則による生産性向上
+
+**重要な心構え**: 新しい機能を実装する際は、常に「これを純粋関数で実装できないか？」を最初に自問し、クラス化は最後の手段として検討する文化を徹底する。
 
 ---
 

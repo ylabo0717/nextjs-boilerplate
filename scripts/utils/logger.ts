@@ -1,4 +1,19 @@
 /**
+ * ANSI color codes for terminal output
+ *
+ * @internal
+ */
+const COLORS = {
+  CYAN: '\x1b[36m',
+  YELLOW: '\x1b[33m',
+  RED: '\x1b[31m',
+  MAGENTA: '\x1b[35m',
+  BLUE: '\x1b[34m',
+  GREEN: '\x1b[32m',
+  RESET: '\x1b[0m',
+} as const;
+
+/**
  * Logger utility for scripts with verbose mode support
  *
  * @public
@@ -29,7 +44,7 @@ export class Logger {
    */
   debug(message: string): void {
     if (this.verbose) {
-      console.log(`\x1b[36m[DEBUG]\x1b[0m ${message}`);
+      console.log(`${COLORS.CYAN}[DEBUG]${COLORS.RESET} ${message}`);
     }
   }
 
@@ -52,7 +67,7 @@ export class Logger {
    * @public
    */
   warn(message: string): void {
-    console.warn(`\x1b[33m[WARN]\x1b[0m ${message}`);
+    console.warn(`${COLORS.YELLOW}[WARN]${COLORS.RESET} ${message}`);
   }
 
   /**
@@ -63,7 +78,7 @@ export class Logger {
    * @public
    */
   error(message: string): void {
-    console.error(`\x1b[31m[ERROR]\x1b[0m ${message}`);
+    console.error(`${COLORS.RED}[ERROR]${COLORS.RESET} ${message}`);
   }
 
   /**
@@ -75,7 +90,7 @@ export class Logger {
    */
   command(command: string): void {
     if (this.verbose) {
-      console.log(`\x1b[35m[EXEC]\x1b[0m ${command}`);
+      console.log(`${COLORS.MAGENTA}[EXEC]${COLORS.RESET} ${command}`);
     }
   }
 
@@ -89,7 +104,7 @@ export class Logger {
    */
   timing(label: string, duration: number): void {
     if (this.verbose) {
-      console.log(`\x1b[34m[TIMING]\x1b[0m ${label}: ${duration}ms`);
+      console.log(`${COLORS.BLUE}[TIMING]${COLORS.RESET} ${label}: ${duration}ms`);
     }
   }
 
@@ -102,7 +117,7 @@ export class Logger {
    */
   config(config: Record<string, unknown>): void {
     if (this.verbose) {
-      console.log(`\x1b[32m[CONFIG]\x1b[0m`, JSON.stringify(config, null, 2));
+      console.log(`${COLORS.GREEN}[CONFIG]${COLORS.RESET}`, JSON.stringify(config, null, 2));
     }
   }
 

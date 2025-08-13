@@ -600,6 +600,33 @@ If any of these checks fail, the commit will be aborted. Fix the issues and try 
 
 ## Important Instructions for Claude
 
+## Coding Guidelines
+
+This project follows comprehensive coding guidelines for Next.js, TypeScript, and modern web development. For detailed standards and best practices, see [Coding Guidelines](docs/design_guide/coding-guidelines.md).
+
+The coding guidelines include:
+
+- **Single Source of Truth (SSOT) Principle** - Centralized management of constants and configuration
+- **Security Guidelines** - Critical security practices and prohibited implementations
+- **TypeScript Best Practices** - Type safety, naming conventions, and export patterns
+- **Next.js Development Patterns** - Server/Client Component usage, routing, and data fetching
+- **React Component Design** - Component composition, custom hooks, and performance optimization
+- **Accessibility Guidelines** - WCAG compliance and inclusive design principles
+- **Performance Optimization** - Code splitting, image optimization, and memoization strategies
+- **State Management** - Local vs global state, Context usage patterns
+- **Error Handling** - Unified error types, boundary components, and recovery strategies
+- **Tailwind CSS Guidelines** - Consistent styling patterns and responsive design
+- **Testing Strategy** - Unit, integration, and E2E testing approaches
+- **Import/Export Conventions** - Module organization and dependency management
+- **Prohibited Practices** - Security, performance, and accessibility violations to avoid
+
+**Key principles:**
+- Security-first approach with server-side processing of sensitive data
+- Framework-native solutions over third-party alternatives
+- Type safety and explicit interfaces
+- Performance-conscious development patterns
+- Accessible design for all users
+
 ### Question Handling
 
 When the user asks a question (indicated by question marks or interrogative phrases), ONLY answer the question without making any code changes or file modifications. Do not proactively fix or modify anything unless explicitly requested. If the user wants changes made after your answer, they will explicitly ask for them.

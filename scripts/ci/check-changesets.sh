@@ -8,7 +8,7 @@ set -euo pipefail
 #   should-release: true/false - Whether a release should be triggered
 
 # Check if there are pending changesets to process
-if [ -n "$(ls -A .changeset/*.md 2>/dev/null | grep -v README.md)" ]; then
+if [ -n "$(find .changeset -name '*.md' ! -name 'README.md' -print -quit 2>/dev/null)" ]; then
   echo "has-changesets=true" >> "$GITHUB_OUTPUT"
   echo "✅ Found pending changesets"
 else

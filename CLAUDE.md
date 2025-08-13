@@ -230,7 +230,10 @@ This is a Next.js 15.4.6 application using the App Router architecture with Reac
 ### Development Notes
 
 - Turbopack is enabled for faster development builds
-- No testing framework is currently configured
+- **Testing Frameworks:**
+  - **Vitest** - Unit and integration testing (`pnpm test:unit`, `pnpm test:integration`)
+  - **Playwright** - E2E testing (`pnpm test:e2e`)
+  - Coverage reporting with V8 (`pnpm test:coverage`)
 - ESLint is configured with Next.js and TypeScript rules
 - The project is ready for Vercel deployment
 

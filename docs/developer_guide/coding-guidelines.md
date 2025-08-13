@@ -295,6 +295,74 @@ const data = (await fetchUser()) as User; // 危険！
    - 型推論が効果的に働き、コンパイル時エラー検出が充実
    - 純粋関数は型安全性を最大限に活用できる
 
+### 参考文献・根拠となるベストプラクティス
+
+この純粋関数型ファーストアプローチは、2024-2025年の最新の業界トレンドと技術的根拠に基づいています：
+
+#### 1. 関数型プログラミングの業界動向
+
+**出典**: [React Best Practices to up Your Game in 2025 - Kinsta](https://kinsta.com/blog/react-best-practices/)
+
+- 純粋関数は「同じ入力に対して常に同じ出力を返し、副作用を持たない」ため、テストが容易で予測可能性が高い
+- 関数型プログラミングは「推論しやすい、組み合わせやすい、テストしやすい、デバッグしやすい、並列化しやすい」という利点を持つ
+- 2024年のTypeScriptコミュニティでは、保守性と再利用性の高いコードを実現する手法として関数型アプローチが強く推奨されている
+
+**出典**: [「保守性の高いTypeScript実装方法を書くための秘訣・ポイントを解説」- Ragate](https://www.ragate.co.jp/blog/articles/21323)
+
+#### 2. Next.js公式の推奨パターン
+
+**出典**: [Data Fetching: Fetching Data | Next.js](https://nextjs.org/docs/app/building-your-application/data-fetching/fetching)
+
+- App Routerでは、Server Componentsで直接`fetch()`を使用する純粋関数パターンを推奨
+- 「戻り値はシリアライズされない。Date、Map、Set等の複雑な型を直接返すことができる」
+- データフェッチングは純粋な`async function`での実装が標準パターン
+- クラスベースのパターンは現在の公式ドキュメントでは言及されていない
+
+**出典**: [Functions: fetch | Next.js](https://nextjs.org/docs/app/api-reference/functions/fetch)
+
+#### 3. React開発の現代的アプローチ
+
+**出典**: [React Class Components vs Functional Components with Hooks: A Complete Guide - Medium](https://bk10895.medium.com/react-class-components-vs-functional-components-with-hooks-a-complete-guide-23c6741247b1)
+
+- 関数コンポーネント + Hooksが「デファクトスタンダード」として確立
+- クラスコンポーネントは「レガシー対応以外では使用しない」が業界共通認識
+- 2024年現在、新規開発でクラスコンポーネントを選択する理由は存在しない
+
+**出典**: [React Function Components with hooks vs Class Components - Stack Overflow](https://stackoverflow.com/questions/53062732/react-function-components-with-hooks-vs-class-components)
+
+#### 4. ドメイン駆動設計における関数型アプローチ
+
+**出典**: [【後編】TypeScript×関数型×DDDで、ユニットテストが激減。実践の全貌とTips - レバテックラボ](https://levtech.jp/media/article/column/detail_559/)
+
+- 「オニオンアーキテクチャ＋関数型＋DDD」の組み合わせでユニットテストが激減
+- ドメイン層でも「純粋関数では表現が困難な複雑な状態遷移」以外は関数型で実装可能
+- 「Functional Core, Imperative Shell」原則により、最深層を可能な限り純粋に保つ
+
+**出典**: [Pure architecture with Typescript: DDD and layered architecture](https://discourse.world/h/2020/02/03/Pure-architecture-with-Typescript:DDD-and-layered-architecture)
+
+#### 5. API Client設計の最新トレンド
+
+**出典**: [Make fetch better and your API request methods easier to implement - DEV Community](https://dev.to/stroemdev/make-fetch-better-and-your-api-request-methods-easier-to-implement-e9i)
+
+- 「ジェネリックなfetchハンドラーを純粋関数で作成し、Responseオブジェクトを再形成せずに最大限の柔軟性を提供」
+
+**出典**: [Fetch with Typescript for better HTTP API Clients - DEV Community](https://dev.to/simonireilly/fetch-with-typescript-for-better-http-api-clients-2d71)
+
+- 関数型アプローチが「推論しやすい、組み合わせやすい、テストしやすい、デバッグしやすい、並列化しやすい」利点を提供
+- 「functional core, imperative shell」原則で副作用をサービス層に追いやる設計パターン
+
+#### 6. 企業における実践例
+
+**出典**: [Clean Architecture (Domain Layer) - DEV Community](https://dev.to/julianlasso/clean-architecture-domain-layer-3bdd)
+
+**出典**: [Clean architecture with TypeScript: DDD, Onion - André Bazaglia](https://bazaglia.com/clean-architecture-with-typescript-ddd-onion/)
+
+- クリーンアーキテクチャ×関数型の組み合わせで「テスタビリティと保守性が圧倒的に向上」
+- 「必要なときに必要なだけクラスを使う」基本原則で、闇雲なオブジェクト指向を避ける
+- Next.jsのシリアライゼーション境界を意識した「プレーンオブジェクトでのデータ受け渡し」パターン
+
+これらの技術的根拠により、本プロジェクトでは**純粋関数型を99%のケースで採用し、クラス化は極めて例外的な選択肢とする**方針を採用しています。
+
 ### 基本理念：純粋関数優先・例外的クラス活用
 
 **目的**: ステートレスで純粋関数を**最優先**とした実装を基本とし、**極めて特殊な場合にのみ**オブジェクト指向の利点を慎重に活用する。

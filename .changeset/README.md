@@ -6,3 +6,9 @@ find the full documentation for it [in our repository](https://github.com/change
 
 We have a quick list of common questions to get you started engaging with this project in
 [our documentation](https://github.com/changesets/changesets/blob/main/docs/common-questions.md)
+
+## Note on Configuration
+
+The `repo` field in `config.json` is set to `"WILL_BE_AUTO_REPLACED"` as a placeholder.
+This value is automatically replaced with the actual repository name (from `GITHUB_REPOSITORY` environment variable)
+during the GitHub Actions workflow execution. You don't need to manually update this value.

@@ -244,7 +244,7 @@ awk -v version="$VERSION" '
   "changelog": [
     "@changesets/changelog-github",
     {
-      "repo": "nextjs-boilerplate/nextjs-boilerplate"
+      "repo": "WILL_BE_AUTO_REPLACED"
     }
   ],
   "commit": false, // 自動コミット無効（GitHub Actionsで制御）
@@ -257,8 +257,9 @@ awk -v version="$VERSION" '
 
 `update-changeset-config.sh`により、実行時にリポジトリ名を動的に設定:
 
-- プレースホルダー値を`GITHUB_REPOSITORY`環境変数で置換
-- フォーク時やボイラープレート利用時の自動対応
+- `"WILL_BE_AUTO_REPLACED"`というプレースホルダー値を`GITHUB_REPOSITORY`環境変数で自動置換
+- この値は手動で設定する必要はなく、GitHub Actions実行時に自動的に正しい値に更新される
+- フォーク時やボイラープレート利用時も自動で対応
 
 ## 6. パッケージ設定
 

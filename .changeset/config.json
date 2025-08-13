@@ -3,7 +3,7 @@
   "changelog": [
     "@changesets/changelog-github",
     {
-      "repo": "nextjs-boilerplate/nextjs-boilerplate"
+      "repo": "WILL_BE_AUTO_REPLACED"
     }
   ],
   "commit": false,

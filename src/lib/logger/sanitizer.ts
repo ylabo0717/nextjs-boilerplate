@@ -5,10 +5,31 @@
 
 import type { SanitizedLogEntry } from './types';
 
+/**
+ * 🚨 高リスク対応: 制御文字サニタイザー実装
+ *
+ * ログインジェクション攻撃による監視システム汚染防止機能を提供します。
+ * 制御文字のサニタイゼーション、JSONシリアライゼーション、オブジェクトサイズ制限など
+ * セキュリティ重要な機能を実装しています。
+ *
+ * @public
+ */
 export class LogSanitizer {
   /**
    * 制御文字（0x00-0x1F, 0x7F-0x9F）のサニタイゼーション
-   * Unicode エスケープ形式（\\uXXXX）に変換
+   *
+   * ログインジェクション攻撃を防ぐため、制御文字をUnicodeエスケープ形式（\\uXXXX）に変換します。
+   *
+   * @param input - サニタイズ対象のデータ
+   * @returns サニタイズされたデータ
+   *
+   * @example
+   * ```typescript
+   * LogSanitizer.sanitizeControlCharacters("Hello\x00World")
+   * // → "Hello\\u0000World"
+   * ```
+   *
+   * @public
    */
   static sanitizeControlCharacters(input: unknown): unknown {
     if (typeof input === 'string') {
@@ -71,7 +92,19 @@ export class LogSanitizer {
 
   /**
    * CRLF注入防止
-   * 改行文字をエスケープ形式に変換
+   *
+   * ログファイルへのCRLF注入攻撃を防ぐため、改行文字をエスケープ形式に変換します。
+   *
+   * @param input - サニタイズ対象の文字列
+   * @returns エスケープされた文字列
+   *
+   * @example
+   * ```typescript
+   * LogSanitizer.sanitizeNewlines("Line1\nLine2\r\nLine3")
+   * // → "Line1\\nLine2\\r\\nLine3"
+   * ```
+   *
+   * @public
    */
   static sanitizeNewlines(input: string): string {
     return input.replace(/\r\n/g, '\\r\\n').replace(/\r/g, '\\r').replace(/\n/g, '\\n');
@@ -79,7 +112,19 @@ export class LogSanitizer {
 
   /**
    * JSON-safe 文字列エスケープ
-   * 制御文字と改行文字の両方をサニタイズ
+   *
+   * 制御文字と改行文字の両方をサニタイズし、JSON形式で安全に出力できるようにします。
+   *
+   * @param input - サニタイズ対象のデータ
+   * @returns JSONシリアライゼーション安全なデータ
+   *
+   * @example
+   * ```typescript
+   * LogSanitizer.sanitizeForJson("Hello\x00\nWorld")
+   * // → "Hello\\u0000\\nWorld"
+   * ```
+   *
+   * @public
    */
   static sanitizeForJson(input: unknown): unknown {
     if (typeof input === 'string') {
@@ -91,7 +136,21 @@ export class LogSanitizer {
 
   /**
    * ログメッセージの総合サニタイゼーション
-   * メッセージとデータの両方をサニタイズ
+   *
+   * ログメッセージとデータの両方をサニタイズし、安全な形式で返します。
+   * ログインジェクション攻撃やデータ破損を防ぐための包括的な処理を行います。
+   *
+   * @param message - ログメッセージ
+   * @param data - ログに含めるデータ（オプション）
+   * @returns サニタイズされたログエントリ
+   *
+   * @example
+   * ```typescript
+   * LogSanitizer.sanitizeLogEntry("User login\x00", { user: "admin\ntest" })
+   * // → { message: "User login\\u0000", data: { user: "admin\\ntest" } }
+   * ```
+   *
+   * @public
    */
   static sanitizeLogEntry(message: string, data?: unknown): SanitizedLogEntry {
     const sanitizedMessage = this.sanitizeForJson(message);
@@ -105,12 +164,40 @@ export class LogSanitizer {
 
   /**
    * 大きなオブジェクトの制限
-   * メモリ枯渇防止のためのサイズ制限
+   *
+   * メモリ枯渇防止のため、オブジェクトの深度とキー数を制限します。
+   * 循環参照の検出と処理も行い、安全なログ出力を保証します。
+   *
+   * @param input - 制限対象のデータ
+   * @param maxDepth - 最大深度（デフォルト: 10）
+   * @param maxKeys - 最大キー数（デフォルト: 100）
+   * @returns サイズ制限されたデータ
+   *
+   * @example
+   * ```typescript
+   * const largeObj = { a: 1, b: 2 }; // 200 keys example
+   * LogSanitizer.limitObjectSize(largeObj, 10, 50);
+   * // Returns: { a: 1, b: 2, _truncated: "150 more keys" }
+   * ```
+   *
+   * @public
    */
   static limitObjectSize(input: unknown, maxDepth: number = 10, maxKeys: number = 100): unknown {
     return this.limitObjectSizeRecursive(input, maxDepth, maxKeys, 0, new Set());
   }
 
+  /**
+   * オブジェクトサイズ制限の再帰処理
+   *
+   * @param input - 処理対象のデータ
+   * @param maxDepth - 最大深度
+   * @param maxKeys - 最大キー数
+   * @param currentDepth - 現在の深度
+   * @param seen - 循環参照検出用のセット
+   * @returns 制限されたデータ
+   *
+   * @internal
+   */
   private static limitObjectSizeRecursive(
     input: unknown,
     maxDepth: number,
@@ -137,6 +224,18 @@ export class LogSanitizer {
     return input;
   }
 
+  /**
+   * 配列データの処理
+   *
+   * @param input - 処理対象の配列
+   * @param maxDepth - 最大深度
+   * @param maxKeys - 最大要素数
+   * @param currentDepth - 現在の深度
+   * @param seen - 循環参照検出用のセット
+   * @returns 制限された配列
+   *
+   * @internal
+   */
   private static processArray(
     input: unknown[],
     maxDepth: number,
@@ -158,6 +257,18 @@ export class LogSanitizer {
     );
   }
 
+  /**
+   * オブジェクトデータの処理
+   *
+   * @param input - 処理対象のオブジェクト
+   * @param maxDepth - 最大深度
+   * @param maxKeys - 最大キー数
+   * @param currentDepth - 現在の深度
+   * @param seen - 循環参照検出用のセット
+   * @returns 制限されたオブジェクト
+   *
+   * @internal
+   */
   private static processObject(
     input: object,
     maxDepth: number,
@@ -183,6 +294,19 @@ export class LogSanitizer {
     }
   }
 
+  /**
+   * キー数制限されたオブジェクトの作成
+   *
+   * @param entries - オブジェクトのキー・値ペア
+   * @param maxDepth - 最大深度
+   * @param maxKeys - 最大キー数
+   * @param currentDepth - 現在の深度
+   * @param seen - 循環参照検出用のセット
+   * @param keyLimit - キー制限数
+   * @returns 制限されたオブジェクト
+   *
+   * @internal
+   */
   private static createLimitedObject(
     entries: [string, unknown][],
     maxDepth: number,
@@ -209,6 +333,18 @@ export class LogSanitizer {
     return limited;
   }
 
+  /**
+   * 完全なオブジェクトの作成
+   *
+   * @param entries - オブジェクトのキー・値ペア
+   * @param maxDepth - 最大深度
+   * @param maxKeys - 最大キー数
+   * @param currentDepth - 現在の深度
+   * @param seen - 循環参照検出用のセット
+   * @returns 処理されたオブジェクト
+   *
+   * @internal
+   */
   private static createCompleteObject(
     entries: [string, unknown][],
     maxDepth: number,
@@ -235,14 +371,48 @@ export class LogSanitizer {
 
 /**
  * ユーティリティ関数のエクスポート
+ *
+ * LogSanitizerクラスの主要機能へのショートカット関数を提供します。
+ */
+
+/**
+ * 制御文字のサニタイゼーション
+ *
+ * @param input - サニタイズ対象のデータ
+ * @returns サニタイズされたデータ
+ * @public
  */
 export const sanitizeControlCharacters = (input: unknown) =>
   LogSanitizer.sanitizeControlCharacters(input);
 
+/**
+ * JSON安全な文字列エスケープ
+ *
+ * @param input - サニタイズ対象のデータ
+ * @returns JSONシリアライゼーション安全なデータ
+ * @public
+ */
 export const sanitizeForJson = (input: unknown) => LogSanitizer.sanitizeForJson(input);
 
+/**
+ * ログエントリの総合サニタイゼーション
+ *
+ * @param message - ログメッセージ
+ * @param data - ログデータ（オプション）
+ * @returns サニタイズされたログエントリ
+ * @public
+ */
 export const sanitizeLogEntry = (message: string, data?: unknown): SanitizedLogEntry =>
   LogSanitizer.sanitizeLogEntry(message, data);
 
+/**
+ * オブジェクトサイズ制限
+ *
+ * @param input - 制限対象のデータ
+ * @param maxDepth - 最大深度（オプション）
+ * @param maxKeys - 最大キー数（オプション）
+ * @returns サイズ制限されたデータ
+ * @public
+ */
 export const limitObjectSize = (input: unknown, maxDepth?: number, maxKeys?: number) =>
   LogSanitizer.limitObjectSize(input, maxDepth, maxKeys);

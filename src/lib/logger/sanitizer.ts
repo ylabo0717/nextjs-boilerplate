@@ -127,64 +127,109 @@ export class LogSanitizer {
     }
 
     if (Array.isArray(input)) {
-      if (input.length > maxKeys) {
-        const truncated = input
-          .slice(0, maxKeys)
-          .map((item) =>
-            this.limitObjectSizeRecursive(item, maxDepth, maxKeys, currentDepth + 1, seen)
-          );
-        truncated.push({ _truncated: `${input.length - maxKeys} more items` });
-        return truncated;
-      }
-      return input.map((item) =>
-        this.limitObjectSizeRecursive(item, maxDepth, maxKeys, currentDepth + 1, seen)
-      );
+      return this.processArray(input, maxDepth, maxKeys, currentDepth, seen);
     }
 
     if (input && typeof input === 'object') {
-      if (seen.has(input)) {
-        return { _circular_reference: true };
-      }
-
-      seen.add(input);
-
-      try {
-        const entries = Object.entries(input);
-        if (entries.length > maxKeys) {
-          const limited: Record<string, unknown> = {};
-          const limitedEntries = entries.slice(0, maxKeys);
-          for (const [key, value] of limitedEntries) {
-            const processedValue = this.limitObjectSizeRecursive(
-              value,
-              maxDepth,
-              maxKeys,
-              currentDepth + 1,
-              seen
-            );
-            Object.assign(limited, { [key]: processedValue });
-          }
-          Object.assign(limited, { _truncated: `${entries.length - maxKeys} more keys` });
-          return limited;
-        }
-
-        const result: Record<string, unknown> = {};
-        for (const [key, value] of entries) {
-          const processedValue = this.limitObjectSizeRecursive(
-            value,
-            maxDepth,
-            maxKeys,
-            currentDepth + 1,
-            seen
-          );
-          Object.assign(result, { [key]: processedValue });
-        }
-        return result;
-      } finally {
-        seen.delete(input);
-      }
+      return this.processObject(input, maxDepth, maxKeys, currentDepth, seen);
     }
 
     return input;
+  }
+
+  private static processArray(
+    input: unknown[],
+    maxDepth: number,
+    maxKeys: number,
+    currentDepth: number,
+    seen: Set<object>
+  ): unknown[] {
+    if (input.length > maxKeys) {
+      const truncated = input
+        .slice(0, maxKeys)
+        .map((item) =>
+          this.limitObjectSizeRecursive(item, maxDepth, maxKeys, currentDepth + 1, seen)
+        );
+      truncated.push({ _truncated: `${input.length - maxKeys} more items` });
+      return truncated;
+    }
+    return input.map((item) =>
+      this.limitObjectSizeRecursive(item, maxDepth, maxKeys, currentDepth + 1, seen)
+    );
+  }
+
+  private static processObject(
+    input: object,
+    maxDepth: number,
+    maxKeys: number,
+    currentDepth: number,
+    seen: Set<object>
+  ): unknown {
+    if (seen.has(input)) {
+      return { _circular_reference: true };
+    }
+
+    seen.add(input);
+
+    try {
+      const entries = Object.entries(input);
+      if (entries.length > maxKeys) {
+        return this.createLimitedObject(entries, maxDepth, maxKeys, currentDepth, seen, maxKeys);
+      }
+
+      return this.createCompleteObject(entries, maxDepth, maxKeys, currentDepth, seen);
+    } finally {
+      seen.delete(input);
+    }
+  }
+
+  private static createLimitedObject(
+    entries: [string, unknown][],
+    maxDepth: number,
+    maxKeys: number,
+    currentDepth: number,
+    seen: Set<object>,
+    keyLimit: number
+  ): Record<string, unknown> {
+    const limited: Record<string, unknown> = {};
+    const limitedEntries = entries.slice(0, keyLimit);
+
+    for (const [key, value] of limitedEntries) {
+      const processedValue = this.limitObjectSizeRecursive(
+        value,
+        maxDepth,
+        maxKeys,
+        currentDepth + 1,
+        seen
+      );
+      Object.assign(limited, { [key]: processedValue });
+    }
+
+    Object.assign(limited, { _truncated: `${entries.length - keyLimit} more keys` });
+    return limited;
+  }
+
+  private static createCompleteObject(
+    entries: [string, unknown][],
+    maxDepth: number,
+    maxKeys: number,
+    currentDepth: number,
+    seen: Set<object>
+  ): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+
+    for (const [key, value] of entries) {
+      const processedValue = this.limitObjectSizeRecursive(
+        value,
+        maxDepth,
+        maxKeys,
+        currentDepth + 1,
+        seen
+      );
+      Object.assign(result, { [key]: processedValue });
+    }
+
+    return result;
   }
 }
 

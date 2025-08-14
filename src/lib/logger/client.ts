@@ -1,6 +1,9 @@
 /**
- * クライアントサイドLogger実装
+ * クライアントサイドLogger実装（純粋関数型）
  * ブラウザ環境での軽量ログ処理とコンソール統合
+ *
+ * アーキテクチャ原則に従った純粋関数ファーストの実装。
+ * ステートレスで予測可能、テスタブルなログシステムを提供。
  */
 
 import { sanitizeLogEntry, limitObjectSize } from './sanitizer';
@@ -10,6 +13,11 @@ import type { Logger, LogArgument, LogLevel } from './types';
 
 /**
  * ブラウザコンソールスタイル定義
+ *
+ * 各ログレベルに対応するCSS設定。
+ * ブラウザコンソールでの視覚的区別に使用。
+ *
+ * @internal
  */
 const CONSOLE_STYLES = {
   trace: 'color: #6b7280; font-weight: normal;',
@@ -22,6 +30,11 @@ const CONSOLE_STYLES = {
 
 /**
  * ログレベルの優先度マップ
+ *
+ * 数値による優先度定義。高い値ほど重要度が高い。
+ * ログレベルフィルタリングに使用。
+ *
+ * @internal
  */
 const LOG_LEVELS = {
   trace: 10,
@@ -33,401 +46,351 @@ const LOG_LEVELS = {
 } as const;
 
 /**
- * クライアントサイドLogger実装
+ * クライアントLogger設定型
  *
- * Edge Runtime対応の軽量実装。ブラウザ環境での効率的なログ処理と
- * コンソール統合を提供。サーバーサイドロガーとの統一インターフェース。
- *
- * 主要機能:
- * - 軽量でパフォーマンス重視の設計
- * - セキュリティサニタイゼーション統合
- * - カラー付きコンソール出力
- * - デバッグ情報とパフォーマンス測定
- * - プロダクション環境での最適化
+ * ログ動作を制御する不変設定オブジェクト。
+ * 純粋関数の引数として使用。
  *
  * @public
  */
-export class ClientLogger {
-  /**
-   * 現在のログレベル設定
-   *
-   * 環境変数またはデフォルト値から取得。
-   * このレベル以上のログのみが出力される。
-   *
-   * @internal
-   */
-  private level: LogLevel;
+export type ClientLoggerConfig = {
+  /** 現在のログレベル設定 */
+  readonly level: LogLevel;
+  /** すべてのログエントリに付与される基本プロパティ */
+  readonly baseProperties: Readonly<Record<string, unknown>>;
+};
 
-  /**
-   * ベースプロパティ設定
-   *
-   * すべてのログエントリに自動付与される基本情報。
-   * アプリケーション識別と環境管理に使用。
-   *
-   * @internal
-   */
-  private baseProperties: ReturnType<typeof createBaseProperties>;
+/**
+ * クライアントLogger設定を作成
+ *
+ * 環境変数とシステム情報から不変の設定オブジェクトを生成。
+ * アプリケーション起動時に一度だけ実行される純粋関数。
+ *
+ * @returns 不変なLogger設定オブジェクト
+ *
+ * @public
+ */
+export function createClientLoggerConfig(): ClientLoggerConfig {
+  return {
+    level: getClientLogLevel(),
+    baseProperties: Object.freeze(createBaseProperties()),
+  } as const;
+}
 
-  /**
-   * ClientLoggerコンストラクタ
-   *
-   * クライアント環境設定を初期化。
-   * ログレベルとベースプロパティを環境に応じて設定。
-   *
-   * @public
-   */
-  constructor() {
-    this.level = getClientLogLevel();
-    this.baseProperties = createBaseProperties();
+/**
+ * ログレベルの数値を取得（純粋関数）
+ *
+ * ログレベル文字列を対応する数値に変換。
+ * 型安全性を保ちながら数値比較を可能にする。
+ *
+ * @param level - 変換するログレベル
+ * @returns ログレベルに対応する数値
+ *
+ * @internal
+ */
+function getLogLevelValue(level: LogLevel): number {
+  switch (level) {
+    case 'trace':
+      return LOG_LEVELS.trace;
+    case 'debug':
+      return LOG_LEVELS.debug;
+    case 'info':
+      return LOG_LEVELS.info;
+    case 'warn':
+      return LOG_LEVELS.warn;
+    case 'error':
+      return LOG_LEVELS.error;
+    case 'fatal':
+      return LOG_LEVELS.fatal;
+    default:
+      return LOG_LEVELS.info; // フォールバック
   }
+}
 
-  /**
-   * ログレベルのバリデーション
-   *
-   * 指定されたログレベルが現在の設定で出力されるかを判定。
-   * パフォーマンス最適化のためのプリチェックに使用。
-   *
-   * @param level - チェックするログレベル
-   * @returns ログレベルが有効な場合true
-   *
-   * @public
-   */
-  public isLevelEnabled(level: LogLevel): boolean {
-    const targetLevel = this.getLevelValue(level);
-    const currentLevel = this.getLevelValue(this.level);
+/**
+ * ログレベルの有効性チェック（純粋関数）
+ *
+ * 指定されたログレベルが現在の設定で出力されるかを判定。
+ * パフォーマンス最適化のためのプリチェックに使用。
+ *
+ * @param config - Logger設定
+ * @param level - チェックするログレベル
+ * @returns ログレベルが有効な場合true
+ *
+ * @public
+ */
+export function isLevelEnabled(config: ClientLoggerConfig, level: LogLevel): boolean {
+  const targetLevel = getLogLevelValue(level);
+  const currentLevel = getLogLevelValue(config.level);
 
-    return targetLevel >= currentLevel;
+  return targetLevel >= currentLevel;
+}
+
+/**
+ * コンソールスタイルを取得（純粋関数）
+ *
+ * ログレベルに対応するCSS記述文字列を取得。
+ * 型安全性を保ちながらスタイル適用。
+ *
+ * @param level - スタイルを取得するログレベル
+ * @returns CSSスタイル文字列
+ *
+ * @internal
+ */
+function getConsoleStyle(level: LogLevel): string {
+  switch (level) {
+    case 'trace':
+      return CONSOLE_STYLES.trace;
+    case 'debug':
+      return CONSOLE_STYLES.debug;
+    case 'info':
+      return CONSOLE_STYLES.info;
+    case 'warn':
+      return CONSOLE_STYLES.warn;
+    case 'error':
+      return CONSOLE_STYLES.error;
+    case 'fatal':
+      return CONSOLE_STYLES.fatal;
+    default:
+      return CONSOLE_STYLES.info; // フォールバック
   }
+}
 
-  /**
-   * 型安全にログレベルの数値を取得
-   *
-   * ログレベル文字列を対応する数値に変換。
-   * TypeScript型チェックとruntime安全性を両立。
-   *
-   * @param level - 変換するログレベル
-   * @returns ログレベルに対応する数値
-   *
-   * @internal
-   */
-  private getLevelValue(level: LogLevel): number {
-    const validLevels = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
+/**
+ * コンソールメソッドを取得（純粋関数）
+ *
+ * ログレベルに最適なブラウザコンソールメソッドを選択。
+ * エラーレベルはconsole.error、警告はconsole.warnを使用。
+ *
+ * @param level - ログレベル
+ * @returns 対応するコンソールメソッド
+ *
+ * @internal
+ */
+function getConsoleMethod(level: LogLevel): typeof console.log {
+  switch (level) {
+    case 'trace':
+      return console.trace.bind(console);
+    case 'debug':
+      return console.debug.bind(console);
+    case 'info':
+      return console.info.bind(console);
+    case 'warn':
+      return console.warn.bind(console);
+    case 'error':
+    case 'fatal':
+      return console.error.bind(console);
+    default:
+      return console.log.bind(console);
+  }
+}
 
-    if (validLevels.includes(level)) {
-      switch (level) {
-        case 'trace':
-          return LOG_LEVELS.trace;
-        case 'debug':
-          return LOG_LEVELS.debug;
-        case 'info':
-          return LOG_LEVELS.info;
-        case 'warn':
-          return LOG_LEVELS.warn;
-        case 'error':
-          return LOG_LEVELS.error;
-        case 'fatal':
-          return LOG_LEVELS.fatal;
-        default:
-          return LOG_LEVELS.info;
-      }
+/**
+ * ログ引数を処理（純粋関数）
+ *
+ * ログメソッドに渡された複数引数を統一的な構造に変換。
+ * 型に応じた適切な処理とサイズ制限を適用。
+ *
+ * @param args - ログメソッドの引数配列
+ * @returns 統一された構造化データ
+ *
+ * @internal
+ */
+function processLogArguments(args: LogArgument[]): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  for (const arg of args) {
+    if (arg === null || arg === undefined) {
+      continue;
     }
 
-    return LOG_LEVELS.info; // フォールバック
-  }
-
-  /**
-   * 型安全にコンソールスタイルを取得
-   *
-   * ログレベルに対応するCSS記述文字列を取得。
-   * ブラウザコンソールでの視覚的な区別に使用。
-   *
-   * @param level - スタイルを取得するログレベル
-   * @returns CSSスタイル文字列
-   *
-   * @internal
-   */
-  private getConsoleStyle(level: LogLevel): string {
-    const validLevels = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
-
-    if (validLevels.includes(level)) {
-      // 事前定義された安全なキーのみアクセス
-      switch (level) {
-        case 'trace':
-          return CONSOLE_STYLES.trace;
-        case 'debug':
-          return CONSOLE_STYLES.debug;
-        case 'info':
-          return CONSOLE_STYLES.info;
-        case 'warn':
-          return CONSOLE_STYLES.warn;
-        case 'error':
-          return CONSOLE_STYLES.error;
-        case 'fatal':
-          return CONSOLE_STYLES.fatal;
-        default:
-          return CONSOLE_STYLES.info;
-      }
-    }
-
-    return CONSOLE_STYLES.info; // フォールバック
-  }
-
-  /**
-   * 統合ログ出力メソッド
-   *
-   * すべてのログレベルで使用される共通出力処理。
-   * セキュリティサニタイゼーション、フォーマット、コンソール出力を統合。
-   *
-   * @param level - ログレベル
-   * @param message - ログメッセージ
-   * @param args - 追加のログデータ
-   *
-   * @internal
-   */
-  private log(level: LogLevel, message: string, ...args: LogArgument[]): void {
-    if (!this.isLevelEnabled(level)) {
-      return;
-    }
-
-    // ログエントリの構築
-    const timestamp = new Date().toISOString();
-    const logEntry = {
-      timestamp,
-      level,
-      message,
-      ...this.baseProperties,
-    };
-
-    // 引数の処理とサニタイズ
-    const processedArgs = this.processArguments(args);
-    const sanitized = sanitizeLogEntry(message, {
-      ...logEntry,
-      ...processedArgs,
-    });
-
-    // ブラウザコンソールへの出力
-    this.outputToConsole(level, sanitized.message, sanitized.data);
-
-    // 開発環境では追加のデバッグ情報を出力
-    if (process.env.NODE_ENV === 'development') {
-      console.groupCollapsed(`[Logger] ${level.toUpperCase()} - ${timestamp}`);
-      console.log('Original message:', message);
-      console.log('Processed data:', sanitized.data);
-      console.log('Arguments:', processedArgs);
-      console.groupEnd();
-    }
-  }
-
-  /**
-   * 引数の処理とマージ
-   *
-   * ログメソッドに渡された複数引数を統一的な構造に変換。
-   * 型に応じた適切な処理とサイズ制限を適用。
-   *
-   * @param args - ログメソッドの引数配列
-   * @returns 統一された構造化データ
-   *
-   * @internal
-   */
-  private processArguments(args: LogArgument[]): Record<string, unknown> {
-    const result: Record<string, unknown> = {};
-
-    for (const arg of args) {
-      if (arg === null || arg === undefined) {
-        continue;
-      }
-
-      if (arg instanceof Error) {
-        // Error オブジェクトの処理
-        result.error = serializeError(arg);
-      } else if (typeof arg === 'object' && !Array.isArray(arg)) {
-        // オブジェクトのマージ（サイズ制限付き）
-        const limited = limitObjectSize(arg, 8, 50);
-        Object.assign(result, limited);
-      } else {
-        // その他の型は args 配列に格納
-        if (!result.args) {
-          result.args = [];
-        }
-        (result.args as unknown[]).push(arg);
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * ブラウザコンソールへの出力
-   *
-   * ログレベルに応じたスタイルとコンソールメソッドで出力。
-   * 構造化データは折りたたみ可能なグループとして表示。
-   *
-   * @param level - ログレベル
-   * @param message - 出力メッセージ
-   * @param data - 追加の構造化データ
-   *
-   * @internal
-   */
-  private outputToConsole(level: LogLevel, message: string, data?: unknown): void {
-    // 型安全な方法でスタイルを取得
-    const style = this.getConsoleStyle(level);
-    const prefix = `[${level.toUpperCase()}]`;
-
-    // コンソールメソッドの選択
-    const consoleMethod = this.getConsoleMethod(level);
-
-    if (data && typeof data === 'object') {
-      // データがある場合はグループ化して表示
-      console.group(`%c${prefix} ${message}`, style);
-      consoleMethod('Details:', data);
-      console.groupEnd();
+    if (arg instanceof Error) {
+      // Error オブジェクトの処理
+      result.error = serializeError(arg);
+    } else if (typeof arg === 'object' && !Array.isArray(arg)) {
+      // オブジェクトのマージ（サイズ制限付き）
+      const limited = limitObjectSize(arg, 8, 50);
+      Object.assign(result, limited);
     } else {
-      // シンプルなメッセージ出力
-      consoleMethod(`%c${prefix} ${message}`, style, data || '');
+      // その他の型は args 配列に格納
+      if (!result.args) {
+        result.args = [];
+      }
+      (result.args as unknown[]).push(arg);
     }
   }
 
-  /**
-   * レベル別コンソールメソッドの取得
-   *
-   * ログレベルに最適なブラウザコンソールメソッドを選択。
-   * エラーレベルはconsole.error、警告はconsole.warnを使用。
-   *
-   * @param level - ログレベル
-   * @returns 対応するコンソールメソッド
-   *
-   * @internal
-   */
-  private getConsoleMethod(level: LogLevel): typeof console.log {
-    switch (level) {
-      case 'trace':
-        return console.trace.bind(console);
-      case 'debug':
-        return console.debug.bind(console);
-      case 'info':
-        return console.info.bind(console);
-      case 'warn':
-        return console.warn.bind(console);
-      case 'error':
-      case 'fatal':
-        return console.error.bind(console);
-      default:
-        return console.log.bind(console);
-    }
-  }
+  return result;
+}
 
-  /**
-   * Logger インターフェース実装メソッド群
-   *
-   * 統一Loggerインターフェースに準拠したログメソッド群。
-   * 各メソッドは内部のlog()メソッドにレベルを指定して委譲。
-   *
-   * @public
-   */
-
-  /**
-   * トレースレベルログ出力
-   *
-   * 最も詳細なデバッグ情報。開発環境でのみ推奨。
-   *
-   * @param message - ログメッセージ
-   * @param args - 追加のログデータ
-   *
-   * @public
-   */
-  trace = (message: string, ...args: LogArgument[]) => this.log('trace', message, ...args);
-
-  /**
-   * デバッグレベルログ出力
-   *
-   * 開発環境でのデバッグ情報。本番環境では通常無効。
-   *
-   * @param message - ログメッセージ
-   * @param args - 追加のログデータ
-   *
-   * @public
-   */
-  debug = (message: string, ...args: LogArgument[]) => this.log('debug', message, ...args);
-
-  /**
-   * 情報レベルログ出力
-   *
-   * 一般的な情報ログ。本番環境でも安全。
-   *
-   * @param message - ログメッセージ
-   * @param args - 追加のログデータ
-   *
-   * @public
-   */
-  info = (message: string, ...args: LogArgument[]) => this.log('info', message, ...args);
-
-  /**
-   * 警告レベルログ出力
-   *
-   * 潜在的な問題やパフォーマンス警告。
-   *
-   * @param message - ログメッセージ
-   * @param args - 追加のログデータ
-   *
-   * @public
-   */
-  warn = (message: string, ...args: LogArgument[]) => this.log('warn', message, ...args);
-
-  /**
-   * エラーレベルログ出力
-   *
-   * 処理継続可能なエラー情報。
-   *
-   * @param message - ログメッセージ
-   * @param args - 追加のログデータ
-   *
-   * @public
-   */
-  error = (message: string, ...args: LogArgument[]) => this.log('error', message, ...args);
-
-  /**
-   * 致命的レベルログ出力
-   *
-   * アプリケーション停止を要する重大エラー。
-   *
-   * @param message - ログメッセージ
-   * @param args - 追加のログデータ
-   *
-   * @public
-   */
-  fatal = (message: string, ...args: LogArgument[]) => this.log('fatal', message, ...args);
-} // クライアントLoggerインスタンスの作成
 /**
- * クライアントサイドメインロガーインスタンス
+ * ブラウザコンソールに出力（副作用関数）
  *
- * ブラウザ環境で使用されるメインのロガーインスタンス。
- * ClientLoggerクラスの設定済みインスタンス。
+ * ログレベルに応じたスタイルとコンソールメソッドで出力。
+ * 構造化データは折りたたみ可能なグループとして表示。
  *
- * 軽量でパフォーマンス重視の設計により、
- * クライアントサイドでの効率的なログ記録を実現。
+ * @param level - ログレベル
+ * @param message - 出力メッセージ
+ * @param data - 追加の構造化データ
+ *
+ * @internal
+ */
+function outputToConsole(level: LogLevel, message: string, data?: unknown): void {
+  const style = getConsoleStyle(level);
+  const prefix = `[${level.toUpperCase()}]`;
+
+  // コンソールメソッドの選択
+  const consoleMethod = getConsoleMethod(level);
+
+  if (data && typeof data === 'object') {
+    // データがある場合はグループ化して表示
+    console.group(`%c${prefix} ${message}`, style);
+    consoleMethod('Details:', data);
+    console.groupEnd();
+  } else {
+    // シンプルなメッセージ出力
+    consoleMethod(`%c${prefix} ${message}`, style, data || '');
+  }
+}
+
+/**
+ * 開発環境用デバッグ情報出力（副作用関数）
+ *
+ * 開発環境でのみ詳細なデバッグ情報を表示。
+ * ログ処理の内部状態と引数を可視化。
+ *
+ * @param level - ログレベル
+ * @param originalMessage - 元のメッセージ
+ * @param processedData - 処理済みデータ
+ * @param processedArgs - 処理済み引数
+ *
+ * @internal
+ */
+function outputDevelopmentDebug(
+  level: LogLevel,
+  originalMessage: string,
+  processedData: unknown,
+  processedArgs: Record<string, unknown>
+): void {
+  if (process.env.NODE_ENV === 'development') {
+    const timestamp = new Date().toISOString();
+    console.groupCollapsed(`[Logger] ${level.toUpperCase()} - ${timestamp}`);
+    console.log('Original message:', originalMessage);
+    console.log('Processed data:', processedData);
+    console.log('Arguments:', processedArgs);
+    console.groupEnd();
+  }
+}
+
+/**
+ * 統合ログ出力関数（純粋関数 + 制御された副作用）
+ *
+ * すべてのログレベルで使用される共通出力処理。
+ * セキュリティサニタイゼーション、フォーマット、コンソール出力を統合。
+ *
+ * 設計原則:
+ * - 設定とメッセージ処理は純粋関数
+ * - コンソール出力のみ副作用として分離
+ * - テスタビリティを最大化
+ *
+ * @param config - Logger設定（不変）
+ * @param level - ログレベル
+ * @param message - ログメッセージ
+ * @param args - 追加のログデータ
  *
  * @public
  */
-export const clientLogger = new ClientLogger();
+export function log(
+  config: ClientLoggerConfig,
+  level: LogLevel,
+  message: string,
+  ...args: LogArgument[]
+): void {
+  // レベルチェック（純粋関数）
+  if (!isLevelEnabled(config, level)) {
+    return;
+  }
+
+  // ログエントリの構築（純粋関数）
+  const timestamp = new Date().toISOString();
+  const logEntry = {
+    timestamp,
+    level,
+    message,
+    ...config.baseProperties,
+  };
+
+  // 引数の処理とサニタイズ（純粋関数）
+  const processedArgs = processLogArguments(args);
+  const sanitized = sanitizeLogEntry(message, {
+    ...logEntry,
+    ...processedArgs,
+  });
+
+  // 副作用: ブラウザコンソールへの出力
+  outputToConsole(level, sanitized.message, sanitized.data);
+
+  // 副作用: 開発環境デバッグ情報
+  outputDevelopmentDebug(level, message, sanitized.data, processedArgs);
+}
 
 /**
- * Logger インターフェース準拠のラッパー
+ * Logger インターフェース準拠オブジェクトを作成
  *
- * 統一Loggerインターフェースに完全準拠したクライアントロガー。
+ * 設定を部分適用した統一Loggerインターフェース。
  * サーバーサイドロガーとの互換性を保ちながら、
  * クライアント最適化されたログ処理を提供。
  *
+ * @param config - Logger設定
+ * @returns Logger インターフェース準拠オブジェクト
+ *
  * @public
  */
-export const clientLoggerWrapper: Logger = {
-  trace: clientLogger.trace,
-  debug: clientLogger.debug,
-  info: clientLogger.info,
-  warn: clientLogger.warn,
-  error: clientLogger.error,
-  fatal: clientLogger.fatal,
-  isLevelEnabled: (level) => clientLogger.isLevelEnabled(level),
-};
+export function createClientLogger(config: ClientLoggerConfig): Logger {
+  return {
+    trace: (message: string, ...args: LogArgument[]) => log(config, 'trace', message, ...args),
+    debug: (message: string, ...args: LogArgument[]) => log(config, 'debug', message, ...args),
+    info: (message: string, ...args: LogArgument[]) => log(config, 'info', message, ...args),
+    warn: (message: string, ...args: LogArgument[]) => log(config, 'warn', message, ...args),
+    error: (message: string, ...args: LogArgument[]) => log(config, 'error', message, ...args),
+    fatal: (message: string, ...args: LogArgument[]) => log(config, 'fatal', message, ...args),
+    isLevelEnabled: (level: LogLevel) => isLevelEnabled(config, level),
+  };
+}
+
+// ===================================================================
+// デフォルトインスタンスとヘルパー関数（後方互換性）
+// ===================================================================
+
+/**
+ * デフォルトクライアントLogger設定
+ *
+ * アプリケーション全体で使用されるデフォルト設定。
+ * 一度だけ作成され、以降はimmutableとして使用。
+ *
+ * @public
+ */
+export const defaultClientLoggerConfig = createClientLoggerConfig();
+
+/**
+ * デフォルトクライアントLoggerインスタンス
+ *
+ * 最も一般的な用途での推奨ロガー。
+ * デフォルト設定を使用した即座に利用可能なインスタンス。
+ *
+ * @public
+ */
+export const clientLogger = createClientLogger(defaultClientLoggerConfig);
+
+/**
+ * Logger インターフェース準拠のラッパー（後方互換性）
+ *
+ * 既存コードとの互換性のためのエイリアス。
+ * clientLoggerと同じインスタンスを指す。
+ *
+ * @public
+ */
+export const clientLoggerWrapper: Logger = clientLogger;
 
 /**
  * クライアントサイド専用ヘルパー関数群
@@ -458,7 +421,7 @@ export const clientLoggerHelpers = {
       const result = fn();
       const duration = performance.now() - start;
 
-      clientLogger.info(`Performance: ${name}`, {
+      log(defaultClientLoggerConfig, 'info', `Performance: ${name}`, {
         event_name: `performance.${name}`,
         event_category: 'system_event',
         duration_ms: duration,
@@ -468,7 +431,7 @@ export const clientLoggerHelpers = {
       return result;
     } catch (error) {
       const duration = performance.now() - start;
-      clientLogger.error(`Performance error: ${name}`, {
+      log(defaultClientLoggerConfig, 'error', `Performance error: ${name}`, {
         event_name: 'error.performance',
         event_category: 'error_event',
         duration_ms: duration,
@@ -491,7 +454,7 @@ export const clientLoggerHelpers = {
    * @public
    */
   logUserAction: (action: string, details: Record<string, unknown> = {}) => {
-    clientLogger.info(`User action: ${action}`, {
+    log(defaultClientLoggerConfig, 'info', `User action: ${action}`, {
       event_name: `user.${action}`,
       event_category: 'user_action',
       event_attributes: details,
@@ -512,7 +475,7 @@ export const clientLoggerHelpers = {
    * @public
    */
   logNavigation: (from: string, to: string, method: string = 'unknown') => {
-    clientLogger.info('Navigation event', {
+    log(defaultClientLoggerConfig, 'info', 'Navigation event', {
       event_name: 'navigation.route_change',
       event_category: 'user_action',
       event_attributes: {
@@ -536,7 +499,7 @@ export const clientLoggerHelpers = {
    * @public
    */
   logError: (error: Error | unknown, context: Record<string, unknown> = {}) => {
-    clientLogger.error('Client error occurred', {
+    log(defaultClientLoggerConfig, 'error', 'Client error occurred', {
       event_name: 'error.client',
       event_category: 'error_event',
       event_attributes: context,
@@ -560,11 +523,9 @@ export const clientLoggerHelpers = {
    * @public
    */
   logApiCall: (url: string, method: string, status?: number, duration?: number) => {
-    const level = status && status >= 400 ? 'error' : 'info';
+    const level: LogLevel = status && status >= 400 ? 'error' : 'info';
 
-    // 型安全なメソッド呼び出し
-    const logMethod = level === 'error' ? clientLogger.error : clientLogger.info;
-    logMethod(`API call: ${method} ${url}`, {
+    log(defaultClientLoggerConfig, level, `API call: ${method} ${url}`, {
       event_name: 'api.request',
       event_category: 'system_event',
       event_attributes: {

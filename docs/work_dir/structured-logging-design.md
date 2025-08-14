@@ -95,9 +95,9 @@ interface Logger {
 - **Limitations**: Pinoの高度機能は利用不可
 - **Fallback**: Pino不可環境での代替実装
 
-#### 3.2.4 Client Side Logger
+#### 3.2.4 Client Side Logger（純粋関数型実装）
 
-- **Base**: ブラウザConsole API
+- **Base**: ブラウザConsole API（純粋関数ベース）
 - **Features**: サーバーライクなフォーマット、ログレベル制御
 - **Transport**: ブラウザのDevTools Console
 - **Security**: 機密情報の自動フィルタリング

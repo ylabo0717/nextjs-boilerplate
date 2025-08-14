@@ -5,6 +5,9 @@
 本ドキュメントは、Next.js Boilerplateプロジェクトにおける構造化ログシステムの具体的な実装手順と技術的詳細を定義します。  
 Pinoベースの高性能ログシステムを段階的に導入し、OpenTelemetryとの統合による分散トレーシング対応を実現します。
 
+**🔄 リファクタリング完了 (2024-08-14)**: アーキテクチャ原則に従い、Classベース実装から**純粋関数型実装**に完全移行済み。  
+ステートレスで予測可能、テスタブルなログシステムを実現。
+
 ## 2. 実装スケジュール
 
 ### 2.1 全体タイムライン（3週間）
@@ -600,29 +603,29 @@ interface LoggerContext {
   event_category?: 'user_action' | 'system_event' | 'error_event' | 'security_event';
 }
 
-class LoggerContextManager {
-  private storage = new AsyncLocalStorage<LoggerContext>();
+// 純粋関数型Logger Context管理
+const loggerStorage = new AsyncLocalStorage<LoggerContext>();
 
-  // コンテキスト付きChild Loggerの生成
+export const loggerContextManager = {
+  // コンテキスト付きChild Loggerの生成（純粋関数）
   createChildLogger(baseLogger: pino.Logger, context: Partial<LoggerContext>): pino.Logger {
-    const currentContext = this.getContext();
+    const currentContext = loggerStorage.getStore();
     const mergedContext = { ...currentContext, ...context };
-
     return baseLogger.child(mergedContext);
-  }
+  },
 
-  // リクエストコンテキストでの実行
+  // リクエストコンテキストでの実行（純粋関数）
   runWithContext<T>(context: LoggerContext, fn: () => T): T {
-    return this.storage.run(context, fn);
-  }
+    return loggerStorage.run(context, fn);
+  },
 
   getContext(): LoggerContext | undefined {
-    return this.storage.getStore();
-  }
+    return loggerStorage.getStore();
+  },
 
-  // 統一Loggerインターフェース対応のChild Logger
+  // 統一Loggerインターフェース対応のChild Logger（純粋関数）
   createContextualLogger(context: Partial<LoggerContext>): Logger {
-    const currentContext = this.getContext();
+    const currentContext = loggerStorage.getStore();
     const mergedContext = {
       ...currentContext,
       ...context,
@@ -663,10 +666,8 @@ class LoggerContextManager {
       },
       isLevelEnabled: (level) => serverLogger.isLevelEnabled(level),
     };
-  }
-}
-
-export const loggerContextManager = new LoggerContextManager();
+  },
+};
 ```
 
 #### 3.2.2 Edge Runtime ロガー (`src/lib/logger/edge.ts`)
@@ -681,21 +682,24 @@ import {
 import type { Logger, LogArgument, LogLevel } from './types';
 
 /**
- * Edge Runtime向けLoggerの実装
+ * Edge Runtime向けLogger設定とファクトリー（純粋関数型）
  * V8 Isolateの制約によりPinoが使用できない環境向け
  */
-class EdgeLogger implements Logger {
-  private readonly configuredLevel: LogLevel;
-  private readonly baseProperties: Record<string, unknown>;
+export type EdgeLoggerConfig = {
+  readonly level: LogLevel;
+  readonly baseProperties: Readonly<Record<string, unknown>>;
+};
 
-  constructor() {
-    this.configuredLevel = getClientLogLevel();
-    this.baseProperties = {
+export function createEdgeLoggerConfig(): EdgeLoggerConfig {
+  return {
+    level: getClientLogLevel(),
+    baseProperties: Object.freeze({
       ...createBaseProperties(),
       runtime: 'edge',
       log_schema_version: '1.0.0',
-    };
-  }
+    }),
+  } as const;
+}
 
   trace(message: string, ...args: LogArgument[]): void {
     this.log('trace', message, ...args);

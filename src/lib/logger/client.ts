@@ -6,6 +6,7 @@
  * ステートレスで予測可能、テスタブルなログシステムを提供。
  */
 
+import { incrementLogCounter, incrementErrorCounter } from './metrics';
 import { sanitizeLogEntry, limitObjectSize } from './sanitizer';
 import { getClientLogLevel, createBaseProperties, serializeError } from './utils';
 
@@ -283,6 +284,41 @@ function outputDevelopmentDebug(
 }
 
 /**
+ * Extract error type from log arguments for metrics classification
+ *
+ * Pure function that analyzes log arguments to determine error type
+ * for detailed error metrics categorization on client-side.
+ *
+ * @param processedArgs - Processed log arguments object
+ * @returns Error type string for metrics labeling
+ *
+ * @internal
+ */
+function extractErrorType(processedArgs: Record<string, unknown>): string {
+  // Check for error object
+  if (processedArgs.error && typeof processedArgs.error === 'object') {
+    const error = processedArgs.error as { name?: string; code?: string; type?: string };
+    return error.name || error.code || error.type || 'unknown_error';
+  }
+
+  // Check for error in args array
+  if (processedArgs.args && Array.isArray(processedArgs.args)) {
+    const errorArg = processedArgs.args.find((arg: unknown) => arg instanceof Error);
+    if (errorArg) {
+      return (errorArg as Error).name || 'error';
+    }
+  }
+
+  // Check for specific error patterns in other fields
+  if (processedArgs.event_name && typeof processedArgs.event_name === 'string') {
+    return processedArgs.event_name;
+  }
+
+  // Default error type for client-side
+  return 'client_error';
+}
+
+/**
  * 統合ログ出力関数（純粋関数 + 制御された副作用）
  *
  * すべてのログレベルで使用される共通出力処理。
@@ -326,6 +362,23 @@ export function log(
     ...logEntry,
     ...processedArgs,
   });
+
+  // 📊 Metrics: Log entry counter (client-side)
+  try {
+    incrementLogCounter(level, 'client');
+
+    // Error-level logs also increment error counter
+    if (level === 'error' || level === 'fatal') {
+      const errorType = extractErrorType(processedArgs);
+      const severity = level === 'fatal' ? 'critical' : 'high';
+      incrementErrorCounter(errorType, 'client', severity);
+    }
+  } catch (metricsError) {
+    // Metrics errors should not break logging functionality
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Failed to update client-side metrics:', metricsError);
+    }
+  }
 
   // 副作用: ブラウザコンソールへの出力
   outputToConsole(level, sanitized.message, sanitized.data);

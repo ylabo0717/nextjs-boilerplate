@@ -6,6 +6,7 @@
 import type { NextRequest, NextResponse } from 'next/server';
 
 // hashIPはcreateRequestContext内で動的にインポートされるため、ここでは不要
+import { incrementLogCounter, incrementErrorCounter, recordRequestDuration } from './metrics';
 import { sanitizeLogEntry, limitObjectSize } from './sanitizer';
 import { generateRequestId, serializeError } from './utils';
 
@@ -67,6 +68,28 @@ export function logForEdgeRuntime(
     `${entry.event_name}: ${entry.method} ${entry.url}`,
     limitObjectSize(entry, 5, 30)
   );
+
+  // 📊 Metrics: Log entry counter (middleware)
+  try {
+    incrementLogCounter(level, 'middleware');
+
+    // Error-level logs also increment error counter
+    if (level === 'error') {
+      const errorType = entry.error ? 'middleware_error' : 'request_error';
+      incrementErrorCounter(errorType, 'middleware', 'high');
+    }
+
+    // Record request duration if available
+    if (entry.duration && typeof entry.duration === 'number') {
+      const statusCode = entry.status || 200;
+      recordRequestDuration(entry.duration, entry.method, statusCode, entry.url);
+    }
+  } catch (metricsError) {
+    // Metrics errors should not break logging functionality
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Failed to update middleware metrics:', metricsError);
+    }
+  }
 
   // Edge Runtimeでは console のみ使用可能
   const logData = {

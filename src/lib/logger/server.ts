@@ -14,6 +14,7 @@
  */ import pino from 'pino';
 
 import { loggerContextManager } from './context';
+import { incrementLogCounter, incrementErrorCounter } from './metrics';
 import { sanitizeLogEntry, limitObjectSize } from './sanitizer';
 import { getLogLevelFromEnv, createBaseProperties, REDACT_PATHS, serializeError } from './utils';
 
@@ -184,6 +185,41 @@ function createLoggerWithTransport(options: pino.LoggerOptions): pino.Logger {
 export const serverLogger = createServerLogger();
 
 /**
+ * Extract error type from log arguments for metrics classification
+ *
+ * Pure function that analyzes log arguments to determine error type
+ * for detailed error metrics categorization.
+ *
+ * @param mergedArgs - Merged log arguments object
+ * @returns Error type string for metrics labeling
+ *
+ * @internal
+ */
+function extractErrorType(mergedArgs: Record<string, unknown>): string {
+  // Check for error object
+  if (mergedArgs.err && typeof mergedArgs.err === 'object') {
+    const error = mergedArgs.err as { name?: string; code?: string; type?: string };
+    return error.name || error.code || error.type || 'unknown_error';
+  }
+
+  // Check for error in args array
+  if (mergedArgs.args && Array.isArray(mergedArgs.args)) {
+    const errorArg = mergedArgs.args.find((arg: unknown) => arg instanceof Error);
+    if (errorArg) {
+      return (errorArg as Error).name || 'error';
+    }
+  }
+
+  // Check for specific error patterns in other fields
+  if (mergedArgs.event_name && typeof mergedArgs.event_name === 'string') {
+    return mergedArgs.event_name;
+  }
+
+  // Default error type
+  return 'application_error';
+}
+
+/**
  * 複数引数を適切にマージする関数
  *
  * 🚨 セキュリティ強化: 引数の自動サニタイズ
@@ -252,36 +288,68 @@ export const serverLoggerWrapper: Logger = {
     const mergedArgs = mergeLogArguments(args);
     const context = loggerContextManager.getContext();
     const logData = { ...context, ...mergedArgs };
+
+    // 📊 Metrics: Log entry counter
+    incrementLogCounter('trace', 'server');
+
     serverLogger.trace(logData, message);
   },
   debug: (message: string, ...args) => {
     const mergedArgs = mergeLogArguments(args);
     const context = loggerContextManager.getContext();
     const logData = { ...context, ...mergedArgs };
+
+    // 📊 Metrics: Log entry counter
+    incrementLogCounter('debug', 'server');
+
     serverLogger.debug(logData, message);
   },
   info: (message: string, ...args) => {
     const mergedArgs = mergeLogArguments(args);
     const context = loggerContextManager.getContext();
     const logData = { ...context, ...mergedArgs };
+
+    // 📊 Metrics: Log entry counter
+    incrementLogCounter('info', 'server');
+
     serverLogger.info(logData, message);
   },
   warn: (message: string, ...args) => {
     const mergedArgs = mergeLogArguments(args);
     const context = loggerContextManager.getContext();
     const logData = { ...context, ...mergedArgs };
+
+    // 📊 Metrics: Log entry counter
+    incrementLogCounter('warn', 'server');
+
     serverLogger.warn(logData, message);
   },
   error: (message: string, ...args) => {
     const mergedArgs = mergeLogArguments(args);
     const context = loggerContextManager.getContext();
     const logData = { ...context, ...mergedArgs };
+
+    // 📊 Metrics: Log entry counter + Error counter
+    incrementLogCounter('error', 'server');
+
+    // Extract error type from arguments for detailed error metrics
+    const errorType = extractErrorType(mergedArgs);
+    incrementErrorCounter(errorType, 'server', 'high');
+
     serverLogger.error(logData, message);
   },
   fatal: (message: string, ...args) => {
     const mergedArgs = mergeLogArguments(args);
     const context = loggerContextManager.getContext();
     const logData = { ...context, ...mergedArgs };
+
+    // 📊 Metrics: Log entry counter + Error counter
+    incrementLogCounter('fatal', 'server');
+
+    // Extract error type from arguments for detailed error metrics
+    const errorType = extractErrorType(mergedArgs);
+    incrementErrorCounter(errorType, 'server', 'critical');
+
     serverLogger.fatal(logData, message);
   },
   isLevelEnabled: (level) => serverLogger.isLevelEnabled(level),

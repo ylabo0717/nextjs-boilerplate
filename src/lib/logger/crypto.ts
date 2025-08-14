@@ -3,7 +3,7 @@
  * GDPR準拠の個人データ保護機能
  */
 
-import { createHmac } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 
 export class IPHasher {
   private static secret: string;
@@ -25,8 +25,8 @@ export class IPHasher {
         'LOG_IP_HASH_SECRET environment variable is required in production environment for GDPR compliance'
       );
     }
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require('node:crypto').randomBytes(32).toString('hex');
+    // 静的にインポートしたrandomBytesを使用
+    return randomBytes(32).toString('hex');
   }
 
   /**

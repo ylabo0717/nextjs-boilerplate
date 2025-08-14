@@ -73,8 +73,8 @@ class EdgeLogger {
 export function createRequestContext(request: NextRequest): LoggerContext {
   const requestId = generateRequestId();
   // Next.js 15ではrequest.ipが利用可能、存在しない場合は'unknown'を使用
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ip = (request as any).ip || 'unknown';
+  // 型安全にipプロパティをチェック
+  const ip = 'ip' in request ? (request as { ip?: string }).ip || 'unknown' : 'unknown';
   const hashedIP = hashIP(ip);
 
   return {

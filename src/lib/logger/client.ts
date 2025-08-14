@@ -330,8 +330,9 @@ export const clientLoggerHelpers = {
   logApiCall: (url: string, method: string, status?: number, duration?: number) => {
     const level = status && status >= 400 ? 'error' : 'info';
 
-    // eslint-disable-next-line security/detect-object-injection
-    clientLogger[level](`API call: ${method} ${url}`, {
+    // 型安全なメソッド呼び出し
+    const logMethod = level === 'error' ? clientLogger.error : clientLogger.info;
+    logMethod(`API call: ${method} ${url}`, {
       event_name: 'api.request',
       event_category: 'system_event',
       event_attributes: {

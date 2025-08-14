@@ -29,27 +29,38 @@ Pinoを使用した高性能な構造化ログ機能を、client/server双方で
 ### 3.1 全体構成
 
 ```
-┌─────────────────────┐    ┌─────────────────────┐
-│   Client Side       │    │   Server Side       │
-│                     │    │                     │
-│ ┌─────────────────┐ │    │ ┌─────────────────┐ │
-│ │  Console Logger │ │    │ │   Pino Logger   │ │
-│ │  (Browser API)  │ │    │ │  (Node.js)      │ │
-│ └─────────────────┘ │    │ └─────────────────┘ │
-│                     │    │                     │
-└─────────────────────┘    └─────────────────────┘
-           │                           │
-           └─────────┐     ┌───────────┘
-                     │     │
-              ┌─────────────────┐
-              │ Unified Logger  │
-              │   Interface     │
-              └─────────────────┘
-                      │
-              ┌─────────────────┐
-              │  OpenTelemetry  │
-              │  Integration    │
-              └─────────────────┘
+┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
+│   Client Side       │    │   Server Side       │    │   Edge Runtime      │
+│   (Browser)         │    │   (Node.js)         │    │   (V8 Isolate)      │
+│                     │    │                     │    │                     │
+│ ┌─────────────────┐ │    │ ┌─────────────────┐ │    │ ┌─────────────────┐ │
+│ │  Console Logger │ │    │ │   Pino Logger   │ │    │ │ Console Logger  │ │
+│ │  (Browser API)  │ │    │ │ (High Perf)     │ │    │ │ (Lightweight)   │ │
+│ └─────────────────┘ │    │ └─────────────────┘ │    │ └─────────────────┘ │
+│                     │    │                     │    │                     │
+└─────────────────────┘    └─────────────────────┘    └─────────────────────┘
+           │                           │                           │
+           └─────────┐     ┌───────────┼───────────┐     ┌─────────┘
+                     │     │           │           │     │
+              ┌─────────────────────────────────────────────────┐
+              │         Runtime Detection & Routing            │
+              │                                                 │
+              │  if (typeof EdgeRuntime !== 'undefined')       │
+              │    → Edge Logger                                │
+              │  else if (typeof window === 'undefined')       │
+              │    → Server Logger (Pino)                      │
+              │  else                                           │
+              │    → Client Logger (Console)                   │
+              └─────────────────────────────────────────────────┘
+                                      │
+              ┌─────────────────────────────────────────────────┐
+              │              Unified Logger Interface          │
+              │                                                 │
+              │  - Schema Versioning (log_schema_version)      │
+              │  - OpenTelemetry Integration                   │
+              │  - Security & Privacy Protection               │
+              │  - Child Logger Support (AsyncLocalStorage)   │
+              └─────────────────────────────────────────────────┘
 ```
 
 ### 3.2 コンポーネント設計
@@ -70,24 +81,35 @@ interface Logger {
 
 #### 3.2.2 Server Side Logger (Pino)
 
-- **Base**: Pinoインスタンス
-- **Features**: JSON出力、structured logging、redaction
+- **Base**: Pinoインスタンス（Node.js Runtime）
+- **Features**: 高性能JSON出力、structured logging、advanced redaction
 - **Transport**: 開発環境ではpino-pretty、本番環境では標準出力
 - **OpenTelemetry**: trace_id、span_idの自動付与
+- **Child Logger**: AsyncLocalStorageによるリクエストスコープロガー
 
-#### 3.2.3 Client Side Logger
+#### 3.2.3 Edge Runtime Logger
+
+- **Base**: Console API（V8 Isolate制約対応）
+- **Features**: 軽量構造化ログ、基本的なredaction
+- **Transport**: 標準出力（JSON形式）
+- **Limitations**: Pinoの高度機能は利用不可
+- **Fallback**: Pino不可環境での代替実装
+
+#### 3.2.4 Client Side Logger
 
 - **Base**: ブラウザConsole API
 - **Features**: サーバーライクなフォーマット、ログレベル制御
 - **Transport**: ブラウザのDevTools Console
+- **Security**: 機密情報の自動フィルタリング
 - **Fallback**: 重要なエラーのサーバー送信（オプション）
 
-#### 3.2.4 Logging Middleware
+#### 3.2.5 Logging Middleware
 
-- **Target**: Next.js API Routes
+- **Target**: Next.js API Routes（全Runtime対応）
 - **Features**: リクエスト・レスポンス・エラーログ
-- **Correlation**: リクエストID生成とトレーシング
-- **Performance**: 実行時間測定
+- **Correlation**: UUID v7によるリクエストID生成とトレーシング
+- **Performance**: 実行時間測定とパフォーマンス監視
+- **Security**: Allowlistベースヘッダーフィルタリング
 
 ## 4. 技術仕様
 
@@ -98,22 +120,27 @@ interface Logger {
 | pino                                | ^9.0.0     | サーバーサイド構造化ログ |
 | pino-pretty                         | ^11.0.0    | 開発環境用フォーマッター |
 | @opentelemetry/instrumentation-pino | ^0.41.0    | OpenTelemetry統合        |
-| uuid                                | ^10.0.0    | リクエストID生成         |
+| uuid                                | ^10.0.0    | UUID v7リクエストID生成  |
 
 ### 4.2 環境変数
 
 ```bash
 # ログレベル設定
 LOG_LEVEL=info                    # サーバーサイドログレベル
-NEXT_PUBLIC_LOG_LEVEL=warn        # クライアントサイドログレベル
+NEXT_PUBLIC_LOG_LEVEL=warn        # クライアントサイドログレベル（セキュリティ考慮）
 
 # 機能フラグ
 LOG_HEADERS=true                  # リクエストヘッダーログ出力
 LOG_BODY=false                   # リクエストボディログ出力（開発時のみ推奨）
 
+# セキュリティ設定
+IP_HASH_SECRET=your-secret-key    # IPアドレスハッシュ化用秘密鍵
+PII_TOKEN_SECRET=another-secret   # PII トークン化用秘密鍵
+
 # OpenTelemetry設定
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 OTEL_SERVICE_NAME=nextjs-boilerplate
+OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development
 ```
 
 ### 4.3 ログフォーマット
@@ -122,6 +149,7 @@ OTEL_SERVICE_NAME=nextjs-boilerplate
 
 ```json
 {
+  "log_schema_version": "1.0.0",
   "level": 30,
   "time": "2024-12-14T10:30:00.000Z",
   "pid": 12345,
@@ -129,10 +157,12 @@ OTEL_SERVICE_NAME=nextjs-boilerplate
   "app": "nextjs-boilerplate",
   "env": "production",
   "msg": "User login successful",
-  "trace_id": "abc123...",
-  "span_id": "def456...",
+  "trace_id": "abc123def456...",
+  "traceId": "abc123def456...",
+  "span_id": "def456789abc...",
+  "spanId": "def456789abc...",
   "user_id": "usr_789",
-  "request_id": "req_abc123"
+  "request_id": "01JEGK8K3X7ZMK9N2P1Q3R4S5T"
 }
 ```
 
@@ -140,6 +170,7 @@ OTEL_SERVICE_NAME=nextjs-boilerplate
 
 ```json
 {
+  "log_schema_version": "1.0.0",
   "level": 50,
   "time": "2024-12-14T10:30:00.000Z",
   "app": "nextjs-boilerplate",
@@ -148,53 +179,143 @@ OTEL_SERVICE_NAME=nextjs-boilerplate
   "err": {
     "type": "ConnectionError",
     "message": "ECONNREFUSED",
-    "stack": "Error: ECONNREFUSED\n    at..."
+    "stack": "ConnectionError: ECONNREFUSED\n    at /app/src/lib/database.ts:45:12"
   },
-  "trace_id": "abc123...",
-  "span_id": "def456..."
+  "trace_id": "abc123def456...",
+  "traceId": "abc123def456...",
+  "span_id": "def456789abc...",
+  "spanId": "def456789abc..."
 }
 ```
 
 ### 4.4 セキュリティ仕様
 
-#### 4.4.1 Redaction設定
+#### 4.4.1 セキュリティ設定
+
+##### a) ヘッダーフィルタリング（Allowlist方式）
 
 ```typescript
-const REDACT_PATHS = [
-  // 認証情報
-  'password',
-  'token',
-  'authorization',
-  'auth',
-  'secret',
-  'key',
-  '*.password',
-  '*.token',
-  '*.authorization',
-  '*.auth',
-  '*.secret',
-  '*.key',
-
-  // HTTPヘッダー
-  'headers.authorization',
-  'headers.cookie',
-  'headers.x-api-key',
-
-  // 個人情報（PII）
-  'user.email',
-  'user.phone',
-  'user.ssn',
-  'user.credit_card',
-  '*.email',
-  '*.phone',
-  '*.ssn',
-  '*.credit_card',
-
-  // 機密ビジネス情報
-  'payment.card_number',
-  'payment.cvv',
-  'bank.account_number',
+// セキュアなヘッダーのみを許可するAllowlist方式
+const SAFE_HEADERS = [
+  'user-agent',
+  'content-type',
+  'content-length',
+  'accept',
+  'accept-language',
+  'accept-encoding',
+  'x-request-id',
+  'x-correlation-id',
+  'x-forwarded-for',
+  'x-real-ip',
+  'cf-connecting-ip',
+  'cache-control',
 ];
+
+// 機密情報を含む可能性があるヘッダー（除外）
+const SENSITIVE_HEADERS = [
+  'authorization',
+  'cookie',
+  'set-cookie',
+  'x-api-key',
+  'x-auth-token',
+  'x-access-token',
+  'proxy-authorization',
+];
+```
+
+##### b) Redaction設定（精緻化）
+
+```typescript
+// 正確なパスマッチングによるRedaction
+const REDACT_PATHS = [
+  // 認証情報（具体的フィールド名）
+  'credentials.password',
+  'user.password',
+  'auth.password',
+  'login.password',
+  'registration.password',
+  'changePassword.currentPassword',
+  'changePassword.newPassword',
+
+  // トークン・API キー
+  'authorization',
+  'access_token',
+  'refresh_token',
+  'api_key',
+  'apiKey',
+  'client_secret',
+  'private_key',
+  'jwt_token',
+
+  // 決済情報
+  'payment.card_number',
+  'payment.cardNumber',
+  'payment.cvv',
+  'payment.cvc',
+  'payment.expiry',
+  'billing.card_number',
+  'stripe.card_number',
+
+  // 個人情報（必要に応じてハッシュ化）
+  'user.ssn',
+  'user.social_security_number',
+  'user.credit_card',
+  'user.bank_account',
+  'kyc.document_number',
+
+  // ワイルドカードパターン
+  '*.password',
+  '*.secret',
+  '*.private_key',
+  '*.api_key',
+  '*.access_token',
+];
+
+// 正規表現ベースのRedaction（パフォーマンス注意）
+const REDACT_PATTERNS = [
+  /.*[Pp]assword.*/,
+  /.*[Tt]oken.*/,
+  /.*[Kk]ey$/,
+  /.*[Ss]ecret.*/,
+  /^(.*\.)?api[_-]?key$/i,
+  /^(.*\.)?access[_-]?token$/i,
+];
+```
+
+##### c) プライバシー保護機能
+
+```typescript
+// IPアドレスハッシュ化
+function hashIP(ip: string): string {
+  const secret = process.env.IP_HASH_SECRET || 'default-secret';
+  return crypto.createHmac('sha256', secret).update(ip).digest('hex').substring(0, 8); // 短縮ハッシュ
+}
+
+// PII トークン化（可逆的な場合）
+function tokenizePII(value: string, field: string): string {
+  const secret = process.env.PII_TOKEN_SECRET || 'default-secret';
+  return `${field}_${crypto
+    .createHmac('sha256', secret)
+    .update(value)
+    .digest('hex')
+    .substring(0, 12)}`;
+}
+
+// エラースタックフィルタリング
+function filterErrorStack(stack: string): string {
+  return stack
+    .split('\n')
+    .filter(
+      (line) =>
+        !line.includes('node_modules') && // サードパーティライブラリを除外
+        !line.includes(process.env.HOME || '/home') && // ホームパスを除外
+        !line.includes('/var/secrets/') // 機密パスを除外
+    )
+    .map(
+      (line) => line.replace(/\/.*\/app/g, '/app') // 絶対パスを相対パスに
+    )
+    .join('\n');
+}
 ```
 
 ## 5. 実装仕様

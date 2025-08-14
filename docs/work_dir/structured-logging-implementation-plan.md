@@ -430,31 +430,217 @@ function createLoggerWithTransport(options: pino.LoggerOptions): pino.Logger {
 // Serverロガーインスタンスの作成とエクスポート
 export const serverLogger = createServerLogger();
 
+/**
+ * 複数引数を適切にマージする関数
+ */
+function mergeLogArguments(args: LogArgument[]): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  for (const arg of args) {
+    if (arg === null || arg === undefined) {
+      continue;
+    }
+
+    if (arg instanceof Error) {
+      // Error オブジェクトは err キーで格納（Pino標準）
+      result.err = serializeError(arg);
+    } else if (typeof arg === 'object' && !Array.isArray(arg)) {
+      // オブジェクトは展開してマージ
+      Object.assign(result, arg);
+    } else {
+      // その他の型は args 配列に格納
+      if (!result.args) {
+        result.args = [];
+      }
+      (result.args as unknown[]).push(arg);
+    }
+  }
+
+  return result;
+}
+
 // Logger インターフェース準拠のラッパー実装
 export const serverLoggerWrapper: Logger = {
-  trace: (message: string, ...args) => serverLogger.trace(args[0] || {}, message),
-  debug: (message: string, ...args) => serverLogger.debug(args[0] || {}, message),
-  info: (message: string, ...args) => serverLogger.info(args[0] || {}, message),
-  warn: (message: string, ...args) => serverLogger.warn(args[0] || {}, message),
-  error: (message: string, ...args) => serverLogger.error(args[0] || {}, message),
-  fatal: (message: string, ...args) => serverLogger.fatal(args[0] || {}, message),
+  trace: (message: string, ...args) => {
+    const mergedArgs = mergeLogArguments(args);
+    serverLogger.trace(mergedArgs, message);
+  },
+  debug: (message: string, ...args) => {
+    const mergedArgs = mergeLogArguments(args);
+    serverLogger.debug(mergedArgs, message);
+  },
+  info: (message: string, ...args) => {
+    const mergedArgs = mergeLogArguments(args);
+    serverLogger.info(mergedArgs, message);
+  },
+  warn: (message: string, ...args) => {
+    const mergedArgs = mergeLogArguments(args);
+    serverLogger.warn(mergedArgs, message);
+  },
+  error: (message: string, ...args) => {
+    const mergedArgs = mergeLogArguments(args);
+    serverLogger.error(mergedArgs, message);
+  },
+  fatal: (message: string, ...args) => {
+    const mergedArgs = mergeLogArguments(args);
+    serverLogger.fatal(mergedArgs, message);
+  },
   isLevelEnabled: (level) => serverLogger.isLevelEnabled(level),
 };
 
 export default serverLoggerWrapper;
 ```
 
-#### 3.2.2 HTTPログミドルウェア (`src/lib/logger/middleware.ts`)
+#### 3.2.2 Edge Runtime ロガー (`src/lib/logger/edge.ts`)
+
+```typescript
+import {
+  getClientLogLevel,
+  isLogLevelEnabled,
+  serializeError,
+  createBaseProperties,
+} from './utils';
+import type { Logger, LogArgument, LogLevel } from './types';
+
+/**
+ * Edge Runtime向けLoggerの実装
+ * V8 Isolateの制約によりPinoが使用できない環境向け
+ */
+class EdgeLogger implements Logger {
+  private readonly configuredLevel: LogLevel;
+  private readonly baseProperties: Record<string, unknown>;
+
+  constructor() {
+    this.configuredLevel = getClientLogLevel();
+    this.baseProperties = {
+      ...createBaseProperties(),
+      runtime: 'edge',
+      log_schema_version: '1.0.0',
+    };
+  }
+
+  trace(message: string, ...args: LogArgument[]): void {
+    this.log('trace', message, ...args);
+  }
+
+  debug(message: string, ...args: LogArgument[]): void {
+    this.log('debug', message, ...args);
+  }
+
+  info(message: string, ...args: LogArgument[]): void {
+    this.log('info', message, ...args);
+  }
+
+  warn(message: string, ...args: LogArgument[]): void {
+    this.log('warn', message, ...args);
+  }
+
+  error(message: string, ...args: LogArgument[]): void {
+    this.log('error', message, ...args);
+  }
+
+  fatal(message: string, ...args: LogArgument[]): void {
+    this.log('fatal', message, ...args);
+  }
+
+  isLevelEnabled(level: LogLevel): boolean {
+    return isLogLevelEnabled(this.configuredLevel, level);
+  }
+
+  /**
+   * 共通ログ処理（Edge Runtime版）
+   */
+  private log(level: LogLevel, message: string, ...args: LogArgument[]): void {
+    if (!this.isLevelEnabled(level)) {
+      return;
+    }
+
+    const logEntry = this.createLogEntry(level, message, args);
+
+    // Edge Runtimeでは構造化JSONを標準出力
+    console.log(JSON.stringify(logEntry));
+  }
+
+  /**
+   * ログエントリの作成
+   */
+  private createLogEntry(
+    level: LogLevel,
+    message: string,
+    args: LogArgument[]
+  ): Record<string, unknown> {
+    const entry: Record<string, unknown> = {
+      ...this.baseProperties,
+      level: this.getLevelValue(level),
+      time: new Date().toISOString(),
+      msg: message,
+    };
+
+    // 引数の処理
+    for (const arg of args) {
+      if (arg === null || arg === undefined) {
+        continue;
+      }
+
+      if (arg instanceof Error) {
+        entry.err = serializeError(arg);
+      } else if (typeof arg === 'object' && !Array.isArray(arg)) {
+        Object.assign(entry, arg);
+      }
+    }
+
+    return entry;
+  }
+
+  /**
+   * ログレベルの数値変換
+   */
+  private getLevelValue(level: LogLevel): number {
+    const levelMap: Record<LogLevel, number> = {
+      trace: 10,
+      debug: 20,
+      info: 30,
+      warn: 40,
+      error: 50,
+      fatal: 60,
+    };
+    return levelMap[level] || 30;
+  }
+}
+
+// Edge Logger インスタンスの作成とエクスポート
+export const edgeLogger = new EdgeLogger();
+
+export default edgeLogger;
+```
+
+#### 3.2.3 HTTPログミドルウェア (`src/lib/logger/middleware.ts`)
 
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { serverLogger } from './server';
-import { generateRequestId, serializeError } from './utils';
+import { generateRequestId, serializeError, hashIP } from './utils';
 import type { LoggingMiddlewareOptions } from './types';
 
 // リクエストボディの最大ログサイズ
 const MAX_BODY_LOG_SIZE = 1024; // 1KB
+
+// セキュアなヘッダーのAllowlist（セキュリティ強化）
+const SAFE_HEADERS = [
+  'user-agent',
+  'content-type',
+  'content-length',
+  'accept',
+  'accept-language',
+  'accept-encoding',
+  'x-request-id',
+  'x-correlation-id',
+  'x-forwarded-for',
+  'x-real-ip',
+  'cf-connecting-ip',
+  'cache-control',
+];
 
 /**
  * ログミドルウェアファクトリー
@@ -474,7 +660,8 @@ export function createLoggingMiddleware(options: LoggingMiddlewareOptions = {}) 
     handler: (req: NextRequest, context?: T) => Promise<NextResponse>
   ) {
     return async function loggingWrapper(req: NextRequest, context?: T): Promise<NextResponse> {
-      const requestId = generateRequestId();
+      // UUID v7によるリクエストID生成（時間順ソート可能）
+      const requestId = uuidv7();
       const startTime = Date.now();
 
       // リクエスト情報の収集
@@ -536,19 +723,20 @@ async function gatherRequestInfo(
   const { requestId, logHeaders, logBody } = options;
 
   const info: Record<string, unknown> = {
+    log_schema_version: '1.0.0',
     requestId,
     method: req.method,
     url: req.nextUrl.toString(),
     pathname: req.nextUrl.pathname,
     search: req.nextUrl.search,
     userAgent: req.headers.get('user-agent') || undefined,
-    ip: getClientIP(req),
+    ip_hash: getClientIPHash(req), // セキュリティ：IPアドレスをハッシュ化
     timestamp: new Date().toISOString(),
   };
 
-  // ヘッダー情報の追加
+  // ヘッダー情報の追加（Allowlist方式でセキュリティ強化）
   if (logHeaders) {
-    info.headers = getRequestHeaders(req);
+    info.headers = getFilteredRequestHeaders(req);
   }
 
   // ボディ情報の追加（GET/HEAD以外で有効）
@@ -560,13 +748,17 @@ async function gatherRequestInfo(
 }
 
 /**
- * リクエストヘッダーの取得
+ * セキュアなリクエストヘッダーの取得（Allowlist方式）
  */
-function getRequestHeaders(req: NextRequest): Record<string, string> {
+function getFilteredRequestHeaders(req: NextRequest): Record<string, string> {
   const headers: Record<string, string> = {};
 
-  req.headers.forEach((value, key) => {
-    headers[key] = value;
+  // Allowlistに含まれるヘッダーのみをログ出力
+  SAFE_HEADERS.forEach((headerName) => {
+    const value = req.headers.get(headerName);
+    if (value) {
+      headers[headerName] = value;
+    }
   });
 
   return headers;
@@ -579,7 +771,10 @@ function getResponseHeaders(response: NextResponse): Record<string, string> {
   const headers: Record<string, string> = {};
 
   response.headers.forEach((value, key) => {
-    headers[key] = value;
+    // レスポンスヘッダーも基本的なもののみログ出力
+    if (SAFE_HEADERS.includes(key.toLowerCase())) {
+      headers[key] = value;
+    }
   });
 
   return headers;
@@ -635,27 +830,29 @@ async function getRequestBody(req: NextRequest): Promise<unknown> {
 }
 
 /**
- * クライアントIPアドレスの取得
+ * クライアントIPアドレスのハッシュ化取得（GDPR対応）
  */
-function getClientIP(req: NextRequest): string | undefined {
+function getClientIPHash(req: NextRequest): string | undefined {
   // X-Forwarded-For, X-Real-IP, CF-Connecting-IP などを確認
   const forwardedFor = req.headers.get('x-forwarded-for');
+  let clientIP: string | undefined;
+
   if (forwardedFor) {
-    return forwardedFor.split(',')[0].trim();
+    clientIP = forwardedFor.split(',')[0].trim();
+  } else {
+    const realIP = req.headers.get('x-real-ip');
+    if (realIP) {
+      clientIP = realIP;
+    } else {
+      const cfIP = req.headers.get('cf-connecting-ip');
+      if (cfIP) {
+        clientIP = cfIP;
+      }
+    }
   }
 
-  const realIP = req.headers.get('x-real-ip');
-  if (realIP) {
-    return realIP;
-  }
-
-  const cfIP = req.headers.get('cf-connecting-ip');
-  if (cfIP) {
-    return cfIP;
-  }
-
-  // Next.jsでは req.ip は直接利用できないため、undefined を返す
-  return undefined;
+  // IPアドレスをハッシュ化してプライバシー保護
+  return clientIP ? hashIP(clientIP) : undefined;
 }
 
 // デフォルトミドルウェアのエクスポート
@@ -1270,7 +1467,7 @@ NEXT_TELEMETRY_DISABLED=1
 
 本プロジェクトでは、テストピラミッドに基づいた3層構造のテスト戦略を採用します：
 
-```
+```text
      /\      E2E Tests (10%)
     /  \     - システム全体の動作検証
    /    \    - 実際のHTTPリクエスト
@@ -1346,7 +1543,7 @@ NEXT_TELEMETRY_DISABLED=1
 
 ### 4.2 テストディレクトリ構造
 
-```
+```text
 tests/
 ├── unit/                    # 単体テスト (60%)
 │   └── logger/

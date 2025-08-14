@@ -446,6 +446,37 @@ export function getEffectiveLogLevel(config: RemoteLogConfig, serviceName?: stri
 /**
  * Merge configurations with precedence (pure function)
  */
+/**
+ * 2つの設定をマージして新しい設定を作成する関数
+ *
+ * 現在の設定をベースに、部分的な更新データをマージして新しい設定を作成します。
+ * バージョンのインクリメント、タイムスタンプの更新、ネストされたオブジェクトの適切なマージを行います。
+ *
+ * @param base - 現在の設定（ベース）
+ * @param override - 部分的な更新データ
+ * @returns マージされた新しい設定オブジェクト
+ *
+ * @example
+ * ```typescript
+ * const currentConfig = {
+ *   global_level: 'info',
+ *   service_levels: { api: 'debug' },
+ *   rate_limits: { error: 100 },
+ *   version: 1,
+ *   // ... その他のフィールド
+ * };
+ *
+ * const updates = {
+ *   global_level: 'warn',
+ *   service_levels: { auth: 'error' }, // apiは保持、authが追加
+ * };
+ *
+ * const merged = mergeConfigurations(currentConfig, updates);
+ * // 結果: global_level='warn', version=2, service_levels={api:'debug', auth:'error'}
+ * ```
+ *
+ * @public
+ */
 export function mergeConfigurations(
   base: RemoteLogConfig,
   override: Partial<RemoteLogConfig>

@@ -47,6 +47,24 @@ const metricsCounters = {
 };
 let isInitialized = false;
 
+/**
+ * Phase 3 拡張メトリクスを初期化する関数
+ *
+ * リモート設定、レートリミット、KVストレージ、Admin APIの
+ * 操作監視のための詳細なメトリクスを初期化します。
+ * すでに初期化済みの場合は既存のインスタンスを返します。
+ *
+ * @returns 初期化されたEnhancedMetricsインスタンス
+ * @throws Error - メトリクスの初期化に失敗した場合
+ *
+ * @example
+ * ```typescript
+ * const metrics = initializePhase3Metrics();
+ * // コンソールに '✅ Enhanced Metrics initialized successfully' が表示される
+ * ```
+ *
+ * @public
+ */
 export function initializePhase3Metrics(): EnhancedMetrics {
   if (enhancedMetricsInstance && isInitialized) {
     return enhancedMetricsInstance;
@@ -146,14 +164,64 @@ export function initializePhase3Metrics(): EnhancedMetrics {
   }
 }
 
+/**
+ * 初期化済みのPhase 3メトリクスインスタンスを取得する関数
+ *
+ * @returns 初期化済みのEnhancedMetricsインスタンスまたはnull
+ *
+ * @example
+ * ```typescript
+ * const metrics = getPhase3Metrics();
+ * if (metrics) {
+ *   metrics.config_fetch_total.add(1, { result: 'success' });
+ * }
+ * ```
+ *
+ * @public
+ */
 export function getPhase3Metrics(): EnhancedMetrics | null {
   return enhancedMetricsInstance;
 }
 
+/**
+ * Phase 3メトリクスが初期化済みかどうかをチェックする関数
+ *
+ * @returns 初期化済みの場合true、そうでない場合false
+ *
+ * @example
+ * ```typescript
+ * if (isPhase3MetricsInitialized()) {
+ *   recordConfigFetchMetrics('remote', 'success', 150);
+ * }
+ * ```
+ *
+ * @public
+ */
 export function isPhase3MetricsInitialized(): boolean {
   return isInitialized && enhancedMetricsInstance !== null;
 }
 
+/**
+ * リモート設定取得のメトリクスを記録する関数
+ *
+ * 設定取得のソース、結果、期間をメトリクスとして記録します。
+ * 内部カウンターとOpenTelemetryメトリクスの両方を更新します。
+ *
+ * @param source - 設定の取得先（remote, cache, default, fallback）
+ * @param result - 取得結果（success, error）
+ * @param duration - 取得にかかった時間（ミリ秒）（オプション）
+ *
+ * @example
+ * ```typescript
+ * // 成功したリモート取得を記録
+ * recordConfigFetchMetrics('remote', 'success', 150);
+ *
+ * // キャッシュヒットを記録
+ * recordConfigFetchMetrics('cache', 'success', 5);
+ * ```
+ *
+ * @public
+ */
 export function recordConfigFetchMetrics(
   source: 'remote' | 'cache' | 'default' | 'fallback',
   result: 'success' | 'error',
@@ -231,6 +299,28 @@ export function recordConfigUpdateMetrics(
   }
 }
 
+/**
+ * レートリミットのメトリクスを記録する関数
+ *
+ * レートリミットのヒットやリセットをメトリクスとして記録します。
+ * 内部カウンターとOpenTelemetryメトリクスの両方を更新します。
+ *
+ * @param clientId - クライアント識別子
+ * @param endpoint - 対象エンドポイント
+ * @param action - アクションタイプ（hit, reset）
+ * @param reason - アクションの理由
+ *
+ * @example
+ * ```typescript
+ * // レートリミットヒットを記録
+ * recordRateLimitMetrics('client123', '/api/logs', 'hit', 'token_exhausted');
+ *
+ * // レートリミットリセットを記録
+ * recordRateLimitMetrics('client123', '/api/logs', 'reset', 'manual_reset');
+ * ```
+ *
+ * @public
+ */
 export function recordRateLimitMetrics(
   clientId: string,
   endpoint: string,
@@ -261,6 +351,28 @@ export function recordRateLimitMetrics(
   }
 }
 
+/**
+ * KVストレージのメトリクスを記録する関数
+ *
+ * Redis、Edge Config、メモリストレージの操作をメトリクスとして記録します。
+ * 操作の種類、結果、期間、エラー情報を追跡します。
+ *
+ * @param storageType - ストレージタイプ（redis, edge-config, memory）
+ * @param operation - 操作名（get, set, deleteなど）
+ * @param result - 操作結果（success, error）
+ * @param duration - 操作にかかった時間（ミリ秒）（オプション）
+ *
+ * @example
+ * ```typescript
+ * // RedisのGET操作成功を記録
+ * recordKVMetrics('redis', 'get', 'success', 25);
+ *
+ * // Edge Configのエラーを記録
+ * recordKVMetrics('edge-config', 'set', 'error');
+ * ```
+ *
+ * @public
+ */
 export function recordKVMetrics(
   storageType: 'redis' | 'edge-config' | 'memory',
   operation: string,
@@ -366,6 +478,23 @@ export function recordAdminAPIMetrics(
   }
 }
 
+/**
+ * Phase 3メトリクスの現在のスナップショットを取得する関数
+ *
+ * 内部カウンターの現在値を取得し、タイムスタンプ付きの読み取り専用オブジェクトとして返します。
+ * メトリクスが初期化されていない場合は、すべてゼロの値を返します。
+ *
+ * @returns 現在のメトリクス値とタイムスタンプを含む読み取り専用オブジェクト
+ *
+ * @example
+ * ```typescript
+ * const snapshot = getPhase3MetricsSnapshot();
+ * console.log(`設定取得回数: ${snapshot.config_fetch_total}`);
+ * console.log(`スナップショット取得時刻: ${snapshot.timestamp}`);
+ * ```
+ *
+ * @public
+ */
 export function getPhase3MetricsSnapshot(): {
   readonly config_fetch_total: number;
   readonly config_update_total: number;
@@ -424,6 +553,37 @@ export function resetPhase3Metrics(): void {
   metricsCounters.admin_api_errors_total = 0;
 }
 
+/**
+ * 操作をメトリクスでラップして実行するユーティリティ関数
+ *
+ * 指定された操作を実行し、成功または失敗に応じて自動的にメトリクスを記録します。
+ * 実行時間も自動的に計測され、メトリクスに含まれます。
+ *
+ * @typeParam T - 関数の戻り値の型
+ * @param operation - 操作名（メトリクスのラベルとして使用）
+ * @param category - メトリクスカテゴリ（config, rate_limit, kv, admin_api）
+ * @param fn - 実行する非同期関数
+ * @returns 元の関数の戻り値をラップしたPromise
+ *
+ * @example
+ * ```typescript
+ * // 設定取得操作をメトリクス付きで実行
+ * const config = await withMetrics(
+ *   'fetchRemoteConfig',
+ *   'config',
+ *   () => fetchConfigFromRemote()
+ * );
+ *
+ * // KV操作をメトリクス付きで実行
+ * const value = await withMetrics(
+ *   'getValue',
+ *   'kv',
+ *   () => storage.get('key')
+ * );
+ * ```
+ *
+ * @public
+ */
 export function withMetrics<T>(
   operation: string,
   category: 'config' | 'rate_limit' | 'kv' | 'admin_api',

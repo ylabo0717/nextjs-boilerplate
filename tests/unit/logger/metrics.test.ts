@@ -1,6 +1,6 @@
 /**
  * OpenTelemetry Metrics Unit Tests
- * 
+ *
  * Tests for metrics integration, counters, and initialization functionality.
  */
 
@@ -72,7 +72,7 @@ describe('OpenTelemetry Metrics', () => {
   describe('utility functions', () => {
     it('should return metrics instances', () => {
       const instances = getMetricsInstances();
-      
+
       expect(instances).toHaveProperty('logEntriesCounter');
       expect(instances).toHaveProperty('errorCounter');
       expect(instances).toHaveProperty('requestDurationHistogram');
@@ -85,7 +85,7 @@ describe('OpenTelemetry Metrics', () => {
 
     it('should reset metrics instances', () => {
       resetMetrics();
-      
+
       const instances = getMetricsInstances();
       expect(instances.logEntriesCounter).toBe(null);
       expect(instances.errorCounter).toBe(null);
@@ -98,49 +98,49 @@ describe('OpenTelemetry Metrics', () => {
   describe('metric functions with uninitialized state', () => {
     it('should handle incrementLogCounter gracefully when not initialized', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       incrementLogCounter('info', 'server', 'production');
-      
+
       expect(consoleSpy).toHaveBeenCalledWith(
         'Log counter not initialized, skipping metric update'
       );
-      
+
       consoleSpy.mockRestore();
     });
 
     it('should handle incrementErrorCounter gracefully when not initialized', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       incrementErrorCounter('validation_error', 'client', 'high');
-      
+
       expect(consoleSpy).toHaveBeenCalledWith(
         'Error counter not initialized, skipping metric update'
       );
-      
+
       consoleSpy.mockRestore();
     });
 
     it('should handle recordRequestDuration gracefully when not initialized', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       recordRequestDuration(150, 'POST', 201, '/api/users');
-      
+
       expect(consoleSpy).toHaveBeenCalledWith(
         'Request duration histogram not initialized, skipping metric update'
       );
-      
+
       consoleSpy.mockRestore();
     });
 
     it('should handle updateMemoryUsage gracefully when not initialized', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       updateMemoryUsage('server', 'nodejs');
-      
+
       expect(consoleSpy).toHaveBeenCalledWith(
         'Memory usage gauge not initialized, skipping metric update'
       );
-      
+
       consoleSpy.mockRestore();
     });
   });
@@ -148,49 +148,49 @@ describe('OpenTelemetry Metrics', () => {
   describe('parameter handling', () => {
     it('should use default parameters in incrementLogCounter', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       incrementLogCounter('warn', 'middleware');
-      
+
       expect(consoleSpy).toHaveBeenCalledWith(
         'Log counter not initialized, skipping metric update'
       );
-      
+
       consoleSpy.mockRestore();
     });
 
     it('should use default parameters in incrementErrorCounter', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       incrementErrorCounter('network_error', 'server');
-      
+
       expect(consoleSpy).toHaveBeenCalledWith(
         'Error counter not initialized, skipping metric update'
       );
-      
+
       consoleSpy.mockRestore();
     });
 
     it('should use default route in recordRequestDuration', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       recordRequestDuration(75, 'GET', 200);
-      
+
       expect(consoleSpy).toHaveBeenCalledWith(
         'Request duration histogram not initialized, skipping metric update'
       );
-      
+
       consoleSpy.mockRestore();
     });
 
     it('should use default parameters in updateMemoryUsage', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       updateMemoryUsage();
-      
+
       expect(consoleSpy).toHaveBeenCalledWith(
         'Memory usage gauge not initialized, skipping metric update'
       );
-      
+
       consoleSpy.mockRestore();
     });
   });
@@ -198,15 +198,15 @@ describe('OpenTelemetry Metrics', () => {
   describe('error handling', () => {
     it('should handle console warnings properly', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       // Call multiple functions to test warning messages
       incrementLogCounter('error', 'server');
       incrementErrorCounter('test_error', 'client');
       recordRequestDuration(100, 'GET', 200);
       updateMemoryUsage('edge', 'edge');
-      
+
       expect(consoleSpy).toHaveBeenCalledTimes(4);
-      
+
       consoleSpy.mockRestore();
     });
 
@@ -227,21 +227,21 @@ describe('OpenTelemetry Metrics', () => {
       // Test that functions handle environment gracefully
       incrementLogCounter('debug', 'test');
       incrementLogCounter('info', 'test');
-      
+
       // Should not throw any errors regardless of environment
       expect(true).toBe(true);
     });
 
     it('should handle missing process environment', () => {
       const originalProcess = global.process;
-      
+
       // Temporarily remove process
       (global as any).process = undefined;
-      
+
       expect(() => {
         updateMemoryUsage();
       }).not.toThrow();
-      
+
       // Restore process
       global.process = originalProcess;
     });

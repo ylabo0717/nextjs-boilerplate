@@ -47,6 +47,31 @@ export interface StorageOperationResult<T = void> {
 /**
  * Create storage configuration (pure function)
  */
+/**
+ * ストレージ設定を作成する純粋関数
+ *
+ * 環境変数に基づいて適切なKVストレージ設定を自動選択し、設定オブジェクトを作成します。
+ * Redis、Edge Config、メモリストレージの優先順で選択され、
+ * 各ストレージタイプに応じた設定値が適用されます。
+ *
+ * @returns 不変のStorageConfig設定オブジェクト
+ *
+ * @example
+ * ```typescript
+ * // 環境変数に基づく自動設定
+ * const config = createStorageConfig();
+ * // {
+ * //   type: 'redis', // または 'edge-config', 'memory'
+ * //   connection_string: 'redis://localhost:6379',
+ * //   ttl_default: 3600,
+ * //   max_retries: 5,
+ * //   timeout_ms: 10000,
+ * //   fallback_enabled: true
+ * // }
+ * ```
+ *
+ * @public
+ */
 export function createStorageConfig(): StorageConfig {
   return Object.freeze({
     type: detectStorageType(),
@@ -397,6 +422,37 @@ export class EdgeConfigStorage implements KVStorage {
 /**
  * Storage factory with fallback logic (pure function + controlled side effects)
  */
+/**
+ * KVストレージインスタンスを作成する関数
+ *
+ * 指定された設定または自動検出された環境に基づいて、適切なKVストレージ実装を作成します。
+ * Redis、Edge Config、メモリストレージのいずれかが選択され、
+ * 統一されたKVStorageインターフェースを提供します。
+ *
+ * @param config - ストレージ設定（オプション、未指定時は自動設定）
+ * @returns KVStorageインターフェースを実装したストレージインスタンス
+ *
+ * @example
+ * ```typescript
+ * // 自動設定でストレージ作成
+ * const storage = createKVStorage();
+ *
+ * // カスタム設定でストレージ作成
+ * const customStorage = createKVStorage({
+ *   type: 'memory',
+ *   ttl_default: 1800,
+ *   max_retries: 3,
+ *   timeout_ms: 5000,
+ *   fallback_enabled: true
+ * });
+ *
+ * // ストレージの使用
+ * await storage.set('key', 'value', 3600);
+ * const value = await storage.get('key');
+ * ```
+ *
+ * @public
+ */
 export function createKVStorage(config?: StorageConfig): KVStorage {
   const storageConfig = config || createStorageConfig();
 
@@ -445,7 +501,28 @@ export function createKVStorage(config?: StorageConfig): KVStorage {
 }
 
 /**
- * Storage health check (pure function)
+ * ストレージの接続状態とヘルスチェックを実行する関数
+ *
+ * 指定されたKVストレージインスタンスに対してヘルスチェックを実行し、
+ * 接続状態、読み書き操作の可用性を確認します。一時的なテストキーを使用して
+ * 実際の操作をテストし、エラーハンドリングも含めて検証します。
+ *
+ * @param storage - ヘルスチェック対象のKVStorageインスタンス
+ * @returns ヘルスチェック結果を含むStorageOperationResult
+ *
+ * @example
+ * ```typescript
+ * const storage = getDefaultStorage();
+ * const healthResult = await checkStorageHealth(storage);
+ *
+ * if (healthResult.success) {
+ *   console.log('ストレージは正常に動作しています');
+ * } else {
+ *   console.error('ストレージエラー:', healthResult.error);
+ * }
+ * ```
+ *
+ * @public
  */
 export async function checkStorageHealth(
   storage: KVStorage
@@ -505,6 +582,29 @@ let defaultStorageInstance: KVStorage | null = null;
 /**
  * Get or create default storage instance
  */
+/**
+ * デフォルトKVストレージインスタンスを取得する関数（シングルトン）
+ *
+ * アプリケーション全体で共有されるデフォルトのKVストレージインスタンスを返します。
+ * 初回呼び出し時にインスタンスが作成され、以降は同じインスタンスが返されます。
+ * テストや特別な用途でのリセットが可能です。
+ *
+ * @returns 共有KVStorageインスタンス
+ *
+ * @example
+ * ```typescript
+ * // アプリケーション全体で同じインスタンスを使用
+ * const storage1 = getDefaultStorage();
+ * const storage2 = getDefaultStorage();
+ * console.log(storage1 === storage2); // true
+ *
+ * // ストレージの使用
+ * await storage1.set('user:123', JSON.stringify(userData));
+ * const userData = JSON.parse(await storage2.get('user:123') || '{}');
+ * ```
+ *
+ * @public
+ */
 export function getDefaultStorage(): KVStorage {
   if (!defaultStorageInstance) {
     defaultStorageInstance = createKVStorage();
@@ -514,6 +614,27 @@ export function getDefaultStorage(): KVStorage {
 
 /**
  * Reset default storage instance (for testing)
+ */
+/**
+ * デフォルトストレージインスタンスをリセットする関数
+ *
+ * 現在のデフォルトストレージインスタンスを破棄し、次回getDefaultStorage()呼び出し時に
+ * 新しいインスタンスが作成されるようにします。主にテスト環境や設定変更時に使用します。
+ *
+ * @example
+ * ```typescript
+ * // テストの前処理でストレージをリセット
+ * beforeEach(() => {
+ *   resetDefaultStorage();
+ * });
+ *
+ * // 設定変更後のリセット
+ * process.env.REDIS_URL = 'redis://new-host:6379';
+ * resetDefaultStorage(); // 新しい設定でインスタンスを再作成
+ * const newStorage = getDefaultStorage();
+ * ```
+ *
+ * @public
  */
 export function resetDefaultStorage(): void {
   defaultStorageInstance = null;

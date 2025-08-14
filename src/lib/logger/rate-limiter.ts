@@ -68,10 +68,10 @@ export interface ErrorFrequencyAnalysis {
 }
 
 /**
- * Create default rate limiter configuration (pure function)
- */
-/**
- * Rate limiter config options for testing
+ * テスト用レートリミッター設定オプション
+ *
+ * レートリミッターの設定をカスタマイズするためのオプションインターフェースです。
+ * プロダクション環境では環境変数から設定され、テスト環境ではこのオプションで上書きできます。
  */
 export interface RateLimiterConfigOptions {
   readonly bucket_size?: number;
@@ -88,6 +88,30 @@ export interface RateLimiterConfigOptions {
   readonly endpoint_limits?: Record<string, { bucket_size?: number; refill_rate?: number }>;
 }
 
+/**
+ * レートリミッター設定を作成する純粋関数
+ *
+ * 環境変数や指定されたオプションに基づいて、レートリミット設定を作成します。
+ * Token Bucketアルゴリズム、指数バックオフ、アダプティブサンプリングの設定が含まれます。
+ *
+ * @param options - オプション設定（オプション）
+ * @returns 不変のRateLimiterConfigオブジェクト
+ *
+ * @example
+ * ```typescript
+ * // デフォルト設定で作成
+ * const config = createRateLimiterConfig();
+ *
+ * // カスタム設定で作成
+ * const customConfig = createRateLimiterConfig({
+ *   max_tokens: 50,
+ *   refill_rate: 5,
+ *   adaptive_sampling: false
+ * });
+ * ```
+ *
+ * @public
+ */
 export function createRateLimiterConfig(options?: RateLimiterConfigOptions): RateLimiterConfig {
   const maxTokens =
     options?.max_tokens ||
@@ -127,7 +151,29 @@ export function createRateLimiterConfig(options?: RateLimiterConfigOptions): Rat
 }
 
 /**
- * Create initial rate limiter state (pure function)
+ * レートリミッターの初期状態を作成する純粋関数
+ *
+ * トークンバケットの初期状態を作成します。初期トークン数、タイムスタンプ、
+ * エラーカウントなどが含まれます。全てのフィールドは不変です。
+ *
+ * @returns 初期化された不変のRateLimiterStateオブジェクト
+ *
+ * @example
+ * ```typescript
+ * const initialState = createInitialState();
+ * // {
+ * //   tokens: 100,
+ * //   last_refill: 現在時刻,
+ * //   consecutive_rejects: 0,
+ * //   backoff_until: 0,
+ * //   error_counts: {},
+ * //   error_timestamps: [],
+ * //   total_requests: 0,
+ * //   successful_requests: 0
+ * // }
+ * ```
+ *
+ * @public
  */
 export function createInitialState(): RateLimiterState {
   return Object.freeze({
@@ -143,7 +189,25 @@ export function createInitialState(): RateLimiterState {
 }
 
 /**
- * Validate rate limiter configuration (pure function)
+ * レートリミッター設定の有効性を検証する純粋関数
+ *
+ * 設定値の範囲、サンプリングレートの値などをチェックし、
+ * 設定が正しいかどうかを判定します。不正な設定はレートリミットの誤動作を引き起こす可能性があります。
+ *
+ * @param config - 検証するレートリミッター設定
+ * @returns 設定が有効な場合 true、無効な場合 false
+ *
+ * @example
+ * ```typescript
+ * const config = createRateLimiterConfig();
+ * if (validateRateLimiterConfig(config)) {
+ *   console.log('設定は有効です');
+ * } else {
+ *   console.error('設定にエラーがあります');
+ * }
+ * ```
+ *
+ * @public
  */
 export function validateRateLimiterConfig(config: RateLimiterConfig): boolean {
   if (config.max_tokens <= 0 || config.refill_rate <= 0) {
@@ -196,7 +260,25 @@ export function resetRateLimiterState(
 }
 
 /**
- * Get rate limiter statistics for a specific client and endpoint
+ * 特定のクライアントとエンドポイントのレートリミット統計を取得する関数
+ *
+ * KVストレージからレートリミッターの現在の状態を取得し、統計情報を返します。
+ * デバッグや監視目的で現在のトークン数やリクエスト数を確認できます。
+ *
+ * @param clientId - クライアント識別子
+ * @param endpoint - 対象エンドポイント
+ * @returns レートリミット統計オブジェクトまたはnull（データが存在しない場合）
+ *
+ * @example
+ * ```typescript
+ * const stats = await getRateLimiterStats('client123', '/api/logs');
+ * if (stats) {
+ *   console.log(`現在のトークン数: ${stats.tokens}`);
+ *   console.log(`総リクエスト数: ${stats.total_requests}`);
+ * }
+ * ```
+ *
+ * @public
  */
 export async function getRateLimiterStats(
   clientId: string,
@@ -258,7 +340,24 @@ function calculateBackoff(config: RateLimiterConfig, consecutiveRejects: number)
 }
 
 /**
- * Analyze error frequency for adaptive sampling (pure function)
+ * アダプティブサンプリングのためのエラー頻度を分析する純粋関数
+ *
+ * 直近のエラー発生頻度を分析し、アダプティブサンプリングを適用すべきかどうかを判定します。
+ * エラー頻度が高い場合は、推奨サンプリングレートを低く設定してログ量を抑制します。
+ *
+ * @param state - 分析対象のレートリミッター状態
+ * @param currentTime - 現在のタイムスタンプ（ミリ秒）
+ * @returns エラー頻度分析結果
+ *
+ * @example
+ * ```typescript
+ * const analysis = analyzeErrorFrequency(state, Date.now());
+ * if (analysis.should_apply_adaptive) {
+ *   console.log(`アダプティブサンプリングを適用: ${analysis.recommended_sampling_rate}`);
+ * }
+ * ```
+ *
+ * @public
  */
 export function analyzeErrorFrequency(
   state: RateLimiterState,
@@ -350,8 +449,29 @@ function _cleanOldErrorTimestamps(
 }
 
 /**
- * High-level rate limit check for integration tests
- * Manages state automatically based on client ID and endpoint
+ * 統合テスト用の高レベルレートリミットチェック関数
+ *
+ * クライアントIDとエンドポイントに基づいて状態を自動管理し、レートリミットチェックを実行します。
+ * KVストレージから状態を読み込み、更新し、結果を返します。
+ * エンドポイント固有の制限やストレージエラーのハンドリングも含まれます。
+ *
+ * @param config - レートリミッター設定
+ * @param clientId - クライアント識別子
+ * @param endpoint - 対象エンドポイント
+ * @param _logLevel - ログレベル（現在未使用）
+ * @returns レートリミットチェック結果
+ *
+ * @example
+ * ```typescript
+ * const result = await checkRateLimit(config, 'client123', '/api/logs', 'info');
+ * if (result.allowed) {
+ *   console.log(`リクエスト許可。残りトークン: ${result.tokens_remaining}`);
+ * } else {
+ *   console.log(`リクエスト拒否。理由: ${result.reason}`);
+ * }
+ * ```
+ *
+ * @public
  */
 export async function checkRateLimit(
   config: RateLimiterConfig,

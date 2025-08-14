@@ -1,6 +1,6 @@
 /**
  * KV Storage Integration Tests
- * 
+ *
  * Tests the KV storage abstraction layer with different backends
  * including Redis, Edge Config, and Memory storage with real scenarios.
  */
@@ -37,7 +37,7 @@ describe('KV Storage Integration Tests', () => {
       vi.stubEnv('REDIS_URL', '');
       vi.stubEnv('EDGE_CONFIG_ID', '');
       vi.stubEnv('EDGE_CONFIG_TOKEN', '');
-      
+
       storage = createKVStorage();
     });
 
@@ -48,22 +48,22 @@ describe('KV Storage Integration Tests', () => {
 
       // Set with short TTL
       await storage.set(key, value, shortTtl);
-      
+
       // Immediate read should work
       const result1 = await storage.get(key);
       expect(result1).toBe(value);
-      
+
       // Key should exist
       const exists1 = await storage.exists(key);
       expect(exists1).toBe(true);
-      
+
       // Wait for TTL expiration
-      await new Promise(resolve => setTimeout(resolve, 1100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+
       // Key should be expired
       const result2 = await storage.get(key);
       expect(result2).toBeNull();
-      
+
       const exists2 = await storage.exists(key);
       expect(exists2).toBe(false);
     });
@@ -74,9 +74,7 @@ describe('KV Storage Integration Tests', () => {
 
       // Create 10 concurrent operations
       for (let i = 0; i < 10; i++) {
-        operations.push(
-          storage.set(`${baseKey}_${i}`, `value_${i}`)
-        );
+        operations.push(storage.set(`${baseKey}_${i}`, `value_${i}`));
       }
 
       // Execute all operations concurrently
@@ -91,9 +89,7 @@ describe('KV Storage Integration Tests', () => {
       // Clean up
       const deleteOperations = [];
       for (let i = 0; i < 10; i++) {
-        deleteOperations.push(
-          storage.delete(`${baseKey}_${i}`)
-        );
+        deleteOperations.push(storage.delete(`${baseKey}_${i}`));
       }
       await Promise.all(deleteOperations);
 
@@ -106,7 +102,7 @@ describe('KV Storage Integration Tests', () => {
 
     it('should pass health check', async () => {
       const healthResult = await checkStorageHealth(storage);
-      
+
       expect(healthResult.success).toBe(true);
       expect(healthResult.data).toBe(true);
       expect(healthResult.error).toBeUndefined();
@@ -131,7 +127,7 @@ describe('KV Storage Integration Tests', () => {
 
     it('should detect Redis when configured', () => {
       vi.stubEnv('REDIS_URL', 'redis://localhost:6379');
-      
+
       const config = createStorageConfig();
       expect(config.type).toBe('redis');
       expect(config.connection_string).toBe('redis://localhost:6379');
@@ -141,16 +137,16 @@ describe('KV Storage Integration Tests', () => {
       vi.stubEnv('REDIS_URL', '');
       vi.stubEnv('EDGE_CONFIG_ID', 'ecfg_test123');
       vi.stubEnv('EDGE_CONFIG_TOKEN', 'ect_test456');
-      
+
       const config = createStorageConfig();
       expect(config.type).toBe('edge-config');
     });
 
     it('should fallback to memory storage for invalid Redis config', async () => {
       vi.stubEnv('REDIS_URL', 'invalid://url');
-      
+
       const storage = createKVStorage();
-      
+
       // Try an operation - should gracefully handle Redis failure and fallback
       try {
         await storage.set('test', 'value');
@@ -158,7 +154,7 @@ describe('KV Storage Integration Tests', () => {
       } catch {
         // Errors are expected for invalid config
       }
-      
+
       // Type might still be 'redis' but operations should fail and fallback behavior should work
       expect(['redis', 'memory']).toContain(storage.type);
     });
@@ -168,15 +164,15 @@ describe('KV Storage Integration Tests', () => {
     it('should maintain singleton pattern', () => {
       const storage1 = getDefaultStorage();
       const storage2 = getDefaultStorage();
-      
+
       expect(storage1).toBe(storage2);
     });
 
     it('should reset singleton correctly', () => {
       const storage1 = getDefaultStorage();
-      
+
       resetDefaultStorage();
-      
+
       const storage2 = getDefaultStorage();
       expect(storage1).not.toBe(storage2);
     });
@@ -185,17 +181,17 @@ describe('KV Storage Integration Tests', () => {
   describe('Error Handling Integration', () => {
     it('should handle storage errors gracefully', async () => {
       const storage = createKVStorage();
-      
+
       // Mock console.warn to avoid noise in tests
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       // Test with extremely long key (potential edge case)
       const longKey = 'x'.repeat(10000);
       const result = await storage.get(longKey);
-      
+
       // Should not throw, might return null or actual value depending on implementation
       expect(typeof result === 'string' || result === null).toBe(true);
-      
+
       warnSpy.mockRestore();
     });
 
@@ -212,15 +208,15 @@ describe('KV Storage Integration Tests', () => {
         // Should fallback to memory storage with valid defaults
         const storage = createKVStorage(invalidConfig as StorageConfig);
         expect(storage.type).toBe('memory');
-        
+
         // Should still be functional with memory storage
         await storage.set('test', 'value');
         const result = await storage.get('test');
         expect(result).toBe('value');
-        
+
         // Clean up
         await storage.delete('test');
-        
+
         // Verify the key is deleted
         const deletedResult = await storage.get('test');
         expect(deletedResult).toBe(null);
@@ -234,19 +230,19 @@ describe('KV Storage Integration Tests', () => {
       vi.stubEnv('REDIS_URL', '');
       vi.stubEnv('EDGE_CONFIG_ID', '');
       vi.stubEnv('EDGE_CONFIG_TOKEN', '');
-      
+
       const storage = createKVStorage();
-      
+
       // Simulate storing logger configuration
       const logConfig = {
         global_level: 'info',
         service_levels: {
-          'api': 'debug',
-          'auth': 'warn',
+          api: 'debug',
+          auth: 'warn',
         },
         rate_limits: {
-          'error': 100,
-          'warn': 1000,
+          error: 100,
+          warn: 1000,
         },
         last_updated: new Date().toISOString(),
         version: 1,
@@ -295,13 +291,13 @@ describe('KV Storage Integration Tests', () => {
       vi.stubEnv('REDIS_URL', '');
       vi.stubEnv('EDGE_CONFIG_ID', '');
       vi.stubEnv('EDGE_CONFIG_TOKEN', '');
-      
+
       const storage = createKVStorage();
-      
+
       // Simulate rate limiting buckets
       const clientId = 'client_192.168.1.100';
       const bucketKey = `rate_limit:${clientId}`;
-      
+
       const bucketData = {
         tokens: 8,
         last_refill: Date.now(),
@@ -315,16 +311,16 @@ describe('KV Storage Integration Tests', () => {
       // Simulate token consumption
       const storedData = await storage.get(bucketKey);
       expect(storedData).not.toBeNull();
-      
+
       const bucket = JSON.parse(storedData!);
       expect(bucket.tokens).toBe(8);
-      
+
       // Update bucket (consume tokens)
       bucket.tokens -= 2;
       bucket.total_requests += 2;
-      
+
       await storage.set(bucketKey, JSON.stringify(bucket), 60);
-      
+
       // Verify update
       const updatedData = await storage.get(bucketKey);
       const updatedBucket = JSON.parse(updatedData!);

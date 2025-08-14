@@ -17,7 +17,9 @@ export async function GET(): Promise<NextResponse> {
   try {
     // Import metrics functions to check initialization
     const { isMetricsInitialized } = await import('../../../lib/logger/metrics');
-    const { isPhase3MetricsInitialized, getPhase3MetricsSnapshot } = await import('../../../lib/logger/enhanced-metrics');
+    const { isPhase3MetricsInitialized, getPhase3MetricsSnapshot } = await import(
+      '../../../lib/logger/enhanced-metrics'
+    );
 
     // Check if metrics are properly initialized
     if (!isMetricsInitialized()) {

@@ -1,4 +1,5 @@
 # Phase 3 (Phase C) 詳細実装計画
+
 ## 運用最適化とリアルタイム制御機能
 
 **作成日**: 2025-08-14  
@@ -18,7 +19,7 @@
 ### 主要機能
 
 1. **Dynamic Remote Log Level API** - 運用中のログレベル動的変更
-2. **Custom Rate Limiter強化** - エラーログの適応的サンプリング  
+2. **Custom Rate Limiter強化** - エラーログの適応的サンプリング
 3. **Redis/Edge KV統合** - 分散環境での設定管理
 4. **監視・運用ダッシュボード強化** - OpenTelemetry完全活用
 
@@ -34,18 +35,18 @@ graph TB
         A[Next.js App] --> B[Dynamic Log Level API]
         A --> C[Rate Limiter Middleware]
         A --> D[Logger System]
-        
+
         B --> E[Redis/Edge KV]
         C --> E
         D --> F[OpenTelemetry Metrics]
-        
+
         E --> G[Remote Config Management]
         F --> H[Prometheus/Grafana]
-        
+
         I[Admin Dashboard] --> B
         I --> J[Rate Limit Control]
     end
-    
+
     style A fill:#e1f5fe
     style B fill:#fff3e0
     style C fill:#fff3e0
@@ -57,6 +58,7 @@ graph TB
 ### 3.2 純粋関数アーキテクチャ継承
 
 **設計原則**:
+
 - ✅ **ステートレス関数優先** - 既存パターンを継承
 - ✅ **Immutable設定オブジェクト** - Object.freeze()活用
 - ✅ **副作用の制御された分離** - Redis I/Oは専用関数に集約
@@ -71,6 +73,7 @@ graph TB
 **目的**: 運用中のアプリケーションのログレベルをリアルタイムで変更
 
 **主要機能**:
+
 - リモート設定による動的ログレベル変更
 - セキュアな管理者API
 - Fail-safe機能とフォールバック
@@ -144,9 +147,9 @@ export function validateRemoteConfig(config: unknown): config is RemoteLogConfig
   }
 
   const cfg = config as Record<string, unknown>;
-  
+
   const validLevels = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
-  
+
   return (
     typeof cfg.global_level === 'string' &&
     validLevels.includes(cfg.global_level) &&
@@ -164,7 +167,7 @@ export async function fetchRemoteConfig(): Promise<ConfigFetchResult> {
   try {
     // Redis connection will be implemented in Phase 3.2
     const configData = await getConfigFromKV('log_config');
-    
+
     if (!configData) {
       return {
         success: false,
@@ -174,7 +177,7 @@ export async function fetchRemoteConfig(): Promise<ConfigFetchResult> {
     }
 
     const config = JSON.parse(configData);
-    
+
     if (!validateRemoteConfig(config)) {
       return {
         success: false,
@@ -200,10 +203,7 @@ export async function fetchRemoteConfig(): Promise<ConfigFetchResult> {
 /**
  * Get effective log level for service (pure function)
  */
-export function getEffectiveLogLevel(
-  config: RemoteLogConfig,
-  serviceName: string
-): LogLevel {
+export function getEffectiveLogLevel(config: RemoteLogConfig, serviceName: string): LogLevel {
   return config.service_levels[serviceName] || config.global_level;
 }
 
@@ -245,11 +245,11 @@ async function getConfigFromKV(key: string): Promise<string | null> {
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  fetchRemoteConfig, 
-  createDefaultConfig, 
+import {
+  fetchRemoteConfig,
+  createDefaultConfig,
   mergeConfigurations,
-  validateRemoteConfig 
+  validateRemoteConfig,
 } from '@/lib/logger/remote-config';
 
 /**
@@ -260,14 +260,11 @@ export async function GET(request: NextRequest) {
     // Authentication check (to be implemented)
     const authResult = await validateAdminAuth(request);
     if (!authResult.valid) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const configResult = await fetchRemoteConfig();
-    
+
     if (!configResult.success) {
       // Return default config if remote config fails
       const defaultConfig = createDefaultConfig();
@@ -284,10 +281,7 @@ export async function GET(request: NextRequest) {
       cached: configResult.cached,
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -299,27 +293,19 @@ export async function POST(request: NextRequest) {
     // Authentication check
     const authResult = await validateAdminAuth(request);
     if (!authResult.valid) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    
+
     // Validate request body
     if (!validateRemoteConfig(body)) {
-      return NextResponse.json(
-        { error: 'Invalid configuration format' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid configuration format' }, { status: 400 });
     }
 
     // Get current config and merge
     const currentResult = await fetchRemoteConfig();
-    const baseConfig = currentResult.success 
-      ? currentResult.config! 
-      : createDefaultConfig();
+    const baseConfig = currentResult.success ? currentResult.config! : createDefaultConfig();
 
     const newConfig = mergeConfigurations(baseConfig, body);
 
@@ -332,10 +318,7 @@ export async function POST(request: NextRequest) {
       message: 'Configuration updated successfully',
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to update configuration' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update configuration' }, { status: 500 });
   }
 }
 
@@ -361,6 +344,7 @@ async function saveConfigToKV(key: string, value: string): Promise<void> {
 **アルゴリズム**: Token Bucket + Exponential Backoff
 
 **主要機能**:
+
 - エラーパターン別のサンプリングレート
 - 動的閾値調整
 - メトリクス連動
@@ -419,10 +403,10 @@ export function createRateLimiterConfig(): RateLimiterConfig {
     backoff_multiplier: 2,
     max_backoff: 300, // 5 minutes max
     sampling_rates: Object.freeze({
-      'error': 1.0,      // 100% - all errors
-      'warn': 0.8,       // 80% - most warnings
-      'info': 0.1,       // 10% - sample info logs
-      'debug': 0.01,     // 1% - minimal debug logs
+      error: 1.0, // 100% - all errors
+      warn: 0.8, // 80% - most warnings
+      info: 0.1, // 10% - sample info logs
+      debug: 0.01, // 1% - minimal debug logs
     }),
   }) as RateLimiterConfig;
 }
@@ -450,40 +434,29 @@ function calculateTokenRefill(
 ): number {
   const timeDelta = (currentTime - state.last_refill) / 1000; // seconds
   const tokensToAdd = timeDelta * config.refill_rate;
-  
-  return Math.min(
-    config.max_tokens,
-    state.tokens + tokensToAdd
-  );
+
+  return Math.min(config.max_tokens, state.tokens + tokensToAdd);
 }
 
 /**
  * Calculate exponential backoff (pure function)
  */
-function calculateBackoff(
-  config: RateLimiterConfig,
-  consecutiveRejects: number
-): number {
+function calculateBackoff(config: RateLimiterConfig, consecutiveRejects: number): number {
   const backoffSeconds = Math.min(
     config.max_backoff,
     Math.pow(config.backoff_multiplier, consecutiveRejects)
   );
-  
-  return Date.now() + (backoffSeconds * 1000);
+
+  return Date.now() + backoffSeconds * 1000;
 }
 
 /**
  * Apply sampling rate based on log level and error type (pure function)
  */
-function shouldSample(
-  config: RateLimiterConfig,
-  logLevel: string,
-  errorType?: string
-): boolean {
-  const samplingRate = config.sampling_rates[errorType || logLevel] || 
-                      config.sampling_rates[logLevel] || 
-                      1.0;
-  
+function shouldSample(config: RateLimiterConfig, logLevel: string, errorType?: string): boolean {
+  const samplingRate =
+    config.sampling_rates[errorType || logLevel] || config.sampling_rates[logLevel] || 1.0;
+
   return Math.random() < samplingRate;
 }
 
@@ -530,7 +503,7 @@ export function checkRateLimit(
   // Check if tokens available
   if (currentTokens < 1) {
     const newBackoffTime = calculateBackoff(config, state.consecutive_rejects + 1);
-    
+
     return {
       allowed: false,
       remaining_tokens: 0,
@@ -570,7 +543,7 @@ export function updateErrorCounts(
   increment: number = 1
 ): RateLimiterState {
   const currentCount = state.error_counts[errorType] || 0;
-  
+
   return Object.freeze({
     ...state,
     error_counts: Object.freeze({
@@ -589,12 +562,12 @@ export function getAdaptiveSamplingRate(
   baseSamplingRate: number = 1.0
 ): number {
   const errorCount = errorCounts[errorType] || 0;
-  
+
   // Reduce sampling rate for high-frequency errors
   if (errorCount > 1000) return baseSamplingRate * 0.01; // 1% for very high frequency
-  if (errorCount > 100) return baseSamplingRate * 0.1;   // 10% for high frequency
-  if (errorCount > 10) return baseSamplingRate * 0.5;    // 50% for medium frequency
-  
+  if (errorCount > 100) return baseSamplingRate * 0.1; // 10% for high frequency
+  if (errorCount > 10) return baseSamplingRate * 0.5; // 50% for medium frequency
+
   return baseSamplingRate; // Full rate for low frequency
 }
 ```
@@ -608,8 +581,9 @@ export function getAdaptiveSamplingRate(
 **目的**: 分散環境での設定管理とキャッシュ機能
 
 **対応環境**:
+
 - ✅ **Redis** - セルフホスト環境・Docker
-- ✅ **Vercel Edge Config** - Vercel環境  
+- ✅ **Vercel Edge Config** - Vercel環境
 - ✅ **Edge KV** - その他Edge Runtime
 
 ### 3.2 Storage Abstraction: `src/lib/logger/kv-storage.ts`
@@ -661,11 +635,11 @@ function detectStorageType(): 'redis' | 'edge-config' | 'memory' {
   if (process.env.REDIS_URL || process.env.KV_CONNECTION_STRING) {
     return 'redis';
   }
-  
+
   if (process.env.EDGE_CONFIG_ID) {
     return 'edge-config';
   }
-  
+
   return 'memory'; // Fallback
 }
 
@@ -747,23 +721,23 @@ export class MemoryStorage implements KVStorage {
 
   async get(key: string): Promise<string | null> {
     const entry = this.store.get(key);
-    
+
     if (!entry) {
       return null;
     }
-    
+
     if (Date.now() > entry.expires) {
       this.store.delete(key);
       return null;
     }
-    
+
     return entry.value;
   }
 
   async set(key: string, value: string, ttl?: number): Promise<void> {
     const ttlValue = ttl || this.config.ttl_default;
-    const expires = Date.now() + (ttlValue * 1000);
-    
+    const expires = Date.now() + ttlValue * 1000;
+
     this.store.set(key, { value, expires });
   }
 
@@ -782,7 +756,7 @@ export class MemoryStorage implements KVStorage {
  */
 export function createKVStorage(config?: StorageConfig): KVStorage {
   const storageConfig = config || createStorageConfig();
-  
+
   switch (storageConfig.type) {
     case 'redis':
       return new RedisStorage(storageConfig);
@@ -815,12 +789,12 @@ export interface Phase3Metrics {
   config_fetch_total: ReturnType<typeof metrics.getMeter>['createCounter'];
   config_fetch_duration: ReturnType<typeof metrics.getMeter>['createHistogram'];
   config_cache_hits: ReturnType<typeof metrics.getMeter>['createCounter'];
-  
+
   // Rate limiter metrics
   rate_limit_decisions: ReturnType<typeof metrics.getMeter>['createCounter'];
   rate_limit_tokens: ReturnType<typeof metrics.getMeter>['createGauge'];
   rate_limit_backoff_time: ReturnType<typeof metrics.getMeter>['createHistogram'];
-  
+
   // KV storage metrics
   kv_operations_total: ReturnType<typeof metrics.getMeter>['createCounter'];
   kv_operation_duration: ReturnType<typeof metrics.getMeter>['createHistogram'];
@@ -838,25 +812,25 @@ export function initializePhase3Metrics(): Phase3Metrics {
     config_fetch_total: meter.createCounter('config_fetch_total', {
       description: 'Total number of remote configuration fetch attempts',
     }),
-    
+
     config_fetch_duration: meter.createHistogram('config_fetch_duration_ms', {
       description: 'Duration of remote configuration fetch operations',
       unit: 'ms',
     }),
-    
+
     config_cache_hits: meter.createCounter('config_cache_hits_total', {
       description: 'Number of configuration cache hits vs misses',
     }),
 
-    // Rate limiter metrics  
+    // Rate limiter metrics
     rate_limit_decisions: meter.createCounter('rate_limit_decisions_total', {
       description: 'Rate limiting decisions (allowed/denied)',
     }),
-    
+
     rate_limit_tokens: meter.createGauge('rate_limit_tokens_current', {
       description: 'Current number of available rate limit tokens',
     }),
-    
+
     rate_limit_backoff_time: meter.createHistogram('rate_limit_backoff_seconds', {
       description: 'Rate limit backoff duration',
       unit: 's',
@@ -866,12 +840,12 @@ export function initializePhase3Metrics(): Phase3Metrics {
     kv_operations_total: meter.createCounter('kv_operations_total', {
       description: 'Total KV storage operations',
     }),
-    
+
     kv_operation_duration: meter.createHistogram('kv_operation_duration_ms', {
       description: 'Duration of KV storage operations',
       unit: 'ms',
     }),
-    
+
     kv_connection_status: meter.createGauge('kv_connection_status', {
       description: 'KV storage connection status (1=connected, 0=disconnected)',
     }),
@@ -958,14 +932,14 @@ export function recordKVMetrics(
 
 ### Phase 3 実装期間: 2025-08-19 〜 2025-08-26 (6営業日)
 
-| 日程      | フェーズ         | タスク                       | 成果物                                   |
-| --------- | ---------------- | ---------------------------- | ---------------------------------------- |
-| **Day 1** | 基盤実装         | KV Storage抽象化             | `kv-storage.ts`, Redis/Memory実装        |
-| **Day 2** | Remote Config    | Dynamic Log Level API        | `remote-config.ts`, `/api/admin`         |
-| **Day 3** | Rate Limiter     | Token Bucket + Backoff       | `rate-limiter.ts`, 統合テスト            |
-| **Day 4** | Metrics統合      | Enhanced Metrics実装         | `enhanced-metrics.ts`, Prometheus出力    |
-| **Day 5** | Logger統合       | 既存ロガーとの統合           | server.ts, client.ts, middleware.ts更新 |
-| **Day 6** | テスト・文書     | 品質保証・ドキュメント更新   | 全テスト成功、運用手順書                 |
+| 日程      | フェーズ      | タスク                     | 成果物                                  |
+| --------- | ------------- | -------------------------- | --------------------------------------- |
+| **Day 1** | 基盤実装      | KV Storage抽象化           | `kv-storage.ts`, Redis/Memory実装       |
+| **Day 2** | Remote Config | Dynamic Log Level API      | `remote-config.ts`, `/api/admin`        |
+| **Day 3** | Rate Limiter  | Token Bucket + Backoff     | `rate-limiter.ts`, 統合テスト           |
+| **Day 4** | Metrics統合   | Enhanced Metrics実装       | `enhanced-metrics.ts`, Prometheus出力   |
+| **Day 5** | Logger統合    | 既存ロガーとの統合         | server.ts, client.ts, middleware.ts更新 |
+| **Day 6** | テスト・文書  | 品質保証・ドキュメント更新 | 全テスト成功、運用手順書                |
 
 ### Daily Milestones
 
@@ -1017,10 +991,7 @@ export interface AdminAuthConfig {
 /**
  * Secure JWT validation (pure function)
  */
-export function validateJWTToken(
-  token: string,
-  secret: string
-): { valid: boolean; payload?: any } {
+export function validateJWTToken(token: string, secret: string): { valid: boolean; payload?: any } {
   try {
     // JWT validation logic
     return { valid: true, payload: {} }; // Simplified
@@ -1048,7 +1019,9 @@ describe('Remote Configuration', () => {
   test('createDefaultConfig returns immutable object', () => {
     const config = createDefaultConfig();
     expect(Object.isFrozen(config)).toBe(true);
-    expect(() => { (config as any).global_level = 'debug'; }).toThrow();
+    expect(() => {
+      (config as any).global_level = 'debug';
+    }).toThrow();
   });
 
   test('validateRemoteConfig rejects invalid input', () => {
@@ -1060,22 +1033,22 @@ describe('Remote Configuration', () => {
   test('getEffectiveLogLevel returns service-specific level', () => {
     const config = createDefaultConfig();
     const configWithService = mergeConfigurations(config, {
-      service_levels: { 'api': 'debug' }
+      service_levels: { api: 'debug' },
     });
-    
+
     expect(getEffectiveLogLevel(configWithService, 'api')).toBe('debug');
     expect(getEffectiveLogLevel(configWithService, 'web')).toBe('info');
   });
 });
 
-// tests/unit/logger/rate-limiter.test.ts  
+// tests/unit/logger/rate-limiter.test.ts
 describe('Rate Limiter', () => {
   test('checkRateLimit allows within token limit', () => {
     const config = createRateLimiterConfig();
     const state = createInitialState();
-    
+
     const result = checkRateLimit(config, state, 'error');
-    
+
     expect(result.allowed).toBe(true);
     expect(result.remaining_tokens).toBe(99);
     expect(result.sampling_applied).toBe(false);
@@ -1084,13 +1057,13 @@ describe('Rate Limiter', () => {
   test('checkRateLimit applies exponential backoff', () => {
     const config = createRateLimiterConfig();
     let state = createInitialState();
-    
+
     // Consume all tokens
     for (let i = 0; i < 100; i++) {
       const result = checkRateLimit(config, state, 'error');
       state = result.new_state;
     }
-    
+
     // Next request should be denied with backoff
     const result = checkRateLimit(config, state, 'error');
     expect(result.allowed).toBe(false);
@@ -1120,39 +1093,37 @@ describe('Rate Limiter', () => {
 ```yaml
 # grafana/dashboards/phase3-operations.json
 {
-  "dashboard": {
-    "title": "Phase 3 - Operational Logging",
-    "panels": [
-      {
-        "title": "Remote Config Performance",
-        "targets": [
-          "rate(config_fetch_total[5m])",
-          "histogram_quantile(0.95, config_fetch_duration_ms)"
-        ]
-      },
-      {
-        "title": "Rate Limiting Status", 
-        "targets": [
-          "rate_limit_tokens_current",
-          "rate(rate_limit_decisions_total[1m])"
-        ]
-      },
-      {
-        "title": "KV Storage Health",
-        "targets": [
-          "kv_connection_status",
-          "histogram_quantile(0.99, kv_operation_duration_ms)"
-        ]
-      }
-    ]
-  }
+  'dashboard':
+    {
+      'title': 'Phase 3 - Operational Logging',
+      'panels':
+        [
+          {
+            'title': 'Remote Config Performance',
+            'targets':
+              [
+                'rate(config_fetch_total[5m])',
+                'histogram_quantile(0.95, config_fetch_duration_ms)',
+              ],
+          },
+          {
+            'title': 'Rate Limiting Status',
+            'targets': ['rate_limit_tokens_current', 'rate(rate_limit_decisions_total[1m])'],
+          },
+          {
+            'title': 'KV Storage Health',
+            'targets':
+              ['kv_connection_status', 'histogram_quantile(0.99, kv_operation_duration_ms)'],
+          },
+        ],
+    },
 }
 ```
 
 ### アラート設定
 
 - **Config Fetch失敗率 > 5%**: Warning
-- **Rate Limit使用率 > 80%**: Info  
+- **Rate Limit使用率 > 80%**: Info
 - **KV Storage応答時間 > 200ms**: Warning
 - **Admin API未認証アクセス**: Critical
 
@@ -1162,17 +1133,17 @@ describe('Rate Limiter', () => {
 
 ### 技術指標
 
-| 項目                     | 目標値                   | 測定方法                 |
-| ------------------------ | ------------------------ | ------------------------ |
-| Remote Config可用性      | > 99.5%                  | Prometheus監視           |
-| Rate Limiter性能         | < 1ms判定時間            | OpenTelemetry Metrics    |
-| KV Storage応答性能       | < 50ms (Redis)           | 分散トレーシング         |
-| Admin API セキュリティ   | 認証成功率 > 99.9%       | セキュリティログ分析     |
+| 項目                   | 目標値             | 測定方法              |
+| ---------------------- | ------------------ | --------------------- |
+| Remote Config可用性    | > 99.5%            | Prometheus監視        |
+| Rate Limiter性能       | < 1ms判定時間      | OpenTelemetry Metrics |
+| KV Storage応答性能     | < 50ms (Redis)     | 分散トレーシング      |
+| Admin API セキュリティ | 認証成功率 > 99.9% | セキュリティログ分析  |
 
 ### 運用指標
 
 - **設定変更反映時間**: < 30秒
-- **障害検知時間**: < 1分  
+- **障害検知時間**: < 1分
 - **復旧時間**: < 5分
 - **運用ミス件数**: 0件/月
 
@@ -1192,7 +1163,7 @@ describe('Rate Limiter', () => {
 **Phase 3実装完了後の全体達成状況**:
 
 - Phase A: ✅ 100% 完了 (基盤実装)
-- Phase B: ✅ 100% 完了 (OpenTelemetry Metrics)  
+- Phase B: ✅ 100% 完了 (OpenTelemetry Metrics)
 - **Phase 3: 🔄 実装予定** (運用最適化) ← **本計画対象**
 
 🎉 **Phase 3完了時**: 完全な運用レベルの構造化ログシステム達成

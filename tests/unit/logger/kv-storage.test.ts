@@ -185,13 +185,13 @@ describe('MemoryStorage', () => {
 
   test('respects TTL expiration', async () => {
     await storage.set('ttl-key', 'ttl-value', 1); // 1 second TTL
-    
+
     let value = await storage.get('ttl-key');
     expect(value).toBe('ttl-value');
 
     // Wait for expiration
-    await new Promise(resolve => setTimeout(resolve, 1100));
-    
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+
     value = await storage.get('ttl-key');
     expect(value).toBeNull();
   });
@@ -201,28 +201,28 @@ describe('MemoryStorage', () => {
     vi.setSystemTime(mockDate);
 
     await storage.set('default-ttl-key', 'default-ttl-value');
-    
+
     // Advance time by 5 seconds (less than default TTL)
     vi.setSystemTime(new Date('2025-08-14T10:00:05.000Z'));
-    
+
     let value = await storage.get('default-ttl-key');
     expect(value).toBe('default-ttl-value');
 
     // Advance time past default TTL
     vi.setSystemTime(new Date('2025-08-14T10:00:15.000Z'));
-    
+
     value = await storage.get('default-ttl-key');
     expect(value).toBeNull();
   });
 
   test('deletes keys correctly', async () => {
     await storage.set('delete-key', 'delete-value');
-    
+
     let exists = await storage.exists('delete-key');
     expect(exists).toBe(true);
 
     await storage.delete('delete-key');
-    
+
     exists = await storage.exists('delete-key');
     expect(exists).toBe(false);
   });
@@ -340,13 +340,15 @@ describe('checkStorageHealth', () => {
     // Mock storage that doesn't actually delete
     const mockStorage: KVStorage = {
       type: 'memory',
-      get: vi.fn()
+      get: vi
+        .fn()
         .mockResolvedValueOnce('health_check_value') // First call during read test
         .mockResolvedValueOnce('health_check_value'), // Second call might not happen due to early success
       set: vi.fn().mockResolvedValue(undefined),
       delete: vi.fn().mockResolvedValue(undefined),
-      exists: vi.fn()
-        .mockResolvedValueOnce(true)  // exists check before delete
+      exists: vi
+        .fn()
+        .mockResolvedValueOnce(true) // exists check before delete
         .mockResolvedValueOnce(true), // exists check after delete (should be false)
     };
 
@@ -386,9 +388,7 @@ describe('Error Handling and Resilience', () => {
     const storage = new MemoryStorage(config);
 
     // Perform multiple concurrent operations
-    const operations = Array.from({ length: 100 }, (_, i) => 
-      storage.set(`key-${i}`, `value-${i}`)
-    );
+    const operations = Array.from({ length: 100 }, (_, i) => storage.set(`key-${i}`, `value-${i}`));
 
     await Promise.all(operations);
 

@@ -18,10 +18,27 @@ let requestDurationHistogram: Histogram | null = null;
 let memoryUsageGauge: Gauge | null = null;
 
 /**
- * Initialize OpenTelemetry Metrics Provider
+ * OpenTelemetry Metrics Providerを初期化する関数
  *
- * Pure function that sets up metrics collection with Prometheus exporter.
- * Edge Runtime compatible implementation.
+ * Prometheusエクスポーターと連携したメトリクス収集システムをセットアップします。
+ * Edge Runtime環境にも対応した純粋関数実装です。
+ * グローバルなメトリクスインスタンスを初期化し、ログエントリ、エラー、リクエスト期間、
+ * メモリ使用量のメトリクスを作成します。
+ *
+ * @returns Promise<void> - 初期化が完了したときに解決される
+ * @throws Error - Prometheusエクスポーターの設定やメーターの作成に失敗した場合
+ *
+ * @example
+ * ```typescript
+ * // アプリケーション起動時に初期化
+ * await initializeMetrics();
+ * // コンソールに '✅ OpenTelemetry Metrics initialized successfully' が表示される
+ *
+ * // 初期化後にメトリクス関数を使用可能
+ * incrementLogCounter('info', 'server');
+ * ```
+ *
+ * @public
  */
 export async function initializeMetrics(): Promise<void> {
   try {
@@ -206,10 +223,23 @@ export function updateMemoryUsage(
 }
 
 /**
- * Get metrics for testing and debugging
+ * テストとデバッグ用のメトリクスインスタンスを取得する関数
  *
- * Pure function that returns current metrics instances for testing.
- * Returns null if metrics are not initialized.
+ * 現在初期化されているメトリクスインスタンスを返す純粋関数です。
+ * メトリクスが初期化されていない場合は null を返します。
+ * 主にユニットテストやデバッグ目的で使用します。
+ *
+ * @returns メトリクスインスタンスオブジェクトまたは null
+ *
+ * @example
+ * ```typescript
+ * const metrics = getMetricsInstances();
+ * if (metrics.logEntriesCounter) {
+ *   console.log('ログカウンターが初期化済み');
+ * }
+ * ```
+ *
+ * @internal
  */
 export function getMetricsInstances() {
   return {
@@ -221,19 +251,44 @@ export function getMetricsInstances() {
 }
 
 /**
- * Check if metrics are initialized
+ * メトリクスが初期化済みかどうかをチェックする関数
  *
- * Pure function to check metrics initialization status.
+ * 全てのメトリクスインスタンス（ログカウンター、エラーカウンター、
+ * リクエスト晱間ヒストグラム、メモリ使用量ゲージ）が初期化されているかを確認します。
+ *
+ * @returns 全てのメトリクスが初期化済みの場合 true、そうでない場合 false
+ *
+ * @example
+ * ```typescript
+ * if (isMetricsInitialized()) {
+ *   incrementLogCounter('info', 'server');
+ * } else {
+ *   console.warn('メトリクスが初期化されていません');
+ * }
+ * ```
+ *
+ * @public
  */
 export function isMetricsInitialized(): boolean {
   return Boolean(logEntriesCounter && errorCounter && requestDurationHistogram && memoryUsageGauge);
 }
 
 /**
- * Clean up metrics (for testing)
+ * メトリクスインスタンスをリセットする関数（テスト用）
  *
- * Pure function to reset metrics instances.
- * Primarily used in test environments.
+ * 全てのメトリクスインスタンスを null にリセットします。
+ * 主にテスト環境でクリーンな状態でテストを実行するために使用します。
+ * 純粋関数実装で副作用はありません。
+ *
+ * @example
+ * ```typescript
+ * // テストの前処理でメトリクスをリセット
+ * beforeEach(() => {
+ *   resetMetrics();
+ * });
+ * ```
+ *
+ * @internal
  */
 export function resetMetrics(): void {
   logEntriesCounter = null;

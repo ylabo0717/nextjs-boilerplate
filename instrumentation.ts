@@ -11,10 +11,10 @@ export async function register() {
     try {
       const { initializeMetrics } = await import('./src/lib/logger/metrics');
       await initializeMetrics();
-      
+
       const { initializePhase3Metrics } = await import('./src/lib/logger/enhanced-metrics');
       initializePhase3Metrics();
-      
+
       console.log('✅ Logger metrics initialized successfully');
     } catch (error) {
       console.error('❌ Failed to initialize metrics:', error);

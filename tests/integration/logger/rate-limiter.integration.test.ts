@@ -1,6 +1,6 @@
 /**
  * Rate Limiter Integration Tests
- * 
+ *
  * Tests the rate limiting system with real scenarios and storage integration.
  */
 
@@ -81,7 +81,7 @@ describe('Rate Limiter Integration Tests', () => {
       await checkRateLimit(config, 'client-2', TEST_ENDPOINT, 'warn' as LogLevel);
 
       const stats = getRateLimiterStats(TEST_CLIENT_ID, TEST_ENDPOINT);
-      
+
       expect(stats).toBeDefined();
       expect(typeof stats).toBe('object');
     });
@@ -94,8 +94,8 @@ describe('Rate Limiter Integration Tests', () => {
         refill_rate: 100,
         refill_interval_ms: 1000,
         sampling_rates: {
-          error: 1.0,   // Always allow errors
-          debug: 0.0,   // Never allow debug
+          error: 1.0, // Always allow errors
+          debug: 0.0, // Never allow debug
         },
       });
 
@@ -126,7 +126,7 @@ describe('Rate Limiter Integration Tests', () => {
       // Error should have higher success rate than debug
       const errorSuccessRate = errorResults.filter(Boolean).length / 10;
       const debugSuccessRate = debugResults.filter(Boolean).length / 10;
-      
+
       expect(errorSuccessRate).toBeGreaterThanOrEqual(debugSuccessRate);
     });
   });
@@ -138,7 +138,7 @@ describe('Rate Limiter Integration Tests', () => {
         refill_rate: 1,
         refill_interval_ms: 1000,
       });
-      
+
       const client1 = 'client-1';
       const client2 = 'client-2';
 
@@ -158,7 +158,7 @@ describe('Rate Limiter Integration Tests', () => {
 
       expect(client1Result1.allowed).toBe(true);
       expect(client2Result1.allowed).toBe(true);
-      
+
       // Each client should have their own token bucket
       expect(typeof client1Result1.tokens_remaining).toBe('number');
       expect(typeof client2Result1.tokens_remaining).toBe('number');
@@ -170,10 +170,10 @@ describe('Rate Limiter Integration Tests', () => {
         refill_rate: 2,
         refill_interval_ms: 1000,
       });
-      
+
       // Create concurrent requests from different clients
       const clients = Array.from({ length: 10 }, (_, i) => `client-${i}`);
-      const requests = clients.map(clientId =>
+      const requests = clients.map((clientId) =>
         checkRateLimit(config, clientId, TEST_ENDPOINT, 'info' as LogLevel)
       );
 
@@ -181,7 +181,7 @@ describe('Rate Limiter Integration Tests', () => {
 
       // All should get a response (though some might be rate limited)
       expect(results).toHaveLength(10);
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(typeof result.allowed).toBe('boolean');
         expect(typeof result.tokens_remaining).toBe('number');
       });
@@ -218,9 +218,12 @@ describe('Rate Limiter Integration Tests', () => {
 
       expect(sensitiveResult.allowed).toBe(true);
       expect(publicResult.allowed).toBe(true);
-      
+
       // Public endpoint should have more tokens available
-      if (sensitiveResult.tokens_remaining !== undefined && publicResult.tokens_remaining !== undefined) {
+      if (
+        sensitiveResult.tokens_remaining !== undefined &&
+        publicResult.tokens_remaining !== undefined
+      ) {
         expect(publicResult.tokens_remaining).toBeGreaterThan(sensitiveResult.tokens_remaining);
       }
     });
@@ -241,7 +244,7 @@ describe('Rate Limiter Integration Tests', () => {
         TEST_ENDPOINT,
         'info' as LogLevel
       );
-      
+
       // Second call should have fewer tokens
       const result2 = await checkRateLimit(
         config,
@@ -252,7 +255,7 @@ describe('Rate Limiter Integration Tests', () => {
 
       expect(result1.allowed).toBe(true);
       expect(result2.allowed).toBe(true);
-      
+
       if (result1.tokens_remaining !== undefined && result2.tokens_remaining !== undefined) {
         expect(result2.tokens_remaining).toBeLessThan(result1.tokens_remaining);
       }
@@ -284,7 +287,7 @@ describe('Rate Limiter Integration Tests', () => {
         TEST_ENDPOINT,
         'info' as LogLevel
       );
-      
+
       expect(typeof result.allowed).toBe('boolean');
       expect(typeof result.tokens_remaining).toBe('number');
     });
@@ -310,7 +313,7 @@ describe('Rate Limiter Integration Tests', () => {
 
       // All should be processed
       expect(results).toHaveLength(50);
-      expect(results.every(result => typeof result.allowed === 'boolean')).toBe(true);
+      expect(results.every((result) => typeof result.allowed === 'boolean')).toBe(true);
 
       // Should complete quickly (less than 2 seconds)
       expect(endTime - startTime).toBeLessThan(2000);
@@ -333,7 +336,7 @@ describe('Rate Limiter Integration Tests', () => {
           TEST_ENDPOINT,
           'info' as LogLevel
         );
-        
+
         expect(typeof result.allowed).toBe('boolean');
         expect(typeof result.tokens_remaining).toBe('number');
       }
@@ -356,13 +359,8 @@ describe('Rate Limiter Integration Tests', () => {
 
       for (const { clientId, endpoint } of testCases) {
         // Should not throw
-        const result = await checkRateLimit(
-          config,
-          clientId,
-          endpoint,
-          'info' as LogLevel
-        );
-        
+        const result = await checkRateLimit(config, clientId, endpoint, 'info' as LogLevel);
+
         expect(typeof result.allowed).toBe('boolean');
         expect(typeof result.tokens_remaining).toBe('number');
       }

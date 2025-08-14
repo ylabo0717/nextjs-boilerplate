@@ -390,10 +390,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - GDPR準拠IPハッシュ化 (HMAC-SHA256)
   - ログインジェクション攻撃防止 (制御文字サニタイゼーション)
   - 168単体テスト + 57 E2Eテスト全てパス
-- ✅ **OpenTelemetry Integration** - 分散トレーシング対応
-  - trace_id自動相関
-  - Pino Instrumentation統合
-  - パフォーマンス測定とメトリクス
+  - **Phase B部分実装**: severity_number + Structured Events完了
+- ⚠️ **OpenTelemetry Integration** - 分散トレーシング対応 (部分実装)
+  - trace_id自動相関 ✅
+  - Pino Instrumentation統合 ✅
+  - severity_number + event_name/event_category統合 ✅
+  - **未実装**: Metrics自動計測・Prometheus出力
 - ✅ **Error Handling System** - 構造化エラー管理
   - 自動エラー分類 (21種類のエラーパターン)
   - フォールバック機能とレジリエンス

@@ -67,7 +67,8 @@
       "mcp__context7__get-library-docs",
       "WebFetch(domain:tailwindcss.com)",
       "mcp__serena__think_about_task_adherence",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(.husky/pre-push:*)"
     ],
     "deny": [
       "Bash(sudo *)",

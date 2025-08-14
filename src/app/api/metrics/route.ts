@@ -17,6 +17,7 @@ export async function GET(): Promise<NextResponse> {
   try {
     // Import metrics functions to check initialization
     const { isMetricsInitialized } = await import('../../../lib/logger/metrics');
+    const { isPhase3MetricsInitialized, getPhase3MetricsSnapshot } = await import('../../../lib/logger/enhanced-metrics');
 
     // Check if metrics are properly initialized
     if (!isMetricsInitialized()) {
@@ -33,9 +34,20 @@ export async function GET(): Promise<NextResponse> {
       }
     }
 
+    if (!isPhase3MetricsInitialized()) {
+      try {
+        const { initializePhase3Metrics } = await import('../../../lib/logger/enhanced-metrics');
+        initializePhase3Metrics();
+      } catch (initError) {
+        console.error('Enhanced metrics initialization failed:', initError);
+      }
+    }
+
     // For Prometheus format, we need to get the exporter
     // The PrometheusExporter should already be configured to serve metrics
     // at this endpoint via the MeterProvider configuration
+
+    const enhancedSnapshot = getPhase3MetricsSnapshot();
 
     // Return a simple response indicating metrics endpoint is active
     // The actual Prometheus metrics are served directly by the PrometheusExporter
@@ -46,6 +58,9 @@ export async function GET(): Promise<NextResponse> {
       format: 'prometheus',
       port: 9464,
       message: 'OpenTelemetry metrics are available via PrometheusExporter on port 9464',
+      metrics_initialized: isMetricsInitialized(),
+      enhanced_initialized: isPhase3MetricsInitialized(),
+      enhanced_metrics: enhancedSnapshot,
       timestamp: new Date().toISOString(),
     };
 

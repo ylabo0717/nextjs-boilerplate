@@ -978,7 +978,7 @@ export * from './utils';
 
 ### Phase 4: 統合・検証（4日間）
 
-#### 3.4.1 統合テスト (`tests/integration/logger/logger.integration.test.ts`)
+#### 3.4.1 統合テスト実装
 
 ```typescript
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -1268,28 +1268,187 @@ NEXT_TELEMETRY_DISABLED=1
 
 ### 4.1 テスト戦略
 
-#### 4.1.1 単体テスト範囲
+本プロジェクトでは、テストピラミッドに基づいた3層構造のテスト戦略を採用します：
 
-- [ ] Logger インターフェース動作
-- [ ] ログレベル制御
-- [ ] Redaction 機能
+```
+     /\      E2E Tests (10%)
+    /  \     - システム全体の動作検証
+   /    \    - 実際のHTTPリクエスト
+  /------\
+ / Integr.\  Integration Tests (30%)
+/  ation   \ - モジュール間の連携
+/            \ - APIミドルウェア統合
+/--------------\
+/     Unit      \ Unit Tests (60%)
+/________________\ - 個別機能の動作
+                   - ロジック単体
+```
+
+#### 4.1.1 単体テスト範囲 (Unit Tests)
+
+**目的**: 個別のモジュール・関数が期待通りに動作することを確認
+
+**対象**:
+
+- [ ] Logger インターフェース動作確認
+- [ ] ログレベル制御ロジック
+- [ ] Redaction 機能の動作
 - [ ] エラーシリアライゼーション
-- [ ] 環境変数解析
+- [ ] 環境変数解析ユーティリティ
+- [ ] クライアント/サーバー個別Logger
+- [ ] 型定義とバリデーション
 
-#### 4.1.2 統合テスト範囲
+**特徴**:
 
-- [ ] Client/Server Logger統合
-- [ ] Middleware動作
-- [ ] OpenTelemetry相関
-- [ ] パフォーマンス特性
+- 外部依存なし（モック使用）
+- 高速実行（< 50ms/テスト）
+- 高いカバレッジ目標（> 90%）
 
-#### 4.1.3 E2Eテスト範囲
+#### 4.1.2 統合テスト範囲 (Integration Tests)
 
-- [ ] 実際のHTTPリクエストログ
-- [ ] エラーシナリオ
-- [ ] ログ集約システム連携
+**目的**: 複数のモジュールが連携して正しく動作することを確認
 
-### 4.2 パフォーマンステスト
+**対象**:
+
+- [ ] Client/Server Logger統一インターフェース
+- [ ] HTTPログミドルウェアの動作
+- [ ] OpenTelemetry trace_id/span_id相関
+- [ ] Pinoインスタンスとフォーマッター連携
+- [ ] 環境別設定の切り替え動作
+- [ ] エラーハンドリングチェーン
+- [ ] ログ出力とTransport連携
+
+**特徴**:
+
+- モックされた外部サービス（MSW等）
+- 実際のNext.js環境での実行
+- 中程度の実行時間（< 500ms/テスト）
+
+#### 4.1.3 E2Eテスト範囲 (End-to-End Tests)
+
+**目的**: ユーザー視点でのシステム全体の動作を確認
+
+**対象**:
+
+- [ ] 実際のHTTPリクエストでのログ出力
+- [ ] API Routeでのエラーシナリオ
+- [ ] ログ集約システム（Loki）への配信
+- [ ] Grafanaダッシュボードでの可視化
+- [ ] アラート発火シナリオ
+- [ ] 本番環境類似でのパフォーマンス
+- [ ] ログローテーションとクリーンアップ
+
+**特徴**:
+
+- 実際のサービス間通信
+- Docker Compose環境での実行
+- 長い実行時間（< 30秒/シナリオ）
+
+### 4.2 テストディレクトリ構造
+
+```
+tests/
+├── unit/                    # 単体テスト (60%)
+│   └── logger/
+│       ├── utils.test.ts           # ユーティリティ関数
+│       ├── client.test.ts          # クライアントロガー
+│       ├── server.test.ts          # サーバーロガー
+│       └── types.test.ts           # 型定義検証
+├── integration/             # 統合テスト (30%)
+│   └── logger/
+│       ├── middleware.integration.test.ts    # ミドルウェア統合
+│       ├── otel.integration.test.ts          # OpenTelemetry統合
+│       ├── environment.integration.test.ts   # 環境設定統合
+│       └── unified.integration.test.ts       # 統一インターフェース
+├── e2e/                     # E2Eテスト (10%)
+│   └── logger/
+│       ├── api-logging.spec.ts     # API Route ログ出力
+│       ├── error-scenarios.spec.ts # エラーシナリオ
+│       └── log-aggregation.spec.ts # ログ集約システム
+└── performance/             # パフォーマンステスト
+    └── logger.perf.test.ts
+```
+
+### 4.3 テスト実行戦略
+
+#### 4.3.1 ローカル開発
+
+```bash
+# 全テスト実行
+pnpm test:logger
+
+# レイヤー別実行
+pnpm test:logger:unit        # 単体テスト
+pnpm test:logger:integration # 統合テスト
+pnpm test:logger:e2e         # E2Eテスト
+
+# 開発時のウォッチモード
+pnpm test:logger:watch
+
+# カバレッジ測定
+pnpm test:logger:coverage
+```
+
+#### 4.3.2 CI/CD パイプライン
+
+```yaml
+# .github/workflows/logger-tests.yml
+name: Logger Tests
+on: [push, pull_request]
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Run unit tests
+        run: pnpm test:logger:unit
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Run integration tests
+        run: pnpm test:logger:integration
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    services:
+      loki:
+        image: grafana/loki:latest
+        ports:
+          - 3100:3100
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Install Playwright
+        run: pnpm playwright install
+      - name: Start application
+        run: pnpm build && pnpm start &
+      - name: Run E2E tests
+        run: pnpm test:logger:e2e
+```
+
+### 4.4 パフォーマンステスト
 
 ```typescript
 // パフォーマンステスト例 (tests/performance/logger.perf.test.ts)
@@ -1341,8 +1500,12 @@ describe('Logger Performance Tests', () => {
     "@types/uuid": "^10.0.0"
   },
   "scripts": {
-    "test:logger": "vitest run tests/unit/logger tests/integration/logger",
+    "test:logger": "vitest run tests/unit/logger tests/integration/logger tests/e2e/logger",
+    "test:logger:unit": "vitest run tests/unit/logger",
+    "test:logger:integration": "vitest run tests/integration/logger",
+    "test:logger:e2e": "playwright test tests/e2e/logger",
     "test:logger:watch": "vitest watch tests/unit/logger tests/integration/logger",
+    "test:logger:coverage": "vitest run --coverage tests/unit/logger tests/integration/logger",
     "perf:logger": "vitest run tests/performance/logger.perf.test.ts"
   }
 }

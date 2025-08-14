@@ -34,12 +34,48 @@ const LOG_LEVELS = {
 
 /**
  * クライアントサイドLogger実装
- * Edge Runtime対応の軽量実装
+ *
+ * Edge Runtime対応の軽量実装。ブラウザ環境での効率的なログ処理と
+ * コンソール統合を提供。サーバーサイドロガーとの統一インターフェース。
+ *
+ * 主要機能:
+ * - 軽量でパフォーマンス重視の設計
+ * - セキュリティサニタイゼーション統合
+ * - カラー付きコンソール出力
+ * - デバッグ情報とパフォーマンス測定
+ * - プロダクション環境での最適化
+ *
+ * @public
  */
-class ClientLogger {
+export class ClientLogger {
+  /**
+   * 現在のログレベル設定
+   *
+   * 環境変数またはデフォルト値から取得。
+   * このレベル以上のログのみが出力される。
+   *
+   * @internal
+   */
   private level: LogLevel;
+
+  /**
+   * ベースプロパティ設定
+   *
+   * すべてのログエントリに自動付与される基本情報。
+   * アプリケーション識別と環境管理に使用。
+   *
+   * @internal
+   */
   private baseProperties: ReturnType<typeof createBaseProperties>;
 
+  /**
+   * ClientLoggerコンストラクタ
+   *
+   * クライアント環境設定を初期化。
+   * ログレベルとベースプロパティを環境に応じて設定。
+   *
+   * @public
+   */
   constructor() {
     this.level = getClientLogLevel();
     this.baseProperties = createBaseProperties();
@@ -47,6 +83,14 @@ class ClientLogger {
 
   /**
    * ログレベルのバリデーション
+   *
+   * 指定されたログレベルが現在の設定で出力されるかを判定。
+   * パフォーマンス最適化のためのプリチェックに使用。
+   *
+   * @param level - チェックするログレベル
+   * @returns ログレベルが有効な場合true
+   *
+   * @public
    */
   public isLevelEnabled(level: LogLevel): boolean {
     const targetLevel = this.getLevelValue(level);
@@ -57,6 +101,14 @@ class ClientLogger {
 
   /**
    * 型安全にログレベルの数値を取得
+   *
+   * ログレベル文字列を対応する数値に変換。
+   * TypeScript型チェックとruntime安全性を両立。
+   *
+   * @param level - 変換するログレベル
+   * @returns ログレベルに対応する数値
+   *
+   * @internal
    */
   private getLevelValue(level: LogLevel): number {
     const validLevels = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
@@ -85,6 +137,14 @@ class ClientLogger {
 
   /**
    * 型安全にコンソールスタイルを取得
+   *
+   * ログレベルに対応するCSS記述文字列を取得。
+   * ブラウザコンソールでの視覚的な区別に使用。
+   *
+   * @param level - スタイルを取得するログレベル
+   * @returns CSSスタイル文字列
+   *
+   * @internal
    */
   private getConsoleStyle(level: LogLevel): string {
     const validLevels = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
@@ -110,8 +170,19 @@ class ClientLogger {
     }
 
     return CONSOLE_STYLES.info; // フォールバック
-  } /**
+  }
+
+  /**
    * 統合ログ出力メソッド
+   *
+   * すべてのログレベルで使用される共通出力処理。
+   * セキュリティサニタイゼーション、フォーマット、コンソール出力を統合。
+   *
+   * @param level - ログレベル
+   * @param message - ログメッセージ
+   * @param args - 追加のログデータ
+   *
+   * @internal
    */
   private log(level: LogLevel, message: string, ...args: LogArgument[]): void {
     if (!this.isLevelEnabled(level)) {
@@ -149,6 +220,14 @@ class ClientLogger {
 
   /**
    * 引数の処理とマージ
+   *
+   * ログメソッドに渡された複数引数を統一的な構造に変換。
+   * 型に応じた適切な処理とサイズ制限を適用。
+   *
+   * @param args - ログメソッドの引数配列
+   * @returns 統一された構造化データ
+   *
+   * @internal
    */
   private processArguments(args: LogArgument[]): Record<string, unknown> {
     const result: Record<string, unknown> = {};
@@ -179,6 +258,15 @@ class ClientLogger {
 
   /**
    * ブラウザコンソールへの出力
+   *
+   * ログレベルに応じたスタイルとコンソールメソッドで出力。
+   * 構造化データは折りたたみ可能なグループとして表示。
+   *
+   * @param level - ログレベル
+   * @param message - 出力メッセージ
+   * @param data - 追加の構造化データ
+   *
+   * @internal
    */
   private outputToConsole(level: LogLevel, message: string, data?: unknown): void {
     // 型安全な方法でスタイルを取得
@@ -201,6 +289,14 @@ class ClientLogger {
 
   /**
    * レベル別コンソールメソッドの取得
+   *
+   * ログレベルに最適なブラウザコンソールメソッドを選択。
+   * エラーレベルはconsole.error、警告はconsole.warnを使用。
+   *
+   * @param level - ログレベル
+   * @returns 対応するコンソールメソッド
+   *
+   * @internal
    */
   private getConsoleMethod(level: LogLevel): typeof console.log {
     switch (level) {
@@ -221,21 +317,117 @@ class ClientLogger {
   }
 
   /**
-   * Logger インターフェース実装
+   * Logger インターフェース実装メソッド群
+   *
+   * 統一Loggerインターフェースに準拠したログメソッド群。
+   * 各メソッドは内部のlog()メソッドにレベルを指定して委譲。
+   *
+   * @public
+   */
+
+  /**
+   * トレースレベルログ出力
+   *
+   * 最も詳細なデバッグ情報。開発環境でのみ推奨。
+   *
+   * @param message - ログメッセージ
+   * @param args - 追加のログデータ
+   *
+   * @public
    */
   trace = (message: string, ...args: LogArgument[]) => this.log('trace', message, ...args);
-  debug = (message: string, ...args: LogArgument[]) => this.log('debug', message, ...args);
-  info = (message: string, ...args: LogArgument[]) => this.log('info', message, ...args);
-  warn = (message: string, ...args: LogArgument[]) => this.log('warn', message, ...args);
-  error = (message: string, ...args: LogArgument[]) => this.log('error', message, ...args);
-  fatal = (message: string, ...args: LogArgument[]) => this.log('fatal', message, ...args);
-}
 
-// クライアントLoggerインスタンスの作成
+  /**
+   * デバッグレベルログ出力
+   *
+   * 開発環境でのデバッグ情報。本番環境では通常無効。
+   *
+   * @param message - ログメッセージ
+   * @param args - 追加のログデータ
+   *
+   * @public
+   */
+  debug = (message: string, ...args: LogArgument[]) => this.log('debug', message, ...args);
+
+  /**
+   * デバッグレベルのログを出力します
+   * @internal
+   * @param message - ログメッセージ
+   * @param meta - メタデータ
+   */
+  private debugLog(message: string, meta?: Record<string, unknown>): void {
+    console.debug(message, meta);
+  }
+
+  /**
+   * 情報レベルログ出力
+   *
+   * 一般的な情報ログ。本番環境でも安全。
+   *
+   * @param message - ログメッセージ
+   * @param args - 追加のログデータ
+   *
+   * @public
+   */
+  info = (message: string, ...args: LogArgument[]) => this.log('info', message, ...args);
+
+  /**
+   * 警告レベルログ出力
+   *
+   * 潜在的な問題やパフォーマンス警告。
+   *
+   * @param message - ログメッセージ
+   * @param args - 追加のログデータ
+   *
+   * @public
+   */
+  warn = (message: string, ...args: LogArgument[]) => this.log('warn', message, ...args);
+
+  /**
+   * エラーレベルログ出力
+   *
+   * 処理継続可能なエラー情報。
+   *
+   * @param message - ログメッセージ
+   * @param args - 追加のログデータ
+   *
+   * @public
+   */
+  error = (message: string, ...args: LogArgument[]) => this.log('error', message, ...args);
+
+  /**
+   * 致命的レベルログ出力
+   *
+   * アプリケーション停止を要する重大エラー。
+   *
+   * @param message - ログメッセージ
+   * @param args - 追加のログデータ
+   *
+   * @public
+   */
+  fatal = (message: string, ...args: LogArgument[]) => this.log('fatal', message, ...args);
+} // クライアントLoggerインスタンスの作成
+/**
+ * クライアントサイドメインロガーインスタンス
+ *
+ * ブラウザ環境で使用されるメインのロガーインスタンス。
+ * ClientLoggerクラスの設定済みインスタンス。
+ *
+ * 軽量でパフォーマンス重視の設計により、
+ * クライアントサイドでの効率的なログ記録を実現。
+ *
+ * @public
+ */
 export const clientLogger = new ClientLogger();
 
 /**
  * Logger インターフェース準拠のラッパー
+ *
+ * 統一Loggerインターフェースに完全準拠したクライアントロガー。
+ * サーバーサイドロガーとの互換性を保ちながら、
+ * クライアント最適化されたログ処理を提供。
+ *
+ * @public
  */
 export const clientLoggerWrapper: Logger = {
   trace: clientLogger.trace,
@@ -249,10 +441,25 @@ export const clientLoggerWrapper: Logger = {
 
 /**
  * クライアントサイド専用ヘルパー関数群
+ *
+ * ブラウザ環境での一般的なログパターンの便利関数集。
+ * Web API統合、ユーザー操作追跡、ナビゲーション記録等の
+ * クライアント固有のログ機能を提供。
+ *
+ * @public
  */
 export const clientLoggerHelpers = {
   /**
    * パフォーマンス測定（Web API使用）
+   *
+   * Web API のperformance.now()を使用した高精度測定。
+   * ブラウザ環境での関数実行時間を自動記録。
+   *
+   * @param name - 測定操作名
+   * @param fn - 測定対象の関数
+   * @returns 関数の実行結果
+   *
+   * @public
    */
   measurePerformance: <T>(name: string, fn: () => T): T => {
     const start = performance.now();
@@ -284,6 +491,14 @@ export const clientLoggerHelpers = {
 
   /**
    * ユーザーアクションログ
+   *
+   * ユーザー操作の構造化ログ記録。
+   * クリック、フォーム送信、ページ遷移等の記録に使用。
+   *
+   * @param action - ユーザーアクション名
+   * @param details - アクション詳細情報
+   *
+   * @public
    */
   logUserAction: (action: string, details: Record<string, unknown> = {}) => {
     clientLogger.info(`User action: ${action}`, {
@@ -296,6 +511,15 @@ export const clientLoggerHelpers = {
 
   /**
    * ナビゲーションイベントログ
+   *
+   * ページ遷移とルーティングイベントの記録。
+   * SPAでのユーザーナビゲーション追跡に使用。
+   *
+   * @param from - 遷移元パス
+   * @param to - 遷移先パス
+   * @param method - 遷移方法（デフォルト: 'unknown'）
+   *
+   * @public
    */
   logNavigation: (from: string, to: string, method: string = 'unknown') => {
     clientLogger.info('Navigation event', {
@@ -312,6 +536,14 @@ export const clientLoggerHelpers = {
 
   /**
    * エラーイベントログ
+   *
+   * クライアントサイドエラーの構造化ログ記録。
+   * ブラウザ情報、URL、コンテキストを自動収集。
+   *
+   * @param error - エラーオブジェクトまたは値
+   * @param context - エラー発生時のコンテキスト情報
+   *
+   * @public
    */
   logError: (error: Error | unknown, context: Record<string, unknown> = {}) => {
     clientLogger.error('Client error occurred', {
@@ -326,6 +558,16 @@ export const clientLoggerHelpers = {
 
   /**
    * API呼び出しログ
+   *
+   * HTTPリクエストの構造化ログ記録。
+   * ステータスコードに応じたログレベル自動選択。
+   *
+   * @param url - リクエストURL
+   * @param method - HTTPメソッド
+   * @param status - HTTPステータスコード（オプション）
+   * @param duration - 処理時間（ms）（オプション）
+   *
+   * @public
    */
   logApiCall: (url: string, method: string, status?: number, duration?: number) => {
     const level = status && status >= 400 ? 'error' : 'info';
@@ -346,4 +588,12 @@ export const clientLoggerHelpers = {
   },
 };
 
+/**
+ * デフォルトクライアントロガーエクスポート
+ *
+ * 統一Loggerインターフェース準拠のクライアントサイドロガー。
+ * 最も一般的な用途での推奨エクスポート。
+ *
+ * @public
+ */
 export default clientLoggerWrapper;

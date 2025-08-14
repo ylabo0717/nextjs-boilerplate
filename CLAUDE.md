@@ -35,6 +35,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Essential Workflow
 
+### IMPORTANT: Code Quality Standards
+
+**🚨 STRICT ENFORCEMENT:**
+
+- **Never skip pre-commit hooks** with `--no-verify` or similar flags
+- **Never disable ESLint rules** without proper justification and approval
+- **All TypeScript errors must be resolved** before committing
+- **All ESLint errors must be properly fixed** (not suppressed)
+- **Security linting rules are mandatory** and cannot be bypassed
+
 ### IMPORTANT: Pre-commit Checks
 
 **Always run the following checks before committing:**

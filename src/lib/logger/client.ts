@@ -350,16 +350,6 @@ export class ClientLogger {
   debug = (message: string, ...args: LogArgument[]) => this.log('debug', message, ...args);
 
   /**
-   * デバッグレベルのログを出力します
-   * @internal
-   * @param message - ログメッセージ
-   * @param meta - メタデータ
-   */
-  private debugLog(message: string, meta?: Record<string, unknown>): void {
-    console.debug(message, meta);
-  }
-
-  /**
    * 情報レベルログ出力
    *
    * 一般的な情報ログ。本番環境でも安全。

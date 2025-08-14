@@ -34,10 +34,10 @@ const mockInitializeLogger = vi.fn((options?: any) => {
   }
 });
 
-const mockGetLoggerWithContext = vi.fn((context?: any) => clientLoggerWrapper);
-const mockMeasurePerformance = vi.fn((name: string, fn: () => any) => fn());
+const mockGetLoggerWithContext = vi.fn((_context?: any) => clientLoggerWrapper);
+const mockMeasurePerformance = vi.fn((_name: string, fn: () => any) => fn());
 const mockMeasurePerformanceAsync = vi.fn(
-  async (name: string, fn: () => Promise<any>) => await fn()
+  async (_name: string, fn: () => Promise<any>) => await fn()
 );
 
 const mockLogUserAction = vi.fn((action: string, details?: any) => {

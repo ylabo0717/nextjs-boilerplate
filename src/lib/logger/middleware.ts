@@ -5,7 +5,7 @@
 
 import type { NextRequest, NextResponse } from 'next/server';
 
-import { hashIP } from './crypto';
+// hashIPはcreateRequestContext内で動的にインポートされるため、ここでは不要
 import { sanitizeLogEntry, limitObjectSize } from './sanitizer';
 import { generateRequestId, serializeError } from './utils';
 
@@ -33,40 +33,52 @@ interface MiddlewareLogEntry {
  * Edge Runtime対応の軽量ロガー
  * Node.js固有機能を使用しない実装
  */
-class EdgeLogger {
-  /**
-   * ログ出力（Edge Runtime対応）
-   */
-  static log(level: 'info' | 'warn' | 'error', entry: MiddlewareLogEntry): void {
-    // サニタイズ処理
-    const sanitized = sanitizeLogEntry(
-      `${entry.event_name}: ${entry.method} ${entry.url}`,
-      limitObjectSize(entry, 5, 30)
-    );
+/**
+ * Edge Runtime用ログ出力（純粋関数 + 制御された副作用）
+ *
+ * Edge Runtimeの制約に対応した軽量ログ出力。
+ * console APIのみを使用し、Node.js固有機能を使用しない実装。
+ *
+ * @param level - ログレベル
+ * @param entry - ログエントリ
+ *
+ * @public
+ */
+export function logForEdgeRuntime(
+  level: 'info' | 'warn' | 'error',
+  entry: MiddlewareLogEntry
+): void {
+  // サニタイズ処理
+  const sanitized = sanitizeLogEntry(
+    `${entry.event_name}: ${entry.method} ${entry.url}`,
+    limitObjectSize(entry, 5, 30)
+  );
 
-    // Edge Runtimeでは console のみ使用可能
-    const logData = {
-      level,
-      timestamp: entry.timestamp,
-      message: sanitized.message,
-      data: sanitized.data,
-    };
+  // Edge Runtimeでは console のみ使用可能
+  const logData = {
+    level,
+    timestamp: entry.timestamp,
+    message: sanitized.message,
+    data: sanitized.data,
+  };
 
-    switch (level) {
-      case 'error':
-        console.error(JSON.stringify(logData));
-        break;
-      case 'warn':
-        console.warn(JSON.stringify(logData));
-        break;
-      case 'info':
-      default:
-        console.log(JSON.stringify(logData));
-        break;
-    }
+  switch (level) {
+    case 'error':
+      console.error(JSON.stringify(logData));
+      break;
+    case 'warn':
+      console.warn(JSON.stringify(logData));
+      break;
+    case 'info':
+    default:
+      console.log(JSON.stringify(logData));
+      break;
   }
 }
 
+/**
+ * リクエスト追跡用のコンテキスト生成
+ */
 /**
  * リクエスト追跡用のコンテキスト生成
  */
@@ -75,7 +87,12 @@ export function createRequestContext(request: NextRequest): LoggerContext {
   // Next.js 15ではrequest.ipが利用可能、存在しない場合は'unknown'を使用
   // 型安全にipプロパティをチェック
   const ip = 'ip' in request ? (request as { ip?: string }).ip || 'unknown' : 'unknown';
-  const hashedIP = hashIP(ip);
+
+  // 純粋関数形式でIPハッシュ化を実行
+  // デフォルト設定を使用（後方互換性エイリアス）
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { hashIPWithDefault } = require('./crypto') as typeof import('./crypto');
+  const hashedIP = hashIPWithDefault(ip);
 
   return {
     requestId,
@@ -90,6 +107,9 @@ export function createRequestContext(request: NextRequest): LoggerContext {
 /**
  * リクエスト開始ログ
  */
+/**
+ * リクエスト開始ログ
+ */
 export function logRequestStart(request: NextRequest, context: LoggerContext): void {
   const entry: MiddlewareLogEntry = {
     requestId: context.requestId,
@@ -97,19 +117,21 @@ export function logRequestStart(request: NextRequest, context: LoggerContext): v
     url: request.url,
     userAgent: context.userAgent as string | undefined,
     hashedIP: (context.hashedIP as string) || 'unknown',
-    timestamp: (context.timestamp as string) || new Date().toISOString(),
+    timestamp: new Date().toISOString(),
     event_name: 'middleware.request_start',
     event_category: 'middleware_event',
     event_attributes: {
       path: new URL(request.url).pathname,
-      query: Object.fromEntries(new URL(request.url).searchParams),
       headers: sanitizeHeaders(request.headers),
     },
   };
 
-  EdgeLogger.log('info', entry);
+  logForEdgeRuntime('info', entry);
 }
 
+/**
+ * リクエスト終了ログ
+ */
 /**
  * リクエスト終了ログ
  */
@@ -141,9 +163,12 @@ export function logRequestEnd(
   };
 
   const level = response.status >= 400 ? 'error' : 'info';
-  EdgeLogger.log(level, entry);
+  logForEdgeRuntime(level, entry);
 }
 
+/**
+ * セキュリティイベントログ
+ */
 /**
  * セキュリティイベントログ
  */
@@ -169,9 +194,12 @@ export function logSecurityEvent(
     },
   };
 
-  EdgeLogger.log('warn', entry);
+  logForEdgeRuntime('warn', entry);
 }
 
+/**
+ * Middlewareエラーログ
+ */
 /**
  * Middlewareエラーログ
  */
@@ -198,7 +226,7 @@ export function logMiddlewareError(
     },
   };
 
-  EdgeLogger.log('error', entry);
+  logForEdgeRuntime('error', entry);
 }
 
 /**
@@ -231,6 +259,9 @@ function sanitizeHeaders(headers: Headers): Record<string, string> {
 /**
  * レート制限ログ
  */
+/**
+ * レート制限ログ
+ */
 export function logRateLimit(
   request: NextRequest,
   context: LoggerContext,
@@ -257,9 +288,12 @@ export function logRateLimit(
   };
 
   const level = remaining <= 0 ? 'warn' : 'info';
-  EdgeLogger.log(level, entry);
+  logForEdgeRuntime(level, entry);
 }
 
+/**
+ * リダイレクトログ
+ */
 /**
  * リダイレクトログ
  */
@@ -286,7 +320,7 @@ export function logRedirect(
     },
   };
 
-  EdgeLogger.log('info', entry);
+  logForEdgeRuntime('info', entry);
 }
 
 /**

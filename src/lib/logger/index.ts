@@ -5,8 +5,8 @@
 
 // 各環境のLoggerを静的にインポート
 import { clientLoggerWrapper, clientLoggerHelpers } from './client';
-import { loggerContextManager, createContextualLogger } from './context';
-import { ErrorHandler } from './error-handler';
+import { loggerContextManager, createContextualLoggerCompat } from './context';
+import { errorHandler } from './error-handler';
 import { serverLoggerWrapper, serverLoggerHelpers } from './server';
 
 import type { Logger, LogArgument, LogLevel, LoggerContext } from './types';
@@ -47,6 +47,7 @@ export {
   runWithLoggerContext,
   getLoggerContext,
   createContextualLogger,
+  createContextualLoggerCompat,
   loggerContextManager,
 } from './context';
 
@@ -69,7 +70,7 @@ export {
 } from './middleware';
 
 // エラーハンドリング
-export { ErrorClassifier, ErrorHandler, errorHandlerUtils } from './error-handler';
+export { errorHandler, errorHandlerUtils } from './error-handler';
 
 export type { ErrorCategory, ErrorContext, StructuredError } from './error-handler';
 
@@ -135,8 +136,7 @@ export function initializeLogger(
  * グローバルエラーハンドラーの設定
  */
 function setupGlobalErrorHandlers(): void {
-  // 静的にインポートしたErrorHandlerを使用
-  const errorHandler = new ErrorHandler(logger);
+  // 静的にインポートしたerrorHandlerを使用
 
   if (typeof window === 'undefined') {
     // Node.js環境
@@ -181,11 +181,12 @@ function setupGlobalErrorHandlers(): void {
 
 /**
  * コンテキスト付きLogger取得
+ * @internal
  */
-export function getLoggerWithContext(context: Record<string, unknown>): Logger {
+function _getLoggerWithContext(context: Record<string, unknown>): Logger {
   if (typeof window === 'undefined') {
     // サーバーサイド
-    return createContextualLogger(logger, context);
+    return createContextualLoggerCompat(logger, context);
   } else {
     // クライアントサイド（コンテキストは個別に付与）
     return {
@@ -251,11 +252,11 @@ export function logUserAction(action: string, details: Record<string, unknown> =
 
 /**
  * 統合エラーログ
+ * @internal
  */
-export function logError(error: Error | unknown, context: Record<string, unknown> = {}): void {
+function _logError(error: Error | unknown, context: Record<string, unknown> = {}): void {
   if (typeof window === 'undefined') {
-    // サーバーサイド
-    const errorHandler = new ErrorHandler(logger);
+    // サーバーサイド - 既存のerrorHandlerオブジェクトを使用
     errorHandler.handle(error, context);
   } else {
     // クライアントサイド

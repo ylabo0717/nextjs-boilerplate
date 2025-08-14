@@ -4,11 +4,11 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  LogSanitizer,
   sanitizeControlCharacters,
   sanitizeForJson,
   sanitizeLogEntry,
   limitObjectSize,
+  sanitizeNewlines,
 } from '../../../src/lib/logger/sanitizer';
 
 describe('LogSanitizer - ログインジェクション攻撃防止', () => {
@@ -101,13 +101,13 @@ describe('LogSanitizer - ログインジェクション攻撃防止', () => {
   describe('📜 CRLF注入防止', () => {
     it('should sanitize newline characters', () => {
       const input = 'line1\nline2\rline3\r\nline4';
-      const result = LogSanitizer.sanitizeNewlines(input);
+      const result = sanitizeNewlines(input);
       expect(result).toBe('line1\\nline2\\rline3\\r\\nline4');
     });
 
     it('should handle mixed line endings', () => {
       const input = 'unix\nwindows\r\nmac\r';
-      const result = LogSanitizer.sanitizeNewlines(input);
+      const result = sanitizeNewlines(input);
       expect(result).toBe('unix\\nwindows\\r\\nmac\\r');
     });
   });

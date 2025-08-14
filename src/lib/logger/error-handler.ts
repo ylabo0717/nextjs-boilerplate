@@ -237,309 +237,15 @@ export interface StructuredError {
  *
  * @public
  */
-export class ErrorClassifier {
-  /**
-   * エラーの自動分類
-   *
-   * エラーオブジェクトまたは値を解析して適切なカテゴリを判定。
-   * エラーメッセージ、型、プロパティを総合的に評価。
-   *
-   * @param error - 分類対象のエラーオブジェクトまたは値
-   * @returns 判定されたエラーカテゴリ
-   *
-   * @public
-   */
-  static classify(error: Error | unknown, context: ErrorContext = {}): StructuredError {
-    if (error instanceof Error) {
-      return this.classifyKnownError(error, context);
-    }
-
-    return this.classifyUnknownError(error, context);
-  }
-
-  /**
-   * 既知のエラータイプの分類
-   */
-  private static classifyKnownError(error: Error, context: ErrorContext): StructuredError {
-    const message = error.message.toLowerCase();
-
-    // Validation errors
-    if (this.isValidationError(error, message)) {
-      return {
-        category: 'validation_error',
-        message: error.message,
-        originalError: error,
-        context,
-        severity: 'low',
-        isRetryable: false,
-        userMessage: 'Invalid input provided',
-        statusCode: 400,
-      };
-    }
-
-    // Authentication errors
-    if (this.isAuthenticationError(error, message)) {
-      return {
-        category: 'authentication_error',
-        message: error.message,
-        originalError: error,
-        context,
-        severity: 'medium',
-        isRetryable: false,
-        userMessage: 'Authentication required',
-        statusCode: 401,
-      };
-    }
-
-    // Authorization errors
-    if (this.isAuthorizationError(error, message)) {
-      return {
-        category: 'authorization_error',
-        message: error.message,
-        originalError: error,
-        context,
-        severity: 'medium',
-        isRetryable: false,
-        userMessage: 'Access denied',
-        statusCode: 403,
-      };
-    }
-
-    // Not found errors
-    if (this.isNotFoundError(error, message)) {
-      return {
-        category: 'not_found_error',
-        message: error.message,
-        originalError: error,
-        context,
-        severity: 'low',
-        isRetryable: false,
-        userMessage: 'Resource not found',
-        statusCode: 404,
-      };
-    }
-
-    // Network errors
-    if (this.isNetworkError(error, message)) {
-      return {
-        category: 'network_error',
-        message: error.message,
-        originalError: error,
-        context,
-        severity: 'medium',
-        isRetryable: true,
-        userMessage: 'Network error occurred',
-        statusCode: 503,
-      };
-    }
-
-    // Database errors
-    if (this.isDatabaseError(error, message)) {
-      return {
-        category: 'database_error',
-        message: error.message,
-        originalError: error,
-        context,
-        severity: 'high',
-        isRetryable: true,
-        userMessage: 'Service temporarily unavailable',
-        statusCode: 503,
-      };
-    }
-
-    // Rate limit errors
-    if (this.isRateLimitError(error, message)) {
-      return {
-        category: 'rate_limit_error',
-        message: error.message,
-        originalError: error,
-        context,
-        severity: 'medium',
-        isRetryable: true,
-        userMessage: 'Rate limit exceeded',
-        statusCode: 429,
-      };
-    }
-
-    // Default system error
-    return {
-      category: 'system_error',
-      message: error.message,
-      originalError: error,
-      context,
-      severity: 'high',
-      isRetryable: false,
-      userMessage: 'An error occurred',
-      statusCode: 500,
-    };
-  }
-
-  /**
-   * 未知のエラータイプの分類
-   */
-  private static classifyUnknownError(error: unknown, context: ErrorContext): StructuredError {
-    return {
-      category: 'unknown_error',
-      message: String(error),
-      originalError: error,
-      context,
-      severity: 'medium',
-      isRetryable: false,
-      userMessage: 'An unexpected error occurred',
-      statusCode: 500,
-    };
-  }
-
-  // エラー判定ヘルパーメソッド群
-
-  /**
-   * バリデーションエラー判定
-   *
-   * エラーがユーザー入力の検証失敗によるものかを判定。
-   * フォーム入力、APIパラメーター検証エラーなどが対象。
-   *
-   * @param error - 判定対象のエラーオブジェクト
-   * @param message - エラーメッセージ（小文字）
-   * @returns バリデーションエラーの場合true
-   *
-   * @public
-   */
-  private static isValidationError(error: Error, message: string): boolean {
-    return (
-      error.name === 'ValidationError' ||
-      error.name === 'ZodError' ||
-      message.includes('validation') ||
-      message.includes('invalid') ||
-      message.includes('required')
-    );
-  }
-
-  /**
-   * 認証エラー判定
-   *
-   * エラーがユーザー認証の失敗によるものかを判定。
-   * ログイン失敗、トークン無効、認証情報不足などが対象。
-   *
-   * @param error - 判定対象のエラーオブジェクト
-   * @param message - エラーメッセージ（小文字）
-   * @returns 認証エラーの場合true
-   *
-   * @public
-   */
-  private static isAuthenticationError(error: Error, message: string): boolean {
-    return (
-      error.name === 'AuthenticationError' ||
-      message.includes('unauthorized') ||
-      message.includes('authentication') ||
-      message.includes('invalid credentials')
-    );
-  }
-
-  /**
-   * 認可エラー判定
-   *
-   * エラーがアクセス権限不足によるものかを判定。
-   * リソースアクセス拒否、権限不足などが対象。
-   *
-   * @param error - 判定対象のエラーオブジェクト
-   * @param message - エラーメッセージ（小文字）
-   * @returns 認可エラーの場合true
-   *
-   * @public
-   */
-  private static isAuthorizationError(error: Error, message: string): boolean {
-    return (
-      error.name === 'AuthorizationError' ||
-      message.includes('forbidden') ||
-      message.includes('access denied') ||
-      message.includes('permission')
-    );
-  }
-
-  /**
-   * 未発見エラー判定
-   *
-   * エラーがリソース不存在によるものかを判定。
-   * ページ、ファイル、データの存在しないアクセスが対象。
-   *
-   * @param error - 判定対象のエラーオブジェクト
-   * @param message - エラーメッセージ（小文字）
-   * @returns 未発見エラーの場合true
-   *
-   * @public
-   */
-  private static isNotFoundError(error: Error, message: string): boolean {
-    return (
-      error.name === 'NotFoundError' ||
-      message.includes('not found') ||
-      message.includes('does not exist')
-    );
-  }
-
-  /**
-   * ネットワークエラー判定
-   *
-   * エラーがネットワーク接続問題によるものかを判定。
-   * タイムアウト、接続失敗、ネットワーク障害などが対象。
-   *
-   * @param error - 判定対象のエラーオブジェクト
-   * @param message - エラーメッセージ（小文字）
-   * @returns ネットワークエラーの場合true
-   *
-   * @public
-   */
-  private static isNetworkError(error: Error, message: string): boolean {
-    return (
-      error.name === 'NetworkError' ||
-      error.name === 'TimeoutError' ||
-      message.includes('network') ||
-      message.includes('timeout') ||
-      message.includes('connection')
-    );
-  }
-
-  /**
-   * データベースエラー判定
-   *
-   * エラーがデータベース操作失敗によるものかを判定。
-   * 接続エラー、クエリエラー、制約違反などが対象。
-   *
-   * @param error - 判定対象のエラーオブジェクト
-   * @param message - エラーメッセージ（小文字）
-   * @returns データベースエラーの場合true
-   *
-   * @public
-   */
-  private static isDatabaseError(error: Error, message: string): boolean {
-    return (
-      error.name === 'DatabaseError' ||
-      error.name === 'QueryError' ||
-      message.includes('database') ||
-      message.includes('connection') ||
-      message.includes('query failed')
-    );
-  }
-
-  /**
-   * レート制限エラー判定
-   *
-   * エラーがAPI使用制限超過によるものかを判定。
-   * リクエスト頻度制限、使用量制限超過などが対象。
-   *
-   * @param error - 判定対象のエラーオブジェクト
-   * @param message - エラーメッセージ（小文字）
-   * @returns レート制限エラーの場合true
-   *
-   * @public
-   */
-  private static isRateLimitError(error: Error, message: string): boolean {
-    return (
-      error.name === 'RateLimitError' ||
-      message.includes('rate limit') ||
-      message.includes('too many requests')
-    );
-  }
-}
+/**
+ * エラー分類設定型
+ *
+ * エラー分類に使用される設定オブジェクト。
+ * 純粋関数の引数として使用される不変設定。
+ *
+ * @public
+ */
+export type ErrorClassifierConfig = Record<string, never>;
 
 /**
  * 統合エラーハンドラー
@@ -557,252 +263,705 @@ export class ErrorClassifier {
  *
  * @public
  */
-export class ErrorHandler {
-  /**
-   * ロガーインスタンス
-   *
-   * エラーログ記録に使用するロガー。
-   * 統一Loggerインターフェース準拠。
-   *
-   * @internal
-   */
-  private logger: Logger;
+/**
+ * エラーハンドラー設定型
+ *
+ * エラー処理に使用される設定オブジェクト。
+ * 純粋関数の引数として使用される不変設定。
+ *
+ * @public
+ */
+export type ErrorHandlerConfig = {
+  readonly logger: Logger;
+};
 
-  /**
-   * ErrorHandlerコンストラクタ
-   *
-   * ロガーインスタンスを設定してエラーハンドラーを初期化。
-   *
-   * @param logger - エラーログ記録に使用するロガー
-   *
-   * @public
-   */
-  constructor(logger: Logger) {
-    this.logger = logger;
+/**
+ * エラーハンドラー設定を作成（純粋関数）
+ *
+ * Logger インスタンスを含む不変設定オブジェクトを生成。
+ * アプリケーション起動時に一度だけ実行される純粋関数。
+ *
+ * @param logger - エラーログ記録に使用するロガー
+ * @returns 不変なエラーハンドラー設定オブジェクト
+ *
+ * @public
+ */
+export function createErrorHandlerConfig(logger: Logger): ErrorHandlerConfig {
+  return {
+    logger,
+  } as const;
+}
+
+/**
+ * エラーの自動分類（純粋関数）
+ *
+ * エラーオブジェクトまたは値を解析して適切なカテゴリを判定。
+ * エラーメッセージ、型、プロパティを総合的に評価。
+ *
+ * @param _config - エラー分類設定（現在未使用、将来拡張用）
+ * @param error - 分類対象のエラーオブジェクトまたは値
+ * @param context - エラーコンテキスト情報
+ * @returns 判定された構造化エラー
+ *
+ * @public
+ */
+export function classifyError(
+  _config: ErrorClassifierConfig,
+  error: Error | unknown,
+  context: ErrorContext = {}
+): StructuredError {
+  if (error instanceof Error) {
+    return classifyKnownError(error, context);
   }
 
-  /**
-   * エラーの処理とログ記録
-   */
-  handle(error: Error | unknown, context: ErrorContext = {}): StructuredError {
-    const structuredError = ErrorClassifier.classify(error, context);
+  return classifyUnknownError(error, context);
+}
 
-    // ログレベルの決定
-    const logLevel = this.getLogLevel(structuredError.severity);
+/**
+ * 既知のエラータイプの分類（純粋関数）
+ *
+ * Error インスタンスを詳細に分析してカテゴリを判定。
+ *
+ * @param error - 分類対象のError インスタンス
+ * @param context - エラーコンテキスト情報
+ * @returns 判定された構造化エラー
+ *
+ * @internal
+ */
+function classifyKnownError(error: Error, context: ErrorContext): StructuredError {
+  const message = error.message.toLowerCase();
 
-    // ログエントリの作成
-    const logEntry = this.createLogEntry(structuredError);
-
-    // ログ出力（型安全な方法でメソッド呼び出し）
-    this.logWithLevel(logLevel, logEntry.message, logEntry.data);
-
-    return structuredError;
-  }
-
-  /**
-   * 型安全なログレベル呼び出し
-   */
-  private logWithLevel(level: 'error' | 'warn' | 'info', message: string, data?: unknown): void {
-    // unknownをLogArgumentに適合する形に変換
-    const logData = data as LogArgument;
-
-    switch (level) {
-      case 'error':
-        this.logger.error(message, logData);
-        break;
-      case 'warn':
-        this.logger.warn(message, logData);
-        break;
-      case 'info':
-        this.logger.info(message, logData);
-        break;
-      default:
-        this.logger.error(message, logData);
-    }
-  }
-
-  /**
-   * 重要度に基づくログレベルの決定
-   */
-  private getLogLevel(severity: StructuredError['severity']): 'error' | 'warn' | 'info' {
-    switch (severity) {
-      case 'critical':
-      case 'high':
-        return 'error';
-      case 'medium':
-        return 'warn';
-      case 'low':
-      default:
-        return 'info';
-    }
-  }
-
-  /**
-   * 構造化ログエントリの作成
-   *
-   * StructuredErrorを構造化ログエントリに変換。
-   *
-   * @param structuredError - 変換対象の構造化エラー
-   * @returns ログエントリデータ
-   *
-   * @internal
-   */
-  private createLogEntry(structuredError: StructuredError): {
-    /** ログメッセージ */
-    message: string;
-    /** ログデータ */
-    data: unknown;
-  } {
-    const logData = {
-      event_name: `error.${structuredError.category}`,
-      event_category: 'error_event' as const,
-      error_category: structuredError.category,
-      error_severity: structuredError.severity,
-      error_retryable: structuredError.isRetryable,
-      error_code: structuredError.errorCode,
-      status_code: structuredError.statusCode,
-      error_details: serializeError(structuredError.originalError),
-      context: structuredError.context,
-      timestamp: new Date().toISOString(),
-    };
-
-    const sanitized = sanitizeLogEntry(
-      `${structuredError.category}: ${structuredError.message}`,
-      logData
-    );
-
+  // Validation errors
+  if (isValidationError(error, message)) {
     return {
-      message: sanitized.message,
-      data: sanitized.data,
+      category: 'validation_error',
+      message: error.message,
+      originalError: error,
+      context,
+      severity: 'low',
+      isRetryable: false,
+      userMessage: 'Invalid input provided',
+      statusCode: 400,
     };
   }
 
-  /**
-   * API Routes用エラーハンドラー
-   */
-  handleApiError(error: Error | unknown, context: ErrorContext = {}): Response {
-    const structuredError = this.handle(error, context);
-
-    return new Response(
-      JSON.stringify({
-        error: true,
-        message: structuredError.userMessage,
-        code: structuredError.errorCode,
-        requestId: context.requestId,
-      }),
-      {
-        status: structuredError.statusCode || 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-  }
-
-  /**
-   * React Components用エラーハンドラー
-   *
-   * React ErrorBoundaryでの使用に特化したエラー処理。
-   * ユーザー向けメッセージと再試行フラグを返す。
-   *
-   * @param error - 処理対象のエラー
-   * @param context - エラーコンテキスト情報
-   * @returns コンポーネント向けエラー情報
-   *
-   * @public
-   */
-  handleComponentError(
-    error: Error | unknown,
-    context: ErrorContext = {}
-  ): {
-    /** ユーザー向けエラーメッセージ */
-    userMessage: string;
-    /** 再試行推奨フラグ */
-    shouldRetry: boolean;
-    /** エラー識別ID */
-    errorId: string;
-  } {
-    const structuredError = this.handle(error, context);
-
+  // Authentication errors
+  if (isAuthenticationError(error, message)) {
     return {
-      userMessage: structuredError.userMessage || 'An error occurred',
-      shouldRetry: structuredError.isRetryable,
-      errorId: context.requestId || 'unknown',
+      category: 'authentication_error',
+      message: error.message,
+      originalError: error,
+      context,
+      severity: 'medium',
+      isRetryable: false,
+      userMessage: 'Authentication required',
+      statusCode: 401,
     };
   }
 
-  /**
-   * Promise rejection用グローバルハンドラー
-   */
-  handleUnhandledRejection(reason: unknown, context: ErrorContext = {}): void {
-    this.handle(reason, {
-      ...context,
-      additionalData: {
-        type: 'unhandled_rejection',
-        ...(context.additionalData || {}),
-      },
-    });
+  // Authorization errors
+  if (isAuthorizationError(error, message)) {
+    return {
+      category: 'authorization_error',
+      message: error.message,
+      originalError: error,
+      context,
+      severity: 'medium',
+      isRetryable: false,
+      userMessage: 'Access denied',
+      statusCode: 403,
+    };
   }
 
-  /**
-   * 未捕捉例外用グローバルハンドラー
-   */
-  handleUncaughtException(error: Error, context: ErrorContext = {}): void {
-    this.handle(error, {
-      ...context,
-      additionalData: {
-        type: 'uncaught_exception',
-        ...(context.additionalData || {}),
-      },
-    });
+  // Not found errors
+  if (isNotFoundError(error, message)) {
+    return {
+      category: 'not_found_error',
+      message: error.message,
+      originalError: error,
+      context,
+      severity: 'low',
+      isRetryable: false,
+      userMessage: 'Resource not found',
+      statusCode: 404,
+    };
+  }
+
+  // Network errors
+  if (isNetworkError(error, message)) {
+    return {
+      category: 'network_error',
+      message: error.message,
+      originalError: error,
+      context,
+      severity: 'medium',
+      isRetryable: true,
+      userMessage: 'Network error occurred',
+      statusCode: 503,
+    };
+  }
+
+  // Database errors
+  if (isDatabaseError(error, message)) {
+    return {
+      category: 'database_error',
+      message: error.message,
+      originalError: error,
+      context,
+      severity: 'high',
+      isRetryable: true,
+      userMessage: 'Service temporarily unavailable',
+      statusCode: 503,
+    };
+  }
+
+  // Rate limit errors
+  if (isRateLimitError(error, message)) {
+    return {
+      category: 'rate_limit_error',
+      message: error.message,
+      originalError: error,
+      context,
+      severity: 'medium',
+      isRetryable: true,
+      userMessage: 'Rate limit exceeded',
+      statusCode: 429,
+    };
+  }
+
+  // Default system error
+  return {
+    category: 'system_error',
+    message: error.message,
+    originalError: error,
+    context,
+    severity: 'high',
+    isRetryable: false,
+    userMessage: 'An error occurred',
+    statusCode: 500,
+  };
+}
+
+/**
+ * 未知のエラータイプの分類（純粋関数）
+ *
+ * Error以外の値を構造化エラーに変換。
+ *
+ * @param error - 分類対象の値
+ * @param context - エラーコンテキスト情報
+ * @returns 判定された構造化エラー
+ *
+ * @internal
+ */
+function classifyUnknownError(error: unknown, context: ErrorContext): StructuredError {
+  return {
+    category: 'unknown_error',
+    message: String(error),
+    originalError: error,
+    context,
+    severity: 'medium',
+    isRetryable: false,
+    userMessage: 'An unexpected error occurred',
+    statusCode: 500,
+  };
+}
+
+// エラー判定ヘルパー関数群（純粋関数）
+
+/**
+ * バリデーションエラー判定（純粋関数）
+ *
+ * エラーがユーザー入力の検証失敗によるものかを判定。
+ * フォーム入力、APIパラメーター検証エラーなどが対象。
+ *
+ * @param error - 判定対象のエラーオブジェクト
+ * @param message - エラーメッセージ（小文字）
+ * @returns バリデーションエラーの場合true
+ *
+ * @internal
+ */
+function isValidationError(error: Error, message: string): boolean {
+  return (
+    error.name === 'ValidationError' ||
+    error.name === 'ZodError' ||
+    message.includes('validation') ||
+    message.includes('invalid') ||
+    message.includes('required')
+  );
+}
+
+/**
+ * 認証エラー判定（純粋関数）
+ *
+ * エラーがユーザー認証の失敗によるものかを判定。
+ * ログイン失敗、トークン無効、認証情報不足などが対象。
+ *
+ * @param error - 判定対象のエラーオブジェクト
+ * @param message - エラーメッセージ（小文字）
+ * @returns 認証エラーの場合true
+ *
+ * @internal
+ */
+function isAuthenticationError(error: Error, message: string): boolean {
+  return (
+    error.name === 'AuthenticationError' ||
+    message.includes('unauthorized') ||
+    message.includes('authentication') ||
+    message.includes('invalid credentials')
+  );
+}
+
+/**
+ * 認可エラー判定（純粋関数）
+ *
+ * エラーがアクセス権限不足によるものかを判定。
+ * リソースアクセス拒否、権限不足などが対象。
+ *
+ * @param error - 判定対象のエラーオブジェクト
+ * @param message - エラーメッセージ（小文字）
+ * @returns 認可エラーの場合true
+ *
+ * @internal
+ */
+function isAuthorizationError(error: Error, message: string): boolean {
+  return (
+    error.name === 'AuthorizationError' ||
+    message.includes('forbidden') ||
+    message.includes('access denied') ||
+    message.includes('permission')
+  );
+}
+
+/**
+ * 未発見エラー判定（純粋関数）
+ *
+ * エラーがリソース不存在によるものかを判定。
+ * ページ、ファイル、データの存在しないアクセスが対象。
+ *
+ * @param error - 判定対象のエラーオブジェクト
+ * @param message - エラーメッセージ（小文字）
+ * @returns 未発見エラーの場合true
+ *
+ * @internal
+ */
+function isNotFoundError(error: Error, message: string): boolean {
+  return (
+    error.name === 'NotFoundError' ||
+    message.includes('not found') ||
+    message.includes('does not exist')
+  );
+}
+
+/**
+ * ネットワークエラー判定（純粋関数）
+ *
+ * エラーがネットワーク接続問題によるものかを判定。
+ * タイムアウト、接続失敗、ネットワーク障害などが対象。
+ *
+ * @param error - 判定対象のエラーオブジェクト
+ * @param message - エラーメッセージ（小文字）
+ * @returns ネットワークエラーの場合true
+ *
+ * @internal
+ */
+function isNetworkError(error: Error, message: string): boolean {
+  return (
+    error.name === 'NetworkError' ||
+    error.name === 'TimeoutError' ||
+    message.includes('network') ||
+    message.includes('timeout') ||
+    message.includes('connection')
+  );
+}
+
+/**
+ * データベースエラー判定（純粋関数）
+ *
+ * エラーがデータベース操作失敗によるものかを判定。
+ * 接続エラー、クエリエラー、制約違反などが対象。
+ *
+ * @param error - 判定対象のエラーオブジェクト
+ * @param message - エラーメッセージ（小文字）
+ * @returns データベースエラーの場合true
+ *
+ * @internal
+ */
+function isDatabaseError(error: Error, message: string): boolean {
+  return (
+    error.name === 'DatabaseError' ||
+    error.name === 'QueryError' ||
+    message.includes('database') ||
+    message.includes('connection') ||
+    message.includes('query failed')
+  );
+}
+
+/**
+ * レート制限エラー判定（純粋関数）
+ *
+ * エラーがAPI使用制限超過によるものかを判定。
+ * リクエスト頻度制限、使用量制限超過などが対象。
+ *
+ * @param error - 判定対象のエラーオブジェクト
+ * @param message - エラーメッセージ（小文字）
+ * @returns レート制限エラーの場合true
+ *
+ * @internal
+ */
+function isRateLimitError(error: Error, message: string): boolean {
+  return (
+    error.name === 'RateLimitError' ||
+    message.includes('rate limit') ||
+    message.includes('too many requests')
+  );
+}
+
+/**
+ * エラーの処理とログ記録（純粋関数 + 制御された副作用）
+ *
+ * エラーを分類し、適切なログレベルで記録する。
+ * 構造化されたエラー情報を返す。
+ *
+ * @param config - エラーハンドラー設定
+ * @param error - 処理対象のエラー
+ * @param context - エラーコンテキスト情報
+ * @returns 構造化されたエラー情報
+ *
+ * @public
+ */
+export function handleError(
+  config: ErrorHandlerConfig,
+  error: Error | unknown,
+  context: ErrorContext = {}
+): StructuredError {
+  const classifierConfig: ErrorClassifierConfig = {};
+  const structuredError = classifyError(classifierConfig, error, context);
+
+  // ログレベルの決定
+  const logLevel = getLogLevel(structuredError.severity);
+
+  // ログエントリの作成
+  const logEntry = createLogEntry(structuredError);
+
+  // ログ出力（型安全な方法でメソッド呼び出し）
+  logWithLevel(config.logger, logLevel, logEntry.message, logEntry.data);
+
+  return structuredError;
+}
+
+/**
+ * 型安全なログレベル呼び出し（純粋関数 + 制御された副作用）
+ *
+ * @param logger - ロガーインスタンス
+ * @param level - ログレベル
+ * @param message - ログメッセージ
+ * @param data - ログデータ
+ *
+ * @internal
+ */
+function logWithLevel(
+  logger: Logger,
+  level: 'error' | 'warn' | 'info',
+  message: string,
+  data?: unknown
+): void {
+  // unknownをLogArgumentに適合する形に変換
+  const logData = data as LogArgument;
+
+  switch (level) {
+    case 'error':
+      logger.error(message, logData);
+      break;
+    case 'warn':
+      logger.warn(message, logData);
+      break;
+    case 'info':
+      logger.info(message, logData);
+      break;
+    default:
+      logger.error(message, logData);
   }
 }
 
 /**
- * エラーハンドリング用ユーティリティ関数
+ * 重要度に基づくログレベルの決定（純粋関数）
+ *
+ * @param severity - エラーの重要度
+ * @returns 対応するログレベル
+ *
+ * @internal
+ */
+function getLogLevel(severity: StructuredError['severity']): 'error' | 'warn' | 'info' {
+  switch (severity) {
+    case 'critical':
+    case 'high':
+      return 'error';
+    case 'medium':
+      return 'warn';
+    case 'low':
+    default:
+      return 'info';
+  }
+}
+
+/**
+ * 構造化ログエントリの作成（純粋関数）
+ *
+ * StructuredErrorを構造化ログエントリに変換。
+ *
+ * @param structuredError - 変換対象の構造化エラー
+ * @returns ログエントリデータ
+ *
+ * @internal
+ */
+function createLogEntry(structuredError: StructuredError): {
+  /** ログメッセージ */
+  message: string;
+  /** ログデータ */
+  data: unknown;
+} {
+  const logData = {
+    event_name: `error.${structuredError.category}`,
+    event_category: 'error_event' as const,
+    error_category: structuredError.category,
+    error_severity: structuredError.severity,
+    error_retryable: structuredError.isRetryable,
+    error_code: structuredError.errorCode,
+    status_code: structuredError.statusCode,
+    error_details: serializeError(structuredError.originalError),
+    context: structuredError.context,
+    timestamp: new Date().toISOString(),
+  };
+
+  const sanitized = sanitizeLogEntry(
+    `${structuredError.category}: ${structuredError.message}`,
+    logData
+  );
+
+  return {
+    message: sanitized.message,
+    data: sanitized.data,
+  };
+}
+
+/**
+ * API Routes用エラーハンドラー（純粋関数 + 制御された副作用）
+ *
+ * @param config - エラーハンドラー設定
+ * @param error - 処理対象のエラー
+ * @param context - エラーコンテキスト情報
+ * @returns API エラーレスポンス
+ *
+ * @public
+ */
+export function handleApiError(
+  config: ErrorHandlerConfig,
+  error: Error | unknown,
+  context: ErrorContext = {}
+): Response {
+  const structuredError = handleError(config, error, context);
+
+  return new Response(
+    JSON.stringify({
+      error: true,
+      message: structuredError.userMessage,
+      code: structuredError.errorCode,
+      requestId: context.requestId,
+    }),
+    {
+      status: structuredError.statusCode || 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+}
+
+/**
+ * React Components用エラーハンドラー（純粋関数 + 制御された副作用）
+ *
+ * React ErrorBoundaryでの使用に特化したエラー処理。
+ * ユーザー向けメッセージと再試行フラグを返す。
+ *
+ * @param config - エラーハンドラー設定
+ * @param error - 処理対象のエラー
+ * @param context - エラーコンテキスト情報
+ * @returns コンポーネント向けエラー情報
+ *
+ * @public
+ */
+export function handleComponentError(
+  config: ErrorHandlerConfig,
+  error: Error | unknown,
+  context: ErrorContext = {}
+): {
+  /** ユーザー向けエラーメッセージ */
+  userMessage: string;
+  /** 再試行推奨フラグ */
+  shouldRetry: boolean;
+  /** エラー識別ID */
+  errorId: string;
+} {
+  const structuredError = handleError(config, error, context);
+
+  return {
+    userMessage: structuredError.userMessage || 'An error occurred',
+    shouldRetry: structuredError.isRetryable,
+    errorId: context.requestId || 'unknown',
+  };
+}
+
+/**
+ * Promise rejection用グローバルハンドラー（純粋関数 + 制御された副作用）
+ *
+ * @param config - エラーハンドラー設定
+ * @param reason - 拒否理由
+ * @param context - エラーコンテキスト情報
+ *
+ * @public
+ */
+export function handleUnhandledRejection(
+  config: ErrorHandlerConfig,
+  reason: unknown,
+  context: ErrorContext = {}
+): void {
+  handleError(config, reason, {
+    ...context,
+    additionalData: {
+      type: 'unhandled_rejection',
+      ...(context.additionalData || {}),
+    },
+  });
+}
+
+/**
+ * 未捕捉例外用グローバルハンドラー（純粋関数 + 制御された副作用）
+ *
+ * @param config - エラーハンドラー設定
+ * @param error - 処理対象のエラー
+ * @param context - エラーコンテキスト情報
+ *
+ * @public
+ */
+export function handleUncaughtException(
+  config: ErrorHandlerConfig,
+  error: Error,
+  context: ErrorContext = {}
+): void {
+  handleError(config, error, {
+    ...context,
+    additionalData: {
+      type: 'uncaught_exception',
+      ...(context.additionalData || {}),
+    },
+  });
+}
+
+// ===================================================================
+// デフォルトインスタンスとヘルパー関数（後方互換性）
+// ===================================================================
+
+/**
+ * デフォルト エラーハンドラー設定
+ *
+ * アプリケーション全体で使用されるデフォルト設定。
+ * 一度だけ作成され、以降は immutable として使用。
+ *
+ * @public
+ */
+export const defaultErrorHandlerConfig = (() => {
+  // serverLogger をデフォルトとして使用（循環インポートを避けるため遅延評価）
+  let _config: ErrorHandlerConfig | null = null;
+
+  return () => {
+    if (!_config) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { serverLoggerWrapper } = require('./server') as typeof import('./server');
+        _config = createErrorHandlerConfig(serverLoggerWrapper);
+      } catch {
+        // server モジュールが利用できない場合は client logger をフォールバックとして使用
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { clientLoggerWrapper } = require('./client') as typeof import('./client');
+        _config = createErrorHandlerConfig(clientLoggerWrapper);
+      }
+    }
+    return _config;
+  };
+})();
+
+/**
+ * デフォルトエラーハンドラー（後方互換性）
+ *
+ * 既存コードとの互換性のためのオブジェクト型インターフェース。
+ * 純粋関数を既存のメソッド呼び出しパターンでラップ。
+ *
+ * @public
+ */
+export const errorHandler = {
+  handle: (error: Error | unknown, context?: ErrorContext) =>
+    handleError(defaultErrorHandlerConfig(), error, context),
+
+  handleApiError: (error: Error | unknown, context?: ErrorContext) =>
+    handleApiError(defaultErrorHandlerConfig(), error, context),
+
+  handleComponentError: (error: Error | unknown, context?: ErrorContext) =>
+    handleComponentError(defaultErrorHandlerConfig(), error, context),
+
+  handleUnhandledRejection: (reason: unknown, context?: ErrorContext) =>
+    handleUnhandledRejection(defaultErrorHandlerConfig(), reason, context),
+
+  handleUncaughtException: (error: Error, context?: ErrorContext) =>
+    handleUncaughtException(defaultErrorHandlerConfig(), error, context),
+};
+
+/**
+ * エラーハンドリング用ユーティリティ関数（純粋関数版に更新）
+ *
+ * @public
  */
 export const errorHandlerUtils = {
   /**
-   * Async関数のエラーキャッチ装飾
+   * Async関数のエラーキャッチ装飾（純粋関数版）
    */
   withErrorHandling: <T extends unknown[], R>(
+    config: ErrorHandlerConfig,
     fn: (...args: T) => Promise<R>,
-    handler: ErrorHandler,
     context: ErrorContext = {}
   ) => {
     return async (...args: T): Promise<R> => {
       try {
         return await fn(...args);
       } catch (error) {
-        handler.handle(error, context);
+        handleError(config, error, context);
         throw error;
       }
     };
   },
 
   /**
-   * Try-catch付きの安全な実行
+   * Try-catch付きの安全な実行（純粋関数版）
    */
   safeExecute: async <T>(
+    config: ErrorHandlerConfig,
     fn: () => Promise<T>,
-    handler: ErrorHandler,
     context: ErrorContext = {},
     fallback?: T
   ): Promise<T | undefined> => {
     try {
       return await fn();
     } catch (error) {
-      handler.handle(error, context);
+      handleError(config, error, context);
       return fallback;
     }
   },
 
   /**
-   * エラーバウンダリ用のReactコンポーネントヘルパー
+   * エラーバウンダリ用のReactコンポーネントヘルパー（純粋関数版）
    */
-  createErrorBoundaryHandler: (handler: ErrorHandler) => {
+  createErrorBoundaryHandler: (config: ErrorHandlerConfig) => {
     return (error: Error, errorInfo: { componentStack: string }) => {
-      handler.handle(error, {
+      handleError(config, error, {
         additionalData: {
           component_stack: errorInfo.componentStack,
           type: 'react_error_boundary',
@@ -812,11 +971,11 @@ export const errorHandlerUtils = {
   },
 
   /**
-   * Next.js API Routes用の統一エラーハンドラー
+   * Next.js API Routes用の統一エラーハンドラー（純粋関数版）
    */
-  createApiHandler: (handler: ErrorHandler) => {
+  createApiHandler: (config: ErrorHandlerConfig) => {
     return (error: Error | unknown, context: Record<string, unknown> = {}) => {
-      return handler.handleApiError(error, {
+      return handleApiError(config, error, {
         requestId: context.requestId as string,
         path: context.path as string,
         method: context.method as string,
@@ -827,4 +986,12 @@ export const errorHandlerUtils = {
   },
 };
 
-export default ErrorHandler;
+/**
+ * 後方互換性用のデフォルトエクスポート
+ *
+ * 既存コードとの互換性のため errorHandler オブジェクトをデフォルトとしてエクスポート。
+ * 新しいコードでは純粋関数形式の使用を推奨。
+ *
+ * @public
+ */
+export default errorHandler;

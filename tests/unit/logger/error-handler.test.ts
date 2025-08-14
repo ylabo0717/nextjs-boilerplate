@@ -5,8 +5,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import {
-  ErrorClassifier,
-  ErrorHandler,
+  ErrorClassifierConfig,
+  ErrorHandlerConfig,
+  createErrorHandlerConfig,
+  classifyError,
+  handleError,
+  handleApiError,
+  handleComponentError,
+  handleUnhandledRejection,
+  handleUncaughtException,
   errorHandlerUtils,
 } from '../../../src/lib/logger/error-handler';
 
@@ -23,9 +30,12 @@ const mockLogger: Logger = {
   isLevelEnabled: vi.fn(() => true),
 };
 
-describe('ErrorClassifier', () => {
+describe('ErrorClassifier (Pure Functions)', () => {
+  let classifierConfig: ErrorClassifierConfig;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    classifierConfig = {};
   });
 
   describe('エラー分類', () => {
@@ -33,7 +43,7 @@ describe('ErrorClassifier', () => {
       const error = new Error('Validation failed');
       error.name = 'ValidationError';
 
-      const result = ErrorClassifier.classify(error);
+      const result = classifyError(classifierConfig, error);
 
       expect(result.category).toBe('validation_error');
       expect(result.severity).toBe('low');
@@ -45,7 +55,7 @@ describe('ErrorClassifier', () => {
     it('AuthenticationError が正しく分類される', () => {
       const error = new Error('unauthorized access');
 
-      const result = ErrorClassifier.classify(error);
+      const result = classifyError(classifierConfig, error);
 
       expect(result.category).toBe('authentication_error');
       expect(result.severity).toBe('medium');
@@ -57,7 +67,7 @@ describe('ErrorClassifier', () => {
     it('AuthorizationError が正しく分類される', () => {
       const error = new Error('Access denied');
 
-      const result = ErrorClassifier.classify(error);
+      const result = classifyError(classifierConfig, error);
 
       expect(result.category).toBe('authorization_error');
       expect(result.severity).toBe('medium');
@@ -68,7 +78,7 @@ describe('ErrorClassifier', () => {
     it('NotFoundError が正しく分類される', () => {
       const error = new Error('Resource not found');
 
-      const result = ErrorClassifier.classify(error);
+      const result = classifyError(classifierConfig, error);
 
       expect(result.category).toBe('not_found_error');
       expect(result.severity).toBe('low');
@@ -79,7 +89,7 @@ describe('ErrorClassifier', () => {
       const error = new Error('Network timeout');
       error.name = 'NetworkError';
 
-      const result = ErrorClassifier.classify(error);
+      const result = classifyError(classifierConfig, error);
 
       expect(result.category).toBe('network_error');
       expect(result.severity).toBe('medium');
@@ -90,7 +100,7 @@ describe('ErrorClassifier', () => {
     it('DatabaseError が正しく分類される', () => {
       const error = new Error('Database query failed');
 
-      const result = ErrorClassifier.classify(error);
+      const result = classifyError(classifierConfig, error);
 
       expect(result.category).toBe('database_error');
       expect(result.severity).toBe('high');
@@ -101,7 +111,7 @@ describe('ErrorClassifier', () => {
     it('RateLimitError が正しく分類される', () => {
       const error = new Error('Rate limit exceeded');
 
-      const result = ErrorClassifier.classify(error);
+      const result = classifyError(classifierConfig, error);
 
       expect(result.category).toBe('rate_limit_error');
       expect(result.severity).toBe('medium');
@@ -112,7 +122,7 @@ describe('ErrorClassifier', () => {
     it('不明なエラーがsystem_errorとして分類される', () => {
       const error = new Error('Unknown error');
 
-      const result = ErrorClassifier.classify(error);
+      const result = classifyError(classifierConfig, error);
 
       expect(result.category).toBe('system_error');
       expect(result.severity).toBe('high');
@@ -123,7 +133,7 @@ describe('ErrorClassifier', () => {
     it('非Errorオブジェクトがunknown_errorとして分類される', () => {
       const error = 'String error';
 
-      const result = ErrorClassifier.classify(error);
+      const result = classifyError(classifierConfig, error);
 
       expect(result.category).toBe('unknown_error');
       expect(result.severity).toBe('medium');
@@ -143,19 +153,19 @@ describe('ErrorClassifier', () => {
         method: 'POST',
       };
 
-      const result = ErrorClassifier.classify(error, context);
+      const result = classifyError(classifierConfig, error, context);
 
       expect(result.context).toEqual(context);
     });
   });
 });
 
-describe('ErrorHandler', () => {
-  let errorHandler: ErrorHandler;
+describe('ErrorHandler (Pure Functions)', () => {
+  let errorHandlerConfig: ErrorHandlerConfig;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    errorHandler = new ErrorHandler(mockLogger);
+    errorHandlerConfig = createErrorHandlerConfig(mockLogger);
   });
 
   describe('エラー処理', () => {
@@ -163,7 +173,7 @@ describe('ErrorHandler', () => {
       const error = new Error('Validation failed');
       error.name = 'ValidationError';
 
-      const result = errorHandler.handle(error);
+      const result = handleError(errorHandlerConfig, error);
 
       expect(mockLogger.info).toHaveBeenCalledWith(
         expect.stringContaining('validation_error'),
@@ -181,7 +191,7 @@ describe('ErrorHandler', () => {
       const error = new Error('Network timeout');
       error.name = 'NetworkError';
 
-      errorHandler.handle(error);
+      handleError(errorHandlerConfig, error);
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('network_error'),
@@ -194,7 +204,7 @@ describe('ErrorHandler', () => {
     it('高重要度エラーがerrorレベルでログされる', () => {
       const error = new Error('Database failed');
 
-      errorHandler.handle(error);
+      handleError(errorHandlerConfig, error);
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         expect.stringContaining('database_error'),
@@ -209,11 +219,12 @@ describe('ErrorHandler', () => {
       const context = { additionalData: { severity: 'critical' } };
 
       // カスタムクラシファイアで重要エラーを作成
-      const structuredError = ErrorClassifier.classify(error, context);
+      const classifierConfig: ErrorClassifierConfig = {};
+      const structuredError = classifyError(classifierConfig, error, context);
       structuredError.severity = 'critical';
 
-      const handler = new ErrorHandler(mockLogger);
-      handler.handle(error, context);
+      const config = createErrorHandlerConfig(mockLogger);
+      handleError(config, error, context);
 
       expect(mockLogger.error).toHaveBeenCalled();
     });
@@ -225,7 +236,7 @@ describe('ErrorHandler', () => {
       error.name = 'ValidationError';
       const context = { requestId: 'req_123' };
 
-      const response = errorHandler.handleApiError(error, context);
+      const response = handleApiError(errorHandlerConfig, error, context);
 
       expect(response.status).toBe(400);
       expect(response.headers.get('Content-Type')).toBe('application/json');
@@ -238,7 +249,7 @@ describe('ErrorHandler', () => {
     it('不明なエラーが500ステータスを返す', () => {
       const error = new Error('Unknown error');
 
-      const response = errorHandler.handleApiError(error);
+      const response = handleApiError(errorHandlerConfig, error);
 
       expect(response.status).toBe(500);
     });
@@ -249,7 +260,7 @@ describe('ErrorHandler', () => {
       const error = new Error('Component render failed');
       const context = { requestId: 'req_123' };
 
-      const result = errorHandler.handleComponentError(error, context);
+      const result = handleComponentError(errorHandlerConfig, error, context);
 
       expect(result).toEqual({
         userMessage: 'An error occurred',
@@ -262,7 +273,7 @@ describe('ErrorHandler', () => {
       const error = new Error('Network timeout');
       error.name = 'NetworkError';
 
-      const result = errorHandler.handleComponentError(error);
+      const result = handleComponentError(errorHandlerConfig, error);
 
       expect(result.shouldRetry).toBe(true);
     });
@@ -273,7 +284,7 @@ describe('ErrorHandler', () => {
       const error = new Error('Uncaught exception');
       const context = { timestamp: '2024-01-01T00:00:00.000Z' };
 
-      errorHandler.handleUncaughtException(error, context);
+      handleUncaughtException(errorHandlerConfig, error, context);
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         expect.stringContaining('system_error'),
@@ -291,7 +302,7 @@ describe('ErrorHandler', () => {
       const reason = 'Promise rejection reason';
       const context = { timestamp: '2024-01-01T00:00:00.000Z' };
 
-      errorHandler.handleUnhandledRejection(reason, context);
+      handleUnhandledRejection(errorHandlerConfig, reason, context);
 
       // 未処理Promise拒否は何らかのログレベルで処理される
       const totalCalls =
@@ -303,18 +314,18 @@ describe('ErrorHandler', () => {
   });
 });
 
-describe('errorHandlerUtils', () => {
-  let errorHandler: ErrorHandler;
+describe('errorHandlerUtils (Pure Functions)', () => {
+  let errorHandlerConfig: ErrorHandlerConfig;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    errorHandler = new ErrorHandler(mockLogger);
+    errorHandlerConfig = createErrorHandlerConfig(mockLogger);
   });
 
   describe('withErrorHandling', () => {
     it('正常実行時にエラーハンドリングが呼ばれない', async () => {
       const testFn = vi.fn().mockResolvedValue('success');
-      const wrappedFn = errorHandlerUtils.withErrorHandling(testFn, errorHandler);
+      const wrappedFn = errorHandlerUtils.withErrorHandling(errorHandlerConfig, testFn);
 
       const result = await wrappedFn('arg1', 'arg2');
 
@@ -326,7 +337,7 @@ describe('errorHandlerUtils', () => {
     it('エラー発生時にエラーハンドリングが呼ばれる', async () => {
       const testError = new Error('Test error');
       const testFn = vi.fn().mockRejectedValue(testError);
-      const wrappedFn = errorHandlerUtils.withErrorHandling(testFn, errorHandler);
+      const wrappedFn = errorHandlerUtils.withErrorHandling(errorHandlerConfig, testFn);
 
       await expect(wrappedFn()).rejects.toThrow(testError);
       expect(mockLogger.error).toHaveBeenCalled();
@@ -337,7 +348,7 @@ describe('errorHandlerUtils', () => {
     it('正常実行時に結果が返される', async () => {
       const testFn = vi.fn().mockResolvedValue('success');
 
-      const result = await errorHandlerUtils.safeExecute(testFn, errorHandler);
+      const result = await errorHandlerUtils.safeExecute(errorHandlerConfig, testFn);
 
       expect(result).toBe('success');
       expect(mockLogger.error).not.toHaveBeenCalled();
@@ -347,7 +358,7 @@ describe('errorHandlerUtils', () => {
       const testFn = vi.fn().mockRejectedValue(new Error('Test error'));
       const fallback = 'fallback';
 
-      const result = await errorHandlerUtils.safeExecute(testFn, errorHandler, {}, fallback);
+      const result = await errorHandlerUtils.safeExecute(errorHandlerConfig, testFn, {}, fallback);
 
       expect(result).toBe(fallback);
       expect(mockLogger.error).toHaveBeenCalled();
@@ -356,7 +367,7 @@ describe('errorHandlerUtils', () => {
     it('フォールバックなしでundefinedが返される', async () => {
       const testFn = vi.fn().mockRejectedValue(new Error('Test error'));
 
-      const result = await errorHandlerUtils.safeExecute(testFn, errorHandler);
+      const result = await errorHandlerUtils.safeExecute(errorHandlerConfig, testFn);
 
       expect(result).toBeUndefined();
       expect(mockLogger.error).toHaveBeenCalled();
@@ -365,29 +376,32 @@ describe('errorHandlerUtils', () => {
 
   describe('createErrorBoundaryHandler', () => {
     it('React エラーバウンダリハンドラーが正しく作成される', () => {
-      const handler = errorHandlerUtils.createErrorBoundaryHandler(errorHandler);
+      const handler = errorHandlerUtils.createErrorBoundaryHandler(errorHandlerConfig);
       const error = new Error('Component error');
       const errorInfo = { componentStack: 'Component stack trace' };
 
       handler(error, errorInfo);
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('system_error'),
-        expect.objectContaining({
-          context: expect.objectContaining({
-            additionalData: expect.objectContaining({
-              component_stack: 'Component stack trace',
-              type: 'react_error_boundary',
-            }),
-          }),
-        })
-      );
+      const errorCall = (mockLogger.error as any).mock.calls[0];
+      expect(errorCall).toBeDefined();
+      expect(errorCall[0]).toMatch(/system_error/);
+      
+      const logData = errorCall[1];
+      expect(logData.error_category).toBe('system_error');
+      expect(logData.event_name).toBe('error.system_error');
+      expect(logData.event_category).toBe('error_event');
+      
+      // contextの構造を確認して適切にアクセス
+      expect(logData.context).toBeDefined();
+      expect(logData.context.additionalData).toBeDefined();
+      expect(logData.context.additionalData.component_stack).toBe('Component stack trace');
+      expect(logData.context.additionalData.type).toBe('react_error_boundary');
     });
   });
 
   describe('createApiHandler', () => {
     it('API ハンドラーが正しく作成される', () => {
-      const apiHandler = errorHandlerUtils.createApiHandler(errorHandler);
+      const apiHandler = errorHandlerUtils.createApiHandler(errorHandlerConfig);
       const error = new Error('API error');
       const context = {
         requestId: 'req_123',

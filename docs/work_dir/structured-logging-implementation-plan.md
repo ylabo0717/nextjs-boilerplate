@@ -259,6 +259,76 @@ export function serializeError(error: Error | unknown): Record<string, unknown> 
     type: typeof error,
   };
 }
+
+/**
+ * 🚨 高リスク対応: HMAC-SHA256 IPハッシュ実装
+ */
+import { createHmac } from 'crypto';
+
+let ipHashSecret: string;
+
+function initializeIPHashSecret(): void {
+  ipHashSecret =
+    process.env.LOG_IP_HASH_SECRET || require('crypto').randomBytes(32).toString('hex');
+  if (!process.env.LOG_IP_HASH_SECRET) {
+    console.warn('LOG_IP_HASH_SECRET not set. Generated temporary secret for IP hashing.');
+  }
+}
+
+export function hashIP(ipAddress: string): string {
+  if (!ipHashSecret) {
+    initializeIPHashSecret();
+  }
+
+  // IPv6正規化
+  const normalizedIP = ipAddress.startsWith('::ffff:') ? ipAddress.substring(7) : ipAddress;
+
+  // HMAC-SHA256でハッシュ化
+  const hmac = createHmac('sha256', ipHashSecret);
+  hmac.update(normalizedIP);
+  const hash = hmac.digest('hex');
+
+  // セキュリティと可読性のバランス（最初8文字のみ使用）
+  return `ip_${hash.substring(0, 8)}`;
+}
+
+/**
+ * 🚨 高リスク対応: 制御文字サニタイザー実装
+ */
+export function sanitizeControlCharacters(input: unknown): unknown {
+  if (typeof input === 'string') {
+    return input.replace(/[\x00-\x1F\x7F-\x9F]/g, (char) => {
+      return `\\u${char.charCodeAt(0).toString(16).padStart(4, '0').toUpperCase()}`;
+    });
+  }
+
+  if (Array.isArray(input)) {
+    return input.map((item) => sanitizeControlCharacters(item));
+  }
+
+  if (input && typeof input === 'object') {
+    const sanitized: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(input)) {
+      const sanitizedKey = sanitizeControlCharacters(key) as string;
+      sanitized[sanitizedKey] = sanitizeControlCharacters(value);
+    }
+    return sanitized;
+  }
+
+  return input;
+}
+
+/**
+ * ⚠️ 中リスク対応: OpenTelemetry Logs準拠のseverity_number
+ */
+export const SEVERITY_NUMBERS = {
+  trace: 1,
+  debug: 5,
+  info: 9,
+  warn: 13,
+  error: 17,
+  fatal: 21,
+} as const;
 ```
 
 #### 3.1.4 テスト実装 (`tests/unit/logger/utils.test.ts`)
@@ -494,6 +564,89 @@ export const serverLoggerWrapper: Logger = {
 };
 
 export default serverLoggerWrapper;
+
+/**
+ * 🚨 高リスク対応: Child Logger + AsyncLocalStorage完全実装
+ */
+import { AsyncLocalStorage } from 'async_hooks';
+
+interface LoggerContext {
+  requestId: string;
+  traceId?: string;
+  spanId?: string;
+  userId?: string;
+  sessionId?: string;
+  event_name?: string;
+  event_category?: 'user_action' | 'system_event' | 'error_event' | 'security_event';
+}
+
+class LoggerContextManager {
+  private storage = new AsyncLocalStorage<LoggerContext>();
+
+  // コンテキスト付きChild Loggerの生成
+  createChildLogger(baseLogger: pino.Logger, context: Partial<LoggerContext>): pino.Logger {
+    const currentContext = this.getContext();
+    const mergedContext = { ...currentContext, ...context };
+
+    return baseLogger.child(mergedContext);
+  }
+
+  // リクエストコンテキストでの実行
+  runWithContext<T>(context: LoggerContext, fn: () => T): T {
+    return this.storage.run(context, fn);
+  }
+
+  getContext(): LoggerContext | undefined {
+    return this.storage.getStore();
+  }
+
+  // 統一Loggerインターフェース対応のChild Logger
+  createContextualLogger(context: Partial<LoggerContext>): Logger {
+    const currentContext = this.getContext();
+    const mergedContext = {
+      ...currentContext,
+      ...context,
+      log_schema_version: '1.0.0',
+      severity_number: undefined, // 後で各メソッドで設定
+    };
+
+    return {
+      trace: (message: string, ...args: LogArgument[]) => {
+        const finalContext = { ...mergedContext, severity_number: SEVERITY_NUMBERS.trace };
+        const mergedArgs = mergeLogArguments(args);
+        serverLogger.trace({ ...finalContext, ...mergedArgs }, message);
+      },
+      debug: (message: string, ...args: LogArgument[]) => {
+        const finalContext = { ...mergedContext, severity_number: SEVERITY_NUMBERS.debug };
+        const mergedArgs = mergeLogArguments(args);
+        serverLogger.debug({ ...finalContext, ...mergedArgs }, message);
+      },
+      info: (message: string, ...args: LogArgument[]) => {
+        const finalContext = { ...mergedContext, severity_number: SEVERITY_NUMBERS.info };
+        const mergedArgs = mergeLogArguments(args);
+        serverLogger.info({ ...finalContext, ...mergedArgs }, message);
+      },
+      warn: (message: string, ...args: LogArgument[]) => {
+        const finalContext = { ...mergedContext, severity_number: SEVERITY_NUMBERS.warn };
+        const mergedArgs = mergeLogArguments(args);
+        serverLogger.warn({ ...finalContext, ...mergedArgs }, message);
+      },
+      error: (message: string, ...args: LogArgument[]) => {
+        const finalContext = { ...mergedContext, severity_number: SEVERITY_NUMBERS.error };
+        const mergedArgs = mergeLogArguments(args);
+        serverLogger.error({ ...finalContext, ...mergedArgs }, message);
+      },
+      fatal: (message: string, ...args: LogArgument[]) => {
+        const finalContext = { ...mergedContext, severity_number: SEVERITY_NUMBERS.fatal };
+        const mergedArgs = mergeLogArguments(args);
+        serverLogger.fatal({ ...finalContext, ...mergedArgs }, message);
+      },
+      isLevelEnabled: (level) => serverLogger.isLevelEnabled(level),
+    };
+  }
+}
+
+export const loggerContextManager = new LoggerContextManager();
 ```
 
 #### 3.2.2 Edge Runtime ロガー (`src/lib/logger/edge.ts`)
@@ -624,8 +777,8 @@ export default edgeLogger;
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
 import { v7 as uuidv7 } from 'uuid';
-import { serverLogger } from './server';
-import { generateRequestId, serializeError, hashIP } from './utils';
+import { serverLogger, loggerContextManager } from './server';
+import { generateRequestId, serializeError, hashIP, sanitizeControlCharacters } from './utils';
 import type { LoggingMiddlewareOptions } from './types';
 
 // リクエストボディの最大ログサイズ
@@ -669,47 +822,60 @@ export function createLoggingMiddleware(options: LoggingMiddlewareOptions = {}) 
       const requestId = uuidv7();
       const startTime = Date.now();
 
-      // リクエスト情報の収集
-      const requestInfo = await gatherRequestInfo(req, {
+      // 🚨 高リスク対応: AsyncLocalStorageコンテキスト作成
+      const loggerContext = {
         requestId,
-        logHeaders,
-        logBody,
-      });
+        event_category: 'system_event' as const,
+        event_name: 'http.request',
+      };
 
-      // リクエスト開始ログ
-      serverLogger.info(requestInfo, labels.start);
+      return loggerContextManager.runWithContext(loggerContext, async () => {
+        // Child Logger作成（コンテキスト自動付与）
+        const contextLogger = loggerContextManager.createContextualLogger(loggerContext);
 
-      try {
-        // ハンドラー実行
-        const response = await handler(req, context);
+        // リクエスト情報の収集
+        const requestInfo = await gatherRequestInfo(req, {
+          requestId,
+          logHeaders,
+          logBody,
+        });
 
-        // 成功レスポンスログ
-        const duration = Date.now() - startTime;
-        serverLogger.info(
-          {
-            requestId,
+        // 🚨 高リスク対応: 制御文字サニタイズ適用
+        const sanitizedRequestInfo = sanitizeControlCharacters(requestInfo);
+
+        // リクエスト開始ログ
+        contextLogger.info(labels.start, sanitizedRequestInfo);
+
+        try {
+          // ハンドラー実行
+          const response = await handler(req, context);
+
+          // 成功レスポンスログ
+          const duration = Date.now() - startTime;
+          const responseInfo = {
             statusCode: response.status,
             duration,
             responseHeaders: logHeaders ? getResponseHeaders(response) : undefined,
-          },
-          labels.success
-        );
+          };
 
-        return response;
-      } catch (error) {
-        // エラーレスポンスログ
-        const duration = Date.now() - startTime;
-        serverLogger.error(
-          {
-            requestId,
+          contextLogger.info(labels.success, sanitizeControlCharacters(responseInfo));
+
+          return response;
+        } catch (error) {
+          // エラーレスポンスログ
+          const duration = Date.now() - startTime;
+          const errorInfo = {
             duration,
             error: serializeError(error),
-          },
-          labels.error
-        );
+            event_name: 'http.request.error',
+            event_category: 'error_event' as const,
+          };
 
-        throw error;
-      }
+          contextLogger.error(labels.error, sanitizeControlCharacters(errorInfo));
+
+          throw error;
+        }
+      });
     };
   };
 }
@@ -2589,9 +2755,132 @@ module.exports = nextConfig;
 | アラート精度         | > 95%     | 運用メトリクス   |
 | 開発者満足度         | > 4.0/5.0 | 内部アンケート   |
 
+## 8. 🚨 重要度別改善項目実装ロードマップ
+
+### 8.1 🔴 Phase A: 高リスク項目（緊急実装 - Week 1）
+
+#### 優先順位1: セキュリティクリティカル対応
+
+- **✅ Child Logger + AsyncLocalStorage完全実装**
+  - リクエストコンテキストの完全管理
+  - トレース追跡可能性の向上
+  - `loggerContextManager.runWithContext()` の活用
+
+- **✅ HMAC-SHA256 IPハッシュ実装**
+  - GDPR準拠の個人データ保護
+  - `hashIP()` 関数の本格実装
+  - `LOG_IP_HASH_SECRET` 環境変数設定必須
+
+- **✅ 制御文字サニタイザー実装**
+  - ログインジェクション攻撃防止
+  - `sanitizeControlCharacters()` 関数の統合
+  - CRLF注入・null byteエスケープ
+
+### 8.2 ⚠️ Phase B: 中リスク項目（重要機能強化 - Week 2）
+
+#### B.1 追加依存関係
+
+```bash
+# OpenTelemetry Metrics API
+pnpm add @opentelemetry/api @opentelemetry/sdk-metrics
+```
+
+#### B.2 実装項目
+
+- **OpenTelemetry Metrics連動**
+  - エラーログ発生時の自動カウンタインクリメント
+  - Prometheus互換メトリクス出力
+  - ログ量・エラー率の定量監視
+
+- **severity_number フィールド追加**
+  - OpenTelemetry Logs仕様準拠
+  - 既存のログエントリに数値レベル追加
+  - ダッシュボード集計最適化
+
+- **Structured Events (event_name)**
+  - `event_name`, `event_category` フィールド標準化
+  - ダッシュボード集計・フィルタリング容易化
+  - イベント駆動アーキテクチャ対応
+
+### 8.3 💡 Phase C: 低〜中リスク項目（運用最適化 - Week 3）
+
+#### C.1 追加依存関係
+
+```bash
+# Redis/Edge KV対応
+pnpm add ioredis
+pnpm add -D @types/ioredis
+```
+
+#### C.2 実装項目
+
+- **動的Remote Log Level API**
+  - Redis/Edge KV経由での設定管理
+  - 運用中のログレベル動的変更
+  - Fail-safe機能とフォールバック
+
+- **カスタムRate Limiter強化**
+  - エラーログの適応的サンプリング
+  - 高頻度エラーの1/N sampling
+  - Token Bucket + Exponential Backoffアルゴリズム
+
+### 8.4 実装順序と依存関係
+
+```mermaid
+graph TD
+    A[🔴 Child Logger + AsyncLocalStorage] --> B[🔴 制御文字サニタイザー]
+    A --> C[🔴 HMAC-SHA256 IPハッシュ]
+    B --> D[⚠️ OTel Metrics連動]
+    C --> D
+    D --> E[⚠️ severity_number追加]
+    E --> F[⚠️ Structured Events]
+    F --> G[💡 Remote Log Level API]
+    G --> H[💡 Advanced Rate Limiter]
+
+    style A fill:#ff6b6b
+    style B fill:#ff6b6b
+    style C fill:#ff6b6b
+    style D fill:#ffa726
+    style E fill:#ffa726
+    style F fill:#ffa726
+    style G fill:#66bb6a
+    style H fill:#66bb6a
+```
+
+### 8.5 環境変数追加設定
+
+```bash
+# セキュリティ設定
+LOG_IP_HASH_SECRET=your-32-byte-secret-key
+
+# Remote設定API
+CONFIG_API_URL=https://your-config-api.com
+CONFIG_API_TOKEN=your-api-token
+
+# Rate Limiter設定
+LOG_RATE_LIMIT_ENABLED=true
+LOG_RATE_LIMIT_MAX_PER_SECOND=100
+
+# メトリクス設定
+OTEL_METRICS_ENABLED=true
+OTEL_METRICS_EXPORTER=prometheus
+```
+
+### 8.6 成功指標 (改善項目別)
+
+| 改善項目             | 成功指標                 | 測定方法           |
+| -------------------- | ------------------------ | ------------------ |
+| Child Logger         | リクエスト追跡率 > 99%   | トレースID相関分析 |
+| IP ハッシュ          | GDPR監査合格             | セキュリティ監査   |
+| 制御文字サニタイザー | ログインジェクション 0件 | セキュリティテスト |
+| OTel Metrics         | メトリクス可用性 > 99.9% | Prometheus監視     |
+| severity_number      | ダッシュボード応答 < 1秒 | Grafana性能測定    |
+| Structured Events    | イベント分析精度 > 95%   | ダッシュボード検証 |
+
 ---
 
-**Document Version**: 1.0  
+**Document Version**: 1.1  
 **Last Updated**: 2024-12-14  
 **Author**: Development Team  
+**Priority Review**: Critical Security Items Identified  
 **Approval**: Pending

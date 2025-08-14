@@ -28,7 +28,7 @@ Pinoを使用した高性能な構造化ログ機能を、client/server双方で
 
 ### 3.1 全体構成
 
-```
+```text
 ┌─────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
 │   Client Side       │    │   Server Side       │    │   Edge Runtime      │
 │   (Browser)         │    │   (Node.js)         │    │   (V8 Isolate)      │
@@ -350,7 +350,7 @@ function filterErrorStack(stack: string): string {
 
 ### 5.1 ディレクトリ構成
 
-```
+```text
 src/
 └── lib/
     └── logger/
@@ -1007,21 +1007,320 @@ process.env.DEBUG = 'pino:*';
 process.env.OTEL_LOG_LEVEL = 'debug';
 ```
 
-## 12. 今後の拡張計画
+## 12. 🚨 重要度別改善項目
 
-### 12.1 短期拡張（3ヶ月）
+### 12.1 🔴 高リスク項目（緊急対応必要）
+
+#### 12.1.1 Child Logger + AsyncLocalStorage完全実装
+
+**リスク**: リクエストコンテキストの不完全な管理によるトレース追跡困難
+
+```typescript
+// src/lib/logger/context.ts
+import { AsyncLocalStorage } from 'async_hooks';
+import type { Logger } from './types';
+
+interface LoggerContext {
+  requestId: string;
+  traceId?: string;
+  spanId?: string;
+  userId?: string;
+  sessionId?: string;
+}
+
+class LoggerContextManager {
+  private storage = new AsyncLocalStorage<LoggerContext>();
+
+  // コンテキスト付きChild Loggerの生成
+  createChildLogger(baseLogger: Logger, context: Partial<LoggerContext>): Logger {
+    const currentContext = this.getContext();
+    const mergedContext = { ...currentContext, ...context };
+
+    return {
+      trace: (msg, ...args) => baseLogger.trace(msg, mergedContext, ...args),
+      debug: (msg, ...args) => baseLogger.debug(msg, mergedContext, ...args),
+      info: (msg, ...args) => baseLogger.info(msg, mergedContext, ...args),
+      warn: (msg, ...args) => baseLogger.warn(msg, mergedContext, ...args),
+      error: (msg, ...args) => baseLogger.error(msg, mergedContext, ...args),
+      fatal: (msg, ...args) => baseLogger.fatal(msg, mergedContext, ...args),
+      isLevelEnabled: (level) => baseLogger.isLevelEnabled(level),
+    };
+  }
+
+  // リクエストコンテキストでの実行
+  runWithContext<T>(context: LoggerContext, fn: () => T): T {
+    return this.storage.run(context, fn);
+  }
+
+  getContext(): LoggerContext | undefined {
+    return this.storage.getStore();
+  }
+}
+
+export const loggerContextManager = new LoggerContextManager();
+```
+
+#### 12.1.2 制御文字サニタイザー実装
+
+**リスク**: ログインジェクション攻撃による監視システム汚染
+
+```typescript
+// src/lib/logger/sanitizer.ts
+export class LogSanitizer {
+  // 制御文字（0x00-0x1F, 0x7F-0x9F）のサニタイゼーション
+  static sanitizeControlCharacters(input: unknown): unknown {
+    if (typeof input === 'string') {
+      return input.replace(/[\x00-\x1F\x7F-\x9F]/g, (char) => {
+        return `\\u${char.charCodeAt(0).toString(16).padStart(4, '0').toUpperCase()}`;
+      });
+    }
+
+    if (Array.isArray(input)) {
+      return input.map((item) => this.sanitizeControlCharacters(item));
+    }
+
+    if (input && typeof input === 'object') {
+      const sanitized: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(input)) {
+        const sanitizedKey = this.sanitizeControlCharacters(key) as string;
+        sanitized[sanitizedKey] = this.sanitizeControlCharacters(value);
+      }
+      return sanitized;
+    }
+
+    return input;
+  }
+
+  // CRLF注入防止
+  static sanitizeNewlines(input: string): string {
+    return input.replace(/\r\n/g, '\\r\\n').replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+  }
+
+  // JSON-safe 文字列エスケープ
+  static sanitizeForJson(input: unknown): unknown {
+    if (typeof input === 'string') {
+      return this.sanitizeNewlines(this.sanitizeControlCharacters(input) as string);
+    }
+
+    return this.sanitizeControlCharacters(input);
+  }
+}
+```
+
+#### 12.1.3 HMAC-SHA256 IPハッシュ実装
+
+**リスク**: GDPR違反による個人データ平文保存
+
+```typescript
+// src/lib/logger/crypto.ts
+import { createHmac } from 'crypto';
+
+export class IPHasher {
+  private static secret: string;
+
+  static initialize() {
+    this.secret = process.env.LOG_IP_HASH_SECRET || this.generateSecret();
+    if (!process.env.LOG_IP_HASH_SECRET) {
+      console.warn('LOG_IP_HASH_SECRET not set. Generated temporary secret for IP hashing.');
+    }
+  }
+
+  private static generateSecret(): string {
+    return require('crypto').randomBytes(32).toString('hex');
+  }
+
+  /**
+   * GDPR準拠のIPアドレスハッシュ化
+   * HMAC-SHA256(ip + salt) により不可逆的にハッシュ化
+   */
+  static hashIP(ipAddress: string): string {
+    if (!this.secret) {
+      this.initialize();
+    }
+
+    // IPv6正規化
+    const normalizedIP = this.normalizeIPv6(ipAddress);
+
+    // HMAC-SHA256でハッシュ化
+    const hmac = createHmac('sha256', this.secret);
+    hmac.update(normalizedIP);
+    const hash = hmac.digest('hex');
+
+    // セキュリティと可読性のバランス（最初8文字のみ使用）
+    return `ip_${hash.substring(0, 8)}`;
+  }
+
+  private static normalizeIPv6(ip: string): string {
+    // IPv4-mapped IPv6 の正規化
+    if (ip.startsWith('::ffff:')) {
+      return ip.substring(7); // IPv4部分のみ抽出
+    }
+    return ip;
+  }
+}
+
+// 初期化
+IPHasher.initialize();
+
+// ユーティリティ関数
+export const hashIP = (ip: string) => IPHasher.hashIP(ip);
+```
+
+### 12.2 ⚠️ 中リスク項目（重要な機能強化）
+
+#### 12.2.1 OpenTelemetry Metrics連動
+
+```typescript
+// src/lib/logger/metrics.ts
+import { metrics } from '@opentelemetry/api';
+
+class LogMetrics {
+  private logCounter = metrics.getMeter('logger').createCounter('log_entries_total', {
+    description: 'Total number of log entries by level',
+  });
+
+  private errorCounter = metrics.getMeter('logger').createCounter('log_errors_total', {
+    description: 'Total number of error log entries',
+  });
+
+  recordLog(level: string, labels: Record<string, string> = {}) {
+    this.logCounter.add(1, { level, ...labels });
+
+    if (level === 'error' || level === 'fatal') {
+      this.errorCounter.add(1, { level, ...labels });
+    }
+  }
+}
+
+export const logMetrics = new LogMetrics();
+```
+
+#### 12.2.2 severity_number フィールド追加
+
+```typescript
+// OpenTelemetry Logs準拠のseverity_number
+const SEVERITY_NUMBERS = {
+  trace: 1,
+  debug: 5,
+  info: 9,
+  warn: 13,
+  error: 17,
+  fatal: 21,
+} as const;
+
+// ログエントリにseverity_number追加
+function createLogEntry(level: LogLevel, message: string): LogEntry {
+  return {
+    timestamp: new Date().toISOString(),
+    level,
+    severity_number: SEVERITY_NUMBERS[level],
+    message,
+    log_schema_version: '1.0.0',
+  };
+}
+```
+
+#### 12.2.3 Structured Events (event_name)
+
+```typescript
+// ダッシュボード集計容易化のための構造化イベント
+interface StructuredEvent {
+  event_name: string;
+  event_category: 'user_action' | 'system_event' | 'error_event' | 'security_event';
+  event_attributes: Record<string, unknown>;
+}
+
+// 使用例
+logger.info('User authentication successful', {
+  event_name: 'user.authentication.success',
+  event_category: 'user_action',
+  event_attributes: {
+    user_id: 'user_123',
+    authentication_method: 'oauth',
+    ip_hash: hashIP(req.ip),
+  },
+});
+```
+
+### 12.3 💡 低〜中リスク項目（運用最適化）
+
+#### 12.3.1 動的Remote Log Level API
+
+```typescript
+// src/lib/logger/remote-config.ts
+interface RemoteLogConfig {
+  level: LogLevel;
+  enabledFeatures: string[];
+  sampling_rate: number;
+  updated_at: string;
+}
+
+class RemoteConfigManager {
+  async fetchConfig(): Promise<RemoteLogConfig> {
+    // Redis/Edge KV/API経由での設定取得
+    const response = await fetch(`${process.env.CONFIG_API_URL}/logging/config`, {
+      headers: { Authorization: `Bearer ${process.env.CONFIG_API_TOKEN}` },
+    });
+    return response.json();
+  }
+
+  async updateLogLevel(level: LogLevel): Promise<void> {
+    // リモート設定更新
+    await fetch(`${process.env.CONFIG_API_URL}/logging/level`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level }),
+    });
+  }
+}
+```
+
+#### 12.3.2 カスタムRate Limiter強化
+
+```typescript
+// src/lib/logger/advanced-rate-limiter.ts
+class AdvancedRateLimiter {
+  private errorBucket = new Map<string, { count: number; lastReset: number }>();
+
+  shouldLogError(errorType: string, maxPerSecond: number = 10): boolean {
+    const now = Date.now();
+    const key = `error:${errorType}`;
+    const bucket = this.errorBucket.get(key) || { count: 0, lastReset: now };
+
+    // 1秒経過でリセット
+    if (now - bucket.lastReset >= 1000) {
+      bucket.count = 0;
+      bucket.lastReset = now;
+    }
+
+    if (bucket.count >= maxPerSecond) {
+      // Rate limit exceeded - sampling 1/N
+      const samplingRate = 1 / Math.pow(2, Math.floor(bucket.count / maxPerSecond));
+      return Math.random() < samplingRate;
+    }
+
+    bucket.count++;
+    this.errorBucket.set(key, bucket);
+    return true;
+  }
+}
+```
+
+## 13. 今後の拡張計画
+
+### 13.1 短期拡張（3ヶ月）
 
 - **ログ分析ダッシュボード**: Grafana詳細ダッシュボード
 - **エラー追跡**: Sentryとの統合
 - **パフォーマンス監視**: APM連携
 
-### 12.2 中期拡張（6ヶ月）
+### 13.2 中期拡張（6ヶ月）
 
 - **機械学習分析**: 異常検知システム
 - **ログ検索最適化**: Elasticsearchとの統合
 - **コスト最適化**: ログ保持期間・サンプリング戦略
 
-### 12.3 長期拡張（12ヶ月）
+### 13.3 長期拡張（12ヶ月）
 
 - **分散トレーシング拡張**: マイクロサービス対応
 - **リアルタイム分析**: Stream処理パイプライン

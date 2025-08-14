@@ -1,7 +1,7 @@
 /**
  * Key-Value Storage Abstraction Layer
  * Supports Redis, Vercel Edge Config, and Memory storage
- * 
+ *
  * Pure function-based implementation following project architecture principles.
  * Provides unified interface for different KV storage backends with graceful fallbacks.
  */
@@ -61,12 +61,12 @@ function detectStorageType(): 'redis' | 'edge-config' | 'memory' {
   if (process.env.REDIS_URL || process.env.KV_CONNECTION_STRING) {
     return 'redis';
   }
-  
+
   // Vercel Edge Config detection
   if (process.env.EDGE_CONFIG_ID && process.env.EDGE_CONFIG_TOKEN) {
     return 'edge-config';
   }
-  
+
   // Default to memory storage
   return 'memory';
 }
@@ -101,6 +101,7 @@ export function validateStorageConfig(config: StorageConfig): boolean {
 export class RedisStorage implements KVStorage {
   public readonly type = 'redis' as const;
   private config: StorageConfig;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private client: any; // Redis client type
   private isConnected: boolean = false;
 
@@ -111,10 +112,7 @@ export class RedisStorage implements KVStorage {
   async get(key: string): Promise<string | null> {
     try {
       const client = await this.getClient();
-      const result = await this.withTimeout(
-        client.get(key),
-        this.config.timeout_ms
-      );
+      const result = await this.withTimeout(client.get(key), this.config.timeout_ms);
       return typeof result === 'string' ? result : null;
     } catch (error) {
       console.warn('Redis get operation failed:', {
@@ -130,11 +128,8 @@ export class RedisStorage implements KVStorage {
     try {
       const client = await this.getClient();
       const ttlValue = ttl || this.config.ttl_default;
-      
-      await this.withTimeout(
-        client.setex(key, ttlValue, value),
-        this.config.timeout_ms
-      );
+
+      await this.withTimeout(client.setex(key, ttlValue, value), this.config.timeout_ms);
     } catch (error) {
       console.warn('Redis set operation failed:', {
         key,
@@ -148,10 +143,7 @@ export class RedisStorage implements KVStorage {
   async delete(key: string): Promise<void> {
     try {
       const client = await this.getClient();
-      await this.withTimeout(
-        client.del(key),
-        this.config.timeout_ms
-      );
+      await this.withTimeout(client.del(key), this.config.timeout_ms);
     } catch (error) {
       console.warn('Redis delete operation failed:', {
         key,
@@ -165,10 +157,7 @@ export class RedisStorage implements KVStorage {
   async exists(key: string): Promise<boolean> {
     try {
       const client = await this.getClient();
-      const result = await this.withTimeout(
-        client.exists(key),
-        this.config.timeout_ms
-      );
+      const result = await this.withTimeout(client.exists(key), this.config.timeout_ms);
       return result === 1;
     } catch (error) {
       console.warn('Redis exists operation failed:', {
@@ -242,30 +231,30 @@ export class MemoryStorage implements KVStorage {
   constructor(config: StorageConfig) {
     this.store = new Map();
     this.config = Object.freeze(config);
-    
+
     // Cleanup expired entries periodically
     this.startCleanupInterval();
   }
 
   async get(key: string): Promise<string | null> {
     const entry = this.store.get(key);
-    
+
     if (!entry) {
       return null;
     }
-    
+
     if (Date.now() > entry.expires) {
       this.store.delete(key);
       return null;
     }
-    
+
     return entry.value;
   }
 
   async set(key: string, value: string, ttl?: number): Promise<void> {
     const ttlValue = ttl || this.config.ttl_default;
-    const expires = Date.now() + (ttlValue * 1000);
-    
+    const expires = Date.now() + ttlValue * 1000;
+
     this.store.set(key, { value, expires });
   }
 
@@ -280,14 +269,17 @@ export class MemoryStorage implements KVStorage {
 
   private startCleanupInterval(): void {
     // Run cleanup every 5 minutes
-    setInterval(() => {
-      const now = Date.now();
-      for (const [key, entry] of this.store.entries()) {
-        if (now > entry.expires) {
-          this.store.delete(key);
+    setInterval(
+      () => {
+        const now = Date.now();
+        for (const [key, entry] of this.store.entries()) {
+          if (now > entry.expires) {
+            this.store.delete(key);
+          }
         }
-      }
-    }, 5 * 60 * 1000);
+      },
+      5 * 60 * 1000
+    );
   }
 }
 
@@ -311,10 +303,10 @@ export class EdgeConfigStorage implements KVStorage {
       const response = await fetch(`${this.baseUrl}/item/${key}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.token}`,
+          Authorization: `Bearer ${this.token}`,
           'Content-Type': 'application/json',
         },
-        signal: AbortSignal.timeout(this.config.timeout_ms),
+        signal: AbortSignal.timeout(this.config.timeout_ms) || undefined,
       });
 
       if (response.status === 404) {
@@ -326,7 +318,7 @@ export class EdgeConfigStorage implements KVStorage {
       }
 
       const data = await response.json();
-      return typeof data === 'string' ? data : (data.value || null);
+      return typeof data === 'string' ? data : data.value || null;
     } catch (error) {
       console.warn('Edge Config get operation failed:', {
         key,
@@ -342,13 +334,13 @@ export class EdgeConfigStorage implements KVStorage {
       const response = await fetch(`${this.baseUrl}/items`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${this.token}`,
+          Authorization: `Bearer ${this.token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           [key]: value,
         }),
-        signal: AbortSignal.timeout(this.config.timeout_ms),
+        signal: AbortSignal.timeout(this.config.timeout_ms) || undefined,
       });
 
       if (!response.ok) {
@@ -369,13 +361,13 @@ export class EdgeConfigStorage implements KVStorage {
       const response = await fetch(`${this.baseUrl}/items`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${this.token}`,
+          Authorization: `Bearer ${this.token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           [key]: null,
         }),
-        signal: AbortSignal.timeout(this.config.timeout_ms),
+        signal: AbortSignal.timeout(this.config.timeout_ms) || undefined,
       });
 
       if (!response.ok) {
@@ -402,15 +394,21 @@ export class EdgeConfigStorage implements KVStorage {
  */
 export function createKVStorage(config?: StorageConfig): KVStorage {
   const storageConfig = config || createStorageConfig();
-  
+
   if (!validateStorageConfig(storageConfig)) {
     console.warn('Invalid storage configuration, falling back to memory storage');
-    return new MemoryStorage(Object.freeze({
-      ...storageConfig,
-      type: 'memory',
-    }) as StorageConfig);
+    // Use safe defaults for memory storage
+    const memoryConfig = Object.freeze({
+      type: 'memory' as const,
+      connection_string: undefined,
+      ttl_default: Math.max(1, storageConfig.ttl_default || 3600),
+      max_retries: Math.max(0, storageConfig.max_retries || 3),
+      timeout_ms: Math.max(1, storageConfig.timeout_ms || 5000),
+      fallback_enabled: storageConfig.fallback_enabled ?? true,
+    }) as StorageConfig;
+    return new MemoryStorage(memoryConfig);
   }
-  
+
   try {
     switch (storageConfig.type) {
       case 'redis':
@@ -427,25 +425,33 @@ export function createKVStorage(config?: StorageConfig): KVStorage {
       error: error instanceof Error ? error.message : String(error),
       timestamp: new Date().toISOString(),
     });
-    
-    return new MemoryStorage(Object.freeze({
-      ...storageConfig,
-      type: 'memory',
-    }) as StorageConfig);
+
+    // Use safe defaults for fallback
+    const fallbackConfig = Object.freeze({
+      type: 'memory' as const,
+      connection_string: undefined,
+      ttl_default: 3600,
+      max_retries: 3,
+      timeout_ms: 5000,
+      fallback_enabled: true,
+    }) as StorageConfig;
+    return new MemoryStorage(fallbackConfig);
   }
 }
 
 /**
  * Storage health check (pure function)
  */
-export async function checkStorageHealth(storage: KVStorage): Promise<StorageOperationResult<boolean>> {
+export async function checkStorageHealth(
+  storage: KVStorage
+): Promise<StorageOperationResult<boolean>> {
   const testKey = `health_check_${Date.now()}`;
   const testValue = 'health_check_value';
-  
+
   try {
     // Test write
     await storage.set(testKey, testValue, 10); // 10 seconds TTL
-    
+
     // Test read
     const readValue = await storage.get(testKey);
     if (readValue !== testValue) {
@@ -454,7 +460,7 @@ export async function checkStorageHealth(storage: KVStorage): Promise<StorageOpe
         error: 'Read operation returned unexpected value',
       };
     }
-    
+
     // Test exists
     const exists = await storage.exists(testKey);
     if (!exists) {
@@ -463,7 +469,7 @@ export async function checkStorageHealth(storage: KVStorage): Promise<StorageOpe
         error: 'Exists operation returned false for existing key',
       };
     }
-    
+
     // Test delete
     await storage.delete(testKey);
     const deletedExists = await storage.exists(testKey);
@@ -473,7 +479,7 @@ export async function checkStorageHealth(storage: KVStorage): Promise<StorageOpe
         error: 'Delete operation failed',
       };
     }
-    
+
     return {
       success: true,
       data: true,

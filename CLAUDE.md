@@ -222,7 +222,8 @@ If any of these checks fail, the commit will be aborted. Fix the issues and try 
 - **NEVER use basic Read tool** for exploring large code files when Serena tools are available
 - **Use Read tool only** for small files, configuration files, or when you need exact line-by-line content
 
-This approach is significantly more efficient and token-conscious than reading entire files.
+This approach is significantly more efficient and token-conscious than reading entire files.  
+For details, refer to `.claude/commands/serena.md`
 
 ### Question Handling
 

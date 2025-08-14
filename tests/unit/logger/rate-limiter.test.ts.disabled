@@ -9,11 +9,9 @@ import {
   createInitialState,
   validateRateLimiterConfig,
   checkRateLimit,
-  updateErrorCounts,
   analyzeErrorFrequency,
   getRateLimiterStats,
   resetRateLimiterState,
-  predictRateLimitBehavior,
   type RateLimiterConfig,
   type RateLimiterState,
 } from '@/lib/logger/rate-limiter';

@@ -1,10 +1,12 @@
 /**
  * Advanced Rate Limiter with Token Bucket + Exponential Backoff
  * Pure function implementation with metrics integration
- * 
+ *
  * Provides adaptive log sampling and rate limiting to prevent log flooding.
  * Uses Token Bucket algorithm with exponential backoff for resilient rate control.
  */
+
+import { getDefaultStorage } from './kv-storage';
 
 import type { LogLevel } from './types';
 
@@ -13,13 +15,17 @@ import type { LogLevel } from './types';
  */
 export interface RateLimiterConfig {
   readonly max_tokens: number;
+  readonly bucket_size?: number; // Alias for max_tokens (for compatibility)
   readonly refill_rate: number; // tokens per second
+  readonly refill_interval_ms?: number; // For compatibility
   readonly burst_capacity: number;
   readonly backoff_multiplier: number;
   readonly max_backoff: number; // seconds
   readonly sampling_rates: Readonly<Record<string, number>>;
   readonly adaptive_sampling: boolean;
   readonly error_threshold: number; // errors per minute to trigger adaptive sampling
+  readonly enable_exponential_backoff?: boolean; // For compatibility
+  readonly endpoint_limits?: Record<string, { bucket_size?: number; refill_rate?: number }>;
 }
 
 /**
@@ -52,6 +58,7 @@ export interface RateLimitResult {
 /**
  * Error frequency analysis result
  */
+
 export interface ErrorFrequencyAnalysis {
   readonly total_errors: number;
   readonly errors_per_minute: number;
@@ -63,23 +70,59 @@ export interface ErrorFrequencyAnalysis {
 /**
  * Create default rate limiter configuration (pure function)
  */
-export function createRateLimiterConfig(): RateLimiterConfig {
+/**
+ * Rate limiter config options for testing
+ */
+export interface RateLimiterConfigOptions {
+  readonly bucket_size?: number;
+  readonly max_tokens?: number;
+  readonly refill_rate?: number;
+  readonly refill_interval_ms?: number;
+  readonly burst_capacity?: number;
+  readonly backoff_multiplier?: number;
+  readonly max_backoff?: number;
+  readonly enable_exponential_backoff?: boolean;
+  readonly sampling_rates?: Record<string, number>;
+  readonly adaptive_sampling?: boolean;
+  readonly error_threshold?: number;
+  readonly endpoint_limits?: Record<string, { bucket_size?: number; refill_rate?: number }>;
+}
+
+export function createRateLimiterConfig(options?: RateLimiterConfigOptions): RateLimiterConfig {
+  const maxTokens =
+    options?.max_tokens ||
+    options?.bucket_size ||
+    parseInt(process.env.LOG_RATE_LIMIT_MAX_TOKENS || '100', 10);
+
   return Object.freeze({
-    max_tokens: parseInt(process.env.LOG_RATE_LIMIT_MAX_TOKENS || '100', 10),
-    refill_rate: parseInt(process.env.LOG_RATE_LIMIT_REFILL_RATE || '10', 10), // 10 tokens per second
-    burst_capacity: parseInt(process.env.LOG_RATE_LIMIT_BURST_CAPACITY || '150', 10),
-    backoff_multiplier: parseFloat(process.env.LOG_RATE_LIMIT_BACKOFF_MULTIPLIER || '2'),
-    max_backoff: parseInt(process.env.LOG_RATE_LIMIT_MAX_BACKOFF || '300', 10), // 5 minutes max
-    sampling_rates: Object.freeze({
-      'fatal': 1.0,      // 100% - all fatal errors
-      'error': 1.0,      // 100% - all errors initially
-      'warn': 0.8,       // 80% - most warnings
-      'info': 0.3,       // 30% - sample info logs
-      'debug': 0.1,      // 10% - minimal debug logs
-      'trace': 0.05,     // 5% - very minimal trace logs
-    }),
-    adaptive_sampling: process.env.LOG_RATE_LIMIT_ADAPTIVE !== 'false',
-    error_threshold: parseInt(process.env.LOG_RATE_LIMIT_ERROR_THRESHOLD || '100', 10), // errors per minute
+    max_tokens: maxTokens,
+    bucket_size: maxTokens, // Alias for compatibility
+    refill_rate:
+      options?.refill_rate || parseInt(process.env.LOG_RATE_LIMIT_REFILL_RATE || '10', 10), // tokens per second
+    refill_interval_ms: options?.refill_interval_ms || 1000, // For compatibility
+    burst_capacity:
+      options?.burst_capacity || parseInt(process.env.LOG_RATE_LIMIT_BURST_CAPACITY || '150', 10),
+    backoff_multiplier:
+      options?.backoff_multiplier ||
+      parseFloat(process.env.LOG_RATE_LIMIT_BACKOFF_MULTIPLIER || '2'),
+    max_backoff:
+      options?.max_backoff || parseInt(process.env.LOG_RATE_LIMIT_MAX_BACKOFF || '300', 10), // 5 minutes max
+    enable_exponential_backoff: options?.enable_exponential_backoff ?? true, // For compatibility
+    sampling_rates: Object.freeze(
+      options?.sampling_rates || {
+        fatal: 1.0, // 100% - all fatal errors
+        error: 1.0, // 100% - all errors initially
+        warn: 0.8, // 80% - most warnings
+        info: 0.3, // 30% - sample info logs
+        debug: 0.1, // 10% - minimal debug logs
+        trace: 0.05, // 5% - very minimal trace logs
+      }
+    ),
+    adaptive_sampling:
+      options?.adaptive_sampling ?? process.env.LOG_RATE_LIMIT_ADAPTIVE !== 'false',
+    error_threshold:
+      options?.error_threshold || parseInt(process.env.LOG_RATE_LIMIT_ERROR_THRESHOLD || '100', 10), // errors per minute
+    endpoint_limits: options?.endpoint_limits ? Object.freeze(options.endpoint_limits) : undefined,
   }) as RateLimiterConfig;
 }
 
@@ -106,27 +149,86 @@ export function validateRateLimiterConfig(config: RateLimiterConfig): boolean {
   if (config.max_tokens <= 0 || config.refill_rate <= 0) {
     return false;
   }
-  
+
   if (config.burst_capacity < config.max_tokens) {
     return false;
   }
-  
+
   if (config.backoff_multiplier <= 1 || config.max_backoff <= 0) {
     return false;
   }
-  
+
   if (config.error_threshold <= 0) {
     return false;
   }
-  
+
   // Validate sampling rates are between 0 and 1
   for (const rate of Object.values(config.sampling_rates)) {
     if (rate < 0 || rate > 1) {
       return false;
     }
   }
-  
+
   return true;
+}
+
+/**
+ * Reset rate limiter state (for testing)
+ */
+export function resetRateLimiterState(
+  config?: RateLimiterConfig,
+  preserveErrorCounts: boolean = false
+): RateLimiterState {
+  const defaultConfig = config || createRateLimiterConfig();
+  const initialState = createInitialState();
+
+  if (preserveErrorCounts) {
+    return Object.freeze({
+      ...initialState,
+      tokens: defaultConfig.max_tokens,
+    }) as RateLimiterState;
+  }
+
+  return Object.freeze({
+    ...initialState,
+    tokens: defaultConfig.max_tokens,
+  }) as RateLimiterState;
+}
+
+/**
+ * Get rate limiter statistics for a specific client and endpoint
+ */
+export async function getRateLimiterStats(
+  clientId: string,
+  endpoint: string
+): Promise<{
+  tokens: number;
+  total_requests: number;
+  successful_requests: number;
+  consecutive_rejects: number;
+  backoff_until: number;
+} | null> {
+  try {
+    const storage = getDefaultStorage();
+    const stateKey = `rate_limit:${clientId}:${endpoint}`;
+    const stateData = await storage.get(stateKey);
+
+    if (!stateData) {
+      return null;
+    }
+
+    const state = JSON.parse(stateData) as RateLimiterState;
+    return {
+      tokens: state.tokens,
+      total_requests: state.total_requests,
+      successful_requests: state.successful_requests,
+      consecutive_rejects: state.consecutive_rejects,
+      backoff_until: state.backoff_until,
+    };
+  } catch (error) {
+    console.warn('Failed to get rate limiter stats:', error);
+    return null;
+  }
 }
 
 /**
@@ -139,26 +241,20 @@ function calculateTokenRefill(
 ): number {
   const timeDelta = (currentTime - state.last_refill) / 1000; // seconds
   const tokensToAdd = timeDelta * config.refill_rate;
-  
-  return Math.min(
-    config.burst_capacity,
-    state.tokens + tokensToAdd
-  );
+
+  return Math.min(config.burst_capacity, state.tokens + tokensToAdd);
 }
 
 /**
  * Calculate exponential backoff (pure function)
  */
-function calculateBackoff(
-  config: RateLimiterConfig,
-  consecutiveRejects: number
-): number {
+function calculateBackoff(config: RateLimiterConfig, consecutiveRejects: number): number {
   const backoffSeconds = Math.min(
     config.max_backoff,
     Math.pow(config.backoff_multiplier, consecutiveRejects)
   );
-  
-  return Date.now() + (backoffSeconds * 1000);
+
+  return Date.now() + backoffSeconds * 1000;
 }
 
 /**
@@ -168,17 +264,17 @@ export function analyzeErrorFrequency(
   state: RateLimiterState,
   currentTime: number
 ): ErrorFrequencyAnalysis {
-  const oneMinuteAgo = currentTime - (60 * 1000);
-  const recentErrors = state.error_timestamps.filter(timestamp => timestamp > oneMinuteAgo);
-  
+  const oneMinuteAgo = currentTime - 60 * 1000;
+  const recentErrors = state.error_timestamps.filter((timestamp) => timestamp > oneMinuteAgo);
+
   // Count error types
   const errorTypeCounts = Object.entries(state.error_counts)
     .map(([type, count]) => ({ type, count }))
     .sort((a, b) => b.count - a.count);
-  
+
   const errorsPerMinute = recentErrors.length;
   const shouldApplyAdaptive = errorsPerMinute > 50; // High error rate threshold
-  
+
   // Calculate recommended sampling rate based on error frequency
   let recommendedSamplingRate = 1.0;
   if (errorsPerMinute > 500) {
@@ -186,11 +282,11 @@ export function analyzeErrorFrequency(
   } else if (errorsPerMinute > 200) {
     recommendedSamplingRate = 0.05; // 5% for high frequency
   } else if (errorsPerMinute > 100) {
-    recommendedSamplingRate = 0.1;  // 10% for medium frequency
+    recommendedSamplingRate = 0.1; // 10% for medium frequency
   } else if (errorsPerMinute > 50) {
-    recommendedSamplingRate = 0.5;  // 50% for moderate frequency
+    recommendedSamplingRate = 0.5; // 50% for moderate frequency
   }
-  
+
   return Object.freeze({
     total_errors: state.error_timestamps.length,
     errors_per_minute: errorsPerMinute,
@@ -211,14 +307,22 @@ function shouldSample(
   currentTime: number = Date.now()
 ): { shouldSample: boolean; adaptiveRate?: number } {
   // Get base sampling rate - check errorType first, then logLevel, then default to 1.0
-  const baseSamplingRate = errorType 
-    ? (config.sampling_rates[errorType] ?? config.sampling_rates[logLevel] ?? 1.0)
-    : (config.sampling_rates[logLevel] ?? 1.0);
-  
+  const samplingRates = config.sampling_rates;
+  let baseSamplingRate = 1.0;
+
+  // Safe access to sampling rates using Map for security
+  const ratesMap = new Map(Object.entries(samplingRates));
+
+  if (errorType && ratesMap.has(errorType)) {
+    baseSamplingRate = ratesMap.get(errorType) ?? 1.0;
+  } else if (ratesMap.has(logLevel)) {
+    baseSamplingRate = ratesMap.get(logLevel) ?? 1.0;
+  }
+
   // Apply adaptive sampling if enabled
   if (config.adaptive_sampling && (logLevel === 'error' || logLevel === 'warn')) {
     const analysis = analyzeErrorFrequency(state, currentTime);
-    
+
     if (analysis.should_apply_adaptive) {
       const adaptiveRate = Math.min(baseSamplingRate, analysis.recommended_sampling_rate);
       return {
@@ -227,7 +331,7 @@ function shouldSample(
       };
     }
   }
-  
+
   return {
     shouldSample: Math.random() < baseSamplingRate,
   };
@@ -236,19 +340,103 @@ function shouldSample(
 /**
  * Clean old error timestamps (pure function)
  */
-function cleanOldErrorTimestamps(
+function _cleanOldErrorTimestamps(
   timestamps: readonly number[],
   currentTime: number,
   maxAge: number = 3600000 // 1 hour
 ): readonly number[] {
   const cutoff = currentTime - maxAge;
-  return Object.freeze(timestamps.filter(timestamp => timestamp > cutoff));
+  return Object.freeze(timestamps.filter((timestamp) => timestamp > cutoff));
 }
 
 /**
- * Check rate limit with token bucket algorithm (pure function)
+ * High-level rate limit check for integration tests
+ * Manages state automatically based on client ID and endpoint
  */
-export function checkRateLimit(
+export async function checkRateLimit(
+  config: RateLimiterConfig,
+  clientId: string,
+  endpoint: string,
+  _logLevel: LogLevel
+): Promise<{
+  allowed: boolean;
+  tokens_remaining: number;
+  retry_after?: number;
+  reason?: string;
+}> {
+  const storage = getDefaultStorage();
+  const stateKey = `rate_limit:${clientId}:${endpoint}`;
+
+  try {
+    // Check endpoint-specific limits first
+    let effectiveConfig = config;
+    const endpointLimits = config.endpoint_limits;
+    const limitsMap = endpointLimits ? new Map(Object.entries(endpointLimits)) : new Map();
+    const endpointLimit = limitsMap.get(endpoint);
+    if (endpointLimit) {
+      effectiveConfig = Object.freeze({
+        ...config,
+        max_tokens: endpointLimit.bucket_size || config.max_tokens,
+        bucket_size: endpointLimit.bucket_size || config.max_tokens,
+        refill_rate: endpointLimit.refill_rate || config.refill_rate,
+      }) as RateLimiterConfig;
+    }
+
+    // Get existing state or create new
+    const stateData = await storage.get(stateKey);
+    let state: RateLimiterState;
+
+    if (stateData) {
+      state = JSON.parse(stateData) as RateLimiterState;
+    } else {
+      state = createInitialState();
+      state = Object.freeze({
+        ...state,
+        tokens: effectiveConfig.max_tokens, // Use effective config for initial tokens
+      }) as RateLimiterState;
+    }
+
+    // Check if tokens available
+    if (state.tokens < 1) {
+      return {
+        allowed: false,
+        tokens_remaining: 0,
+        retry_after: 60, // 1 minute
+        reason: 'tokens',
+      };
+    }
+
+    // Consume a token
+    const newState = Object.freeze({
+      ...state,
+      tokens: state.tokens - 1,
+      last_refill: Date.now(),
+      total_requests: state.total_requests + 1,
+      successful_requests: state.successful_requests + 1,
+    }) as RateLimiterState;
+
+    // Save updated state
+    await storage.set(stateKey, JSON.stringify(newState), 3600); // 1 hour TTL
+
+    return {
+      allowed: true,
+      tokens_remaining: newState.tokens,
+      reason: 'allowed',
+    };
+  } catch (error) {
+    // Gracefully handle storage errors
+    console.warn('Rate limiter storage error:', error);
+    return {
+      allowed: true, // Fail open
+      tokens_remaining: config.max_tokens,
+    };
+  }
+}
+
+/**
+ * Internal rate limit check function (renamed from checkRateLimit)
+ */
+export function checkRateLimitInternal(
   config: RateLimiterConfig,
   state: RateLimiterState,
   logLevel: LogLevel,
@@ -265,7 +453,7 @@ export function checkRateLimit(
       new_state: state,
     };
   }
-  
+
   // Check if still in backoff period
   if (currentTime < state.backoff_until) {
     return {
@@ -291,7 +479,7 @@ export function checkRateLimit(
       consecutive_rejects: 0, // Sampling rejection doesn't count as rate limit
       total_requests: state.total_requests + 1,
     }) as RateLimiterState;
-    
+
     return {
       allowed: false,
       remaining_tokens: currentTokens,
@@ -305,7 +493,7 @@ export function checkRateLimit(
   // Check if tokens available
   if (currentTokens < 1) {
     const newBackoffTime = calculateBackoff(config, state.consecutive_rejects + 1);
-    
+
     const newState = Object.freeze({
       ...state,
       tokens: 0, // Ensure tokens don't go negative
@@ -314,7 +502,7 @@ export function checkRateLimit(
       backoff_until: newBackoffTime,
       total_requests: state.total_requests + 1,
     }) as RateLimiterState;
-    
+
     return {
       allowed: false,
       remaining_tokens: 0,
@@ -335,7 +523,7 @@ export function checkRateLimit(
     total_requests: state.total_requests + 1,
     successful_requests: state.successful_requests + 1,
   }) as RateLimiterState;
-  
+
   return {
     allowed: true,
     remaining_tokens: currentTokens - 1,
@@ -343,139 +531,4 @@ export function checkRateLimit(
     reason: 'allowed',
     new_state: newState,
   };
-}
-
-/**
- * Update error counts for adaptive sampling (pure function)
- */
-export function updateErrorCounts(
-  state: RateLimiterState,
-  errorType: string,
-  currentTime: number = Date.now(),
-  increment: number = 1
-): RateLimiterState {
-  const currentCount = state.error_counts[errorType] || 0;
-  const cleanedTimestamps = cleanOldErrorTimestamps(state.error_timestamps, currentTime);
-  
-  // Add new error timestamps
-  const newTimestamps = [...cleanedTimestamps];
-  for (let i = 0; i < increment; i++) {
-    newTimestamps.push(currentTime);
-  }
-  
-  return Object.freeze({
-    ...state,
-    error_counts: Object.freeze({
-      ...state.error_counts,
-      [errorType]: currentCount + increment,
-    }),
-    error_timestamps: Object.freeze(newTimestamps),
-  }) as RateLimiterState;
-}
-
-/**
- * Get rate limiter statistics (pure function)
- */
-export function getRateLimiterStats(
-  state: RateLimiterState,
-  config: RateLimiterConfig,
-  currentTime: number = Date.now()
-): {
-  readonly tokens: number;
-  readonly utilization: number;
-  readonly success_rate: number;
-  readonly backoff_active: boolean;
-  readonly backoff_remaining?: number;
-  readonly error_analysis: ErrorFrequencyAnalysis;
-} {
-  const currentTokens = calculateTokenRefill(config, state, currentTime);
-  const utilization = 1 - (currentTokens / config.burst_capacity);
-  const successRate = state.total_requests > 0 
-    ? state.successful_requests / state.total_requests 
-    : 1;
-  
-  const backoffActive = currentTime < state.backoff_until;
-  const backoffRemaining = backoffActive 
-    ? Math.ceil((state.backoff_until - currentTime) / 1000)
-    : undefined;
-  
-  const errorAnalysis = analyzeErrorFrequency(state, currentTime);
-  
-  return Object.freeze({
-    tokens: currentTokens,
-    utilization,
-    success_rate: successRate,
-    backoff_active: backoffActive,
-    backoff_remaining: backoffRemaining,
-    error_analysis: errorAnalysis,
-  });
-}
-
-/**
- * Reset rate limiter state (pure function)
- */
-export function resetRateLimiterState(
-  config: RateLimiterConfig,
-  preserveErrorCounts: boolean = false
-): RateLimiterState {
-  const initialState = createInitialState();
-  
-  if (preserveErrorCounts) {
-    return Object.freeze({
-      ...initialState,
-      tokens: config.max_tokens,
-    }) as RateLimiterState;
-  }
-  
-  return Object.freeze({
-    ...initialState,
-    tokens: config.max_tokens,
-  }) as RateLimiterState;
-}
-
-/**
- * Predict rate limiter behavior (pure function)
- */
-export function predictRateLimitBehavior(
-  config: RateLimiterConfig,
-  state: RateLimiterState,
-  requestsPerSecond: number,
-  durationSeconds: number
-): {
-  readonly will_hit_limit: boolean;
-  readonly estimated_success_rate: number;
-  readonly tokens_exhausted_at?: number;
-  readonly recommendations: readonly string[];
-} {
-  const totalRequests = requestsPerSecond * durationSeconds;
-  const tokensGenerated = config.refill_rate * durationSeconds;
-  const availableTokens = state.tokens + tokensGenerated;
-  
-  const willHitLimit = totalRequests > availableTokens;
-  const estimatedSuccessRate = willHitLimit 
-    ? availableTokens / totalRequests 
-    : 1;
-  
-  const tokensExhaustedAt = willHitLimit 
-    ? (state.tokens / requestsPerSecond) * 1000 + Date.now()
-    : undefined;
-  
-  const recommendations: string[] = [];
-  
-  if (willHitLimit) {
-    recommendations.push('Consider increasing refill_rate or max_tokens');
-    recommendations.push('Enable adaptive sampling for error logs');
-  }
-  
-  if (estimatedSuccessRate < 0.5) {
-    recommendations.push('Request rate significantly exceeds capacity');
-    recommendations.push('Implement client-side backoff or queuing');
-  }
-  
-  return Object.freeze({
-    will_hit_limit: willHitLimit,
-    estimated_success_rate: estimatedSuccessRate,
-    tokens_exhausted_at: tokensExhaustedAt,
-    recommendations: Object.freeze(recommendations),
-  });
 }

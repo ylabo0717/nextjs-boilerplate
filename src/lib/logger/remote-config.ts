@@ -1,12 +1,13 @@
 /**
  * Dynamic Remote Log Level Configuration
  * Pure function-based implementation with Redis/Edge KV integration
- * 
+ *
  * Enables runtime log level changes without application restart.
  * Provides fail-safe fallback and caching mechanisms.
  */
 
 import { getDefaultStorage, type KVStorage } from './kv-storage';
+
 import type { LogLevel } from './types';
 
 /**
@@ -111,7 +112,9 @@ export function validateRemoteConfig(config: unknown): ValidationResult {
   if (typeof cfg.global_level !== 'string') {
     errors.push('global_level must be a string');
   } else if (!isValidLogLevel(cfg.global_level)) {
-    errors.push(`global_level must be one of: trace, debug, info, warn, error, fatal. Got: ${cfg.global_level}`);
+    errors.push(
+      `global_level must be one of: trace, debug, info, warn, error, fatal. Got: ${cfg.global_level}`
+    );
   }
 
   // Validate service_levels
@@ -175,7 +178,7 @@ export function validateRemoteConfig(config: unknown): ValidationResult {
  */
 export function sanitizeConfig(config: Partial<RemoteLogConfig>): RemoteLogConfig {
   const defaultConfig = createDefaultConfig();
-  
+
   return Object.freeze({
     global_level: config.global_level || defaultConfig.global_level,
     service_levels: Object.freeze({
@@ -200,7 +203,7 @@ function createCacheEntry(config: RemoteLogConfig, ttl: number = DEFAULT_CACHE_T
   return {
     config,
     cached_at: now,
-    expires_at: now + (ttl * 1000),
+    expires_at: now + ttl * 1000,
   };
 }
 
@@ -210,8 +213,8 @@ function createCacheEntry(config: RemoteLogConfig, ttl: number = DEFAULT_CACHE_T
 function isCacheValid(entry: CacheEntry, maxAge: number = MAX_CACHE_AGE): boolean {
   const now = Date.now();
   const age = now - entry.cached_at;
-  
-  return now < entry.expires_at && age < (maxAge * 1000);
+
+  return now < entry.expires_at && age < maxAge * 1000;
 }
 
 /**
@@ -230,7 +233,7 @@ async function fetchFromCache(storage: KVStorage): Promise<ConfigFetchResult> {
     }
 
     const cacheEntry: CacheEntry = JSON.parse(cacheData);
-    
+
     if (!isCacheValid(cacheEntry)) {
       return {
         success: false,
@@ -294,7 +297,7 @@ export async function fetchRemoteConfig(
 
   try {
     const configData = await kvStorage.get(CONFIG_KEY);
-    
+
     if (!configData) {
       return {
         success: false,
@@ -306,7 +309,7 @@ export async function fetchRemoteConfig(
 
     const parsedConfig = JSON.parse(configData);
     const validation = validateRemoteConfig(parsedConfig);
-    
+
     if (!validation.valid) {
       return {
         success: false,
@@ -317,7 +320,7 @@ export async function fetchRemoteConfig(
     }
 
     const config = sanitizeConfig(parsedConfig);
-    
+
     // Save to cache for next time
     if (useCache) {
       await saveToCache(kvStorage, config);
@@ -391,16 +394,17 @@ export async function saveRemoteConfig(
 /**
  * Get effective log level for service (pure function)
  */
-export function getEffectiveLogLevel(
-  config: RemoteLogConfig,
-  serviceName?: string
-): LogLevel {
+export function getEffectiveLogLevel(config: RemoteLogConfig, serviceName?: string): LogLevel {
   if (!config.enabled) {
     return 'info'; // Fallback when remote config is disabled
   }
 
-  if (serviceName && config.service_levels[serviceName]) {
-    return config.service_levels[serviceName];
+  if (serviceName) {
+    const serviceLevelsMap = new Map(Object.entries(config.service_levels));
+    const serviceLevel = serviceLevelsMap.get(serviceName);
+    if (serviceLevel) {
+      return serviceLevel;
+    }
   }
 
   return config.global_level;
@@ -432,28 +436,23 @@ export function mergeConfigurations(
 /**
  * Check if configuration update is needed (pure function)
  */
-export function shouldUpdateConfig(
-  current: RemoteLogConfig,
-  remote: RemoteLogConfig
-): boolean {
+export function shouldUpdateConfig(current: RemoteLogConfig, remote: RemoteLogConfig): boolean {
   return remote.version > current.version;
 }
 
 /**
  * Get configuration with fallback (side effect function)
  */
-export async function getConfigWithFallback(
-  storage?: KVStorage
-): Promise<ConfigFetchResult> {
+export async function getConfigWithFallback(storage?: KVStorage): Promise<ConfigFetchResult> {
   const remoteResult = await fetchRemoteConfig(storage, true);
-  
+
   if (remoteResult.success) {
     return remoteResult;
   }
 
   // Fallback to default configuration
   const defaultConfig = createDefaultConfig();
-  
+
   return {
     success: true,
     config: defaultConfig,
@@ -467,7 +466,7 @@ export async function getConfigWithFallback(
  */
 export async function clearConfigCache(storage?: KVStorage): Promise<void> {
   const kvStorage = storage || getDefaultStorage();
-  
+
   try {
     await kvStorage.delete(CACHE_KEY);
   } catch (error) {

@@ -198,6 +198,8 @@ This project uses **Conventional Commits** specification. All commit messages ar
 - **test**: Adding missing tests or correcting existing tests
 - **chore**: Changes to the build process or auxiliary tools
 
+**IMPORTANT: All commit messages must be written in English.**
+
 ### Pre-commit Hooks
 
 The following checks run automatically on commit:

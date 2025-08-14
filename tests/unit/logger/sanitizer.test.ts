@@ -96,6 +96,53 @@ describe('LogSanitizer - ログインジェクション攻撃防止', () => {
       expect(result.child.name).toBe('child');
       expect(result.child.parent._circular_reference).toBe(true);
     });
+
+    it('should handle deeply nested circular references with multiple loops', () => {
+      // Create complex circular structure
+      const root: any = { id: 'root', level: 0 };
+      const branch1: any = { id: 'branch1', level: 1, parent: root };
+      const branch2: any = { id: 'branch2', level: 1, parent: root };
+      const leaf: any = { id: 'leaf', level: 2, parents: [branch1, branch2], dangerous: 'content\x00\x01' };
+      
+      root.children = [branch1, branch2];
+      branch1.children = [leaf];
+      branch2.children = [leaf];
+      
+      // Create multiple circular references
+      leaf.root = root;
+      branch1.sibling = branch2;
+      branch2.sibling = branch1;
+
+      const result = sanitizeControlCharacters(root) as any;
+
+      // Check basic structure preservation
+      expect(result.id).toBe('root');
+      expect(result.children).toBeDefined();
+      expect(result.children[0].id).toBe('branch1');
+      expect(result.children[1].id).toBe('branch2');
+      
+      // Check circular reference handling - verify that deep circular refs are detected
+      expect(result.children[0].children[0].dangerous).toBe('content\\u0000\\u0001');
+      // The circular reference should be detected somewhere in the deep structure
+      const hasCircularRef = JSON.stringify(result).includes('_circular_reference');
+      expect(hasCircularRef).toBe(true);
+    });
+
+    it('should handle self-referencing arrays with circular objects', () => {
+      const arr: any[] = [];
+      const obj: any = { id: 'container', items: arr, dangerous: 'data\x02' };
+      arr.push(obj);
+      arr.push({ ref: obj });
+      
+      const result = sanitizeControlCharacters(arr) as any[];
+
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe('container');
+      expect(result[0].dangerous).toBe('data\\u0002');
+      // Check that circular references are detected in the structure
+      const resultStr = JSON.stringify(result);
+      expect(resultStr.includes('_circular_reference')).toBe(true);
+    });
   });
 
   describe('📜 CRLF注入防止', () => {

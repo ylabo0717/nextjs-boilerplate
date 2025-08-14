@@ -290,12 +290,16 @@ describe('Metrics Snapshot and Utilities', () => {
 
   test('getPhase3MetricsSnapshot returns correct snapshot when initialized', () => {
     initializePhase3Metrics();
+    
+    // Record some metrics to test counters
+    recordConfigFetchMetrics('remote', 'success', 100);
+    recordRateLimitMetrics('client-1', '/test', 'hit', 'token_exhausted');
+    
     const snapshot = getPhase3MetricsSnapshot();
 
-    expect(snapshot.initialized).toBe(true);
-    expect(snapshot.meter_name).toBe('nextjs-boilerplate-enhanced');
-    expect(snapshot.version).toBe('1.0.0');
-    expect(snapshot.metrics_count).toBeGreaterThan(0);
+    expect(snapshot.config_fetch_total).toBeGreaterThan(0);
+    expect(snapshot.rate_limit_hits_total).toBeGreaterThan(0);
+    expect(typeof snapshot.timestamp).toBe('string');
     expect(Object.isFrozen(snapshot)).toBe(true);
   });
 });
@@ -451,7 +455,7 @@ describe('Error Handling and Edge Cases', () => {
     });
 
     // Should not throw, but should log warning
-    recordConfigFetchMetrics(100, true, false, 'remote');
+    recordConfigFetchMetrics('remote', 'success', 100);
 
     expect(console.warn).toHaveBeenCalledWith(
       'Failed to record config fetch metrics:',

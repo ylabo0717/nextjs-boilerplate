@@ -94,21 +94,10 @@ function isValidLogLevel(level: string): level is LogLevel {
 }
 
 /**
- * Validate remote configuration (pure function)
+ * Validate global_level field
  */
-export function validateRemoteConfig(config: unknown): ValidationResult {
+function validateGlobalLevel(cfg: Record<string, unknown>): string[] {
   const errors: string[] = [];
-
-  if (!config || typeof config !== 'object') {
-    return {
-      valid: false,
-      errors: ['Configuration must be an object'],
-    };
-  }
-
-  const cfg = config as Record<string, unknown>;
-
-  // Validate global_level
   if (typeof cfg.global_level !== 'string') {
     errors.push('global_level must be a string');
   } else if (!isValidLogLevel(cfg.global_level)) {
@@ -116,36 +105,58 @@ export function validateRemoteConfig(config: unknown): ValidationResult {
       `global_level must be one of: trace, debug, info, warn, error, fatal. Got: ${cfg.global_level}`
     );
   }
+  return errors;
+}
 
-  // Validate service_levels
-  if (cfg.service_levels !== undefined) {
-    if (typeof cfg.service_levels !== 'object' || cfg.service_levels === null) {
-      errors.push('service_levels must be an object');
-    } else {
-      const serviceLevels = cfg.service_levels as Record<string, unknown>;
-      for (const [service, level] of Object.entries(serviceLevels)) {
-        if (typeof level !== 'string') {
-          errors.push(`service_levels.${service} must be a string`);
-        } else if (!isValidLogLevel(level)) {
-          errors.push(`service_levels.${service} must be a valid log level. Got: ${level}`);
-        }
-      }
-    }
+/**
+ * Validate service_levels field
+ */
+function validateServiceLevels(cfg: Record<string, unknown>): string[] {
+  const errors: string[] = [];
+  if (cfg.service_levels === undefined) return errors;
+
+  if (typeof cfg.service_levels !== 'object' || cfg.service_levels === null) {
+    errors.push('service_levels must be an object');
+    return errors;
   }
 
-  // Validate rate_limits
-  if (cfg.rate_limits !== undefined) {
-    if (typeof cfg.rate_limits !== 'object' || cfg.rate_limits === null) {
-      errors.push('rate_limits must be an object');
-    } else {
-      const rateLimits = cfg.rate_limits as Record<string, unknown>;
-      for (const [key, limit] of Object.entries(rateLimits)) {
-        if (typeof limit !== 'number' || limit < 0 || !Number.isInteger(limit)) {
-          errors.push(`rate_limits.${key} must be a non-negative integer. Got: ${limit}`);
-        }
-      }
+  const serviceLevels = cfg.service_levels as Record<string, unknown>;
+  for (const [service, level] of Object.entries(serviceLevels)) {
+    if (typeof level !== 'string') {
+      errors.push(`service_levels.${service} must be a string`);
+    } else if (!isValidLogLevel(level)) {
+      errors.push(`service_levels.${service} must be a valid log level. Got: ${level}`);
     }
   }
+  return errors;
+}
+
+/**
+ * Validate rate_limits field
+ */
+function validateRateLimits(cfg: Record<string, unknown>): string[] {
+  const errors: string[] = [];
+  if (cfg.rate_limits === undefined) return errors;
+
+  if (typeof cfg.rate_limits !== 'object' || cfg.rate_limits === null) {
+    errors.push('rate_limits must be an object');
+    return errors;
+  }
+
+  const rateLimits = cfg.rate_limits as Record<string, unknown>;
+  for (const [key, limit] of Object.entries(rateLimits)) {
+    if (typeof limit !== 'number' || limit < 0 || !Number.isInteger(limit)) {
+      errors.push(`rate_limits.${key} must be a non-negative integer. Got: ${limit}`);
+    }
+  }
+  return errors;
+}
+
+/**
+ * Validate metadata fields
+ */
+function validateMetadataFields(cfg: Record<string, unknown>): string[] {
+  const errors: string[] = [];
 
   // Validate last_updated
   if (typeof cfg.last_updated !== 'string') {
@@ -167,9 +178,31 @@ export function validateRemoteConfig(config: unknown): ValidationResult {
     errors.push('enabled must be a boolean');
   }
 
+  return errors;
+}
+
+/**
+ * Validate remote configuration (pure function)
+ */
+export function validateRemoteConfig(config: unknown): ValidationResult {
+  if (!config || typeof config !== 'object') {
+    return {
+      valid: false,
+      errors: ['Configuration must be an object'],
+    };
+  }
+
+  const cfg = config as Record<string, unknown>;
+  const allErrors = [
+    ...validateGlobalLevel(cfg),
+    ...validateServiceLevels(cfg),
+    ...validateRateLimits(cfg),
+    ...validateMetadataFields(cfg),
+  ];
+
   return {
-    valid: errors.length === 0,
-    errors: Object.freeze(errors),
+    valid: allErrors.length === 0,
+    errors: Object.freeze(allErrors),
   };
 }
 

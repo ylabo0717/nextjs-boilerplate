@@ -6,6 +6,11 @@
  * Provides unified interface for different KV storage backends with graceful fallbacks.
  */
 
+// Storage type constants
+const REDIS_TYPE = 'redis' as const;
+const EDGE_CONFIG_TYPE = 'edge-config' as const;
+const MEMORY_TYPE = 'memory' as const;
+
 /**
  * KV Storage interface (pure abstraction)
  */
@@ -14,14 +19,14 @@ export interface KVStorage {
   set(key: string, value: string, ttl?: number): Promise<void>;
   delete(key: string): Promise<void>;
   exists(key: string): Promise<boolean>;
-  readonly type: 'redis' | 'edge-config' | 'memory';
+  readonly type: typeof REDIS_TYPE | typeof EDGE_CONFIG_TYPE | typeof MEMORY_TYPE;
 }
 
 /**
  * Storage configuration (immutable)
  */
 export interface StorageConfig {
-  readonly type: 'redis' | 'edge-config' | 'memory';
+  readonly type: typeof REDIS_TYPE | typeof EDGE_CONFIG_TYPE | typeof MEMORY_TYPE;
   readonly connection_string?: string;
   readonly ttl_default: number;
   readonly max_retries: number;
@@ -56,19 +61,19 @@ export function createStorageConfig(): StorageConfig {
 /**
  * Detect appropriate storage type (pure function)
  */
-function detectStorageType(): 'redis' | 'edge-config' | 'memory' {
+function detectStorageType(): typeof REDIS_TYPE | typeof EDGE_CONFIG_TYPE | typeof MEMORY_TYPE {
   // Redis detection
   if (process.env.REDIS_URL || process.env.KV_CONNECTION_STRING) {
-    return 'redis';
+    return REDIS_TYPE;
   }
 
   // Vercel Edge Config detection
   if (process.env.EDGE_CONFIG_ID && process.env.EDGE_CONFIG_TOKEN) {
-    return 'edge-config';
+    return EDGE_CONFIG_TYPE;
   }
 
   // Default to memory storage
-  return 'memory';
+  return MEMORY_TYPE;
 }
 
 /**
@@ -79,7 +84,7 @@ export function validateStorageConfig(config: StorageConfig): boolean {
     return false;
   }
 
-  const validTypes = ['redis', 'edge-config', 'memory'];
+  const validTypes = [REDIS_TYPE, EDGE_CONFIG_TYPE, MEMORY_TYPE];
   if (!validTypes.includes(config.type)) {
     return false;
   }
@@ -287,7 +292,7 @@ export class MemoryStorage implements KVStorage {
  * Edge Config Storage Implementation (Vercel)
  */
 export class EdgeConfigStorage implements KVStorage {
-  public readonly type = 'edge-config' as const;
+  public readonly type = EDGE_CONFIG_TYPE;
   private config: StorageConfig;
   private baseUrl: string;
   private token: string;
@@ -399,7 +404,7 @@ export function createKVStorage(config?: StorageConfig): KVStorage {
     console.warn('Invalid storage configuration, falling back to memory storage');
     // Use safe defaults for memory storage
     const memoryConfig = Object.freeze({
-      type: 'memory' as const,
+      type: MEMORY_TYPE,
       connection_string: undefined,
       ttl_default: Math.max(1, storageConfig.ttl_default || 3600),
       max_retries: Math.max(0, storageConfig.max_retries || 3),
@@ -411,11 +416,11 @@ export function createKVStorage(config?: StorageConfig): KVStorage {
 
   try {
     switch (storageConfig.type) {
-      case 'redis':
+      case REDIS_TYPE:
         return new RedisStorage(storageConfig);
-      case 'edge-config':
+      case EDGE_CONFIG_TYPE:
         return new EdgeConfigStorage(storageConfig);
-      case 'memory':
+      case MEMORY_TYPE:
       default:
         return new MemoryStorage(storageConfig);
     }
@@ -428,7 +433,7 @@ export function createKVStorage(config?: StorageConfig): KVStorage {
 
     // Use safe defaults for fallback
     const fallbackConfig = Object.freeze({
-      type: 'memory' as const,
+      type: MEMORY_TYPE,
       connection_string: undefined,
       ttl_default: 3600,
       max_retries: 3,

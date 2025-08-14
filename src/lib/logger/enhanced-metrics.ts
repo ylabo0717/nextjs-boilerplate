@@ -464,6 +464,33 @@ export function withMetrics<T>(
     });
 }
 
+/**
+ * Process individual config operation for batch metrics
+ */
+function processConfigOperation(data: Record<string, unknown>): void {
+  if (data.duration && typeof data.success === 'boolean') {
+    recordConfigFetchMetrics(
+      (data.source as 'remote' | 'cache' | 'default' | 'fallback') || 'remote',
+      data.success ? 'success' : 'error',
+      data.duration as number
+    );
+  }
+}
+
+/**
+ * Process individual KV operation for batch metrics
+ */
+function processKVOperation(data: Record<string, unknown>): void {
+  if (data.duration && typeof data.success === 'boolean') {
+    recordKVMetrics(
+      (data.storageType as 'redis' | 'edge-config' | 'memory') || 'memory',
+      (data.operation as string) || 'get',
+      data.success ? 'success' : 'error',
+      data.duration as number
+    );
+  }
+}
+
 export function recordBatchMetrics(
   operations: Array<{
     type: 'config' | 'rate_limit' | 'kv' | 'admin_api';
@@ -480,23 +507,10 @@ export function recordBatchMetrics(
     for (const operation of operations) {
       switch (operation.type) {
         case 'config':
-          if (operation.data.duration && typeof operation.data.success === 'boolean') {
-            recordConfigFetchMetrics(
-              (operation.data.source as 'remote' | 'cache' | 'default' | 'fallback') || 'remote',
-              operation.data.success ? 'success' : 'error',
-              operation.data.duration as number
-            );
-          }
+          processConfigOperation(operation.data);
           break;
         case 'kv':
-          if (operation.data.duration && typeof operation.data.success === 'boolean') {
-            recordKVMetrics(
-              (operation.data.storageType as 'redis' | 'edge-config' | 'memory') || 'memory',
-              (operation.data.operation as string) || 'get',
-              operation.data.success ? 'success' : 'error',
-              operation.data.duration as number
-            );
-          }
+          processKVOperation(operation.data);
           break;
         // Add other types as needed
       }

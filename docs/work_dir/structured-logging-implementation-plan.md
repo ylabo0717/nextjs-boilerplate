@@ -2265,19 +2265,19 @@ NEXT_TELEMETRY_DISABLED=1
   - [x] 配列内オブジェクトのRedaction
   - [x] 動的キー・同名キーの再帰処理
   - [x] 正規表現パターンの適用
-  - [ ] 循環参照オブジェクトの安全処理（未実装）
+  - [x] 循環参照オブジェクトの安全処理（実装済み - concurrency.test.ts）
 - [x] エラーシリアライゼーション
 - [x] 環境変数解析ユーティリティ
 - [x] クライアント/サーバー個別Logger
 - [x] 型定義とバリデーション
 - [x] **並行性テスト**（基本実装済み）
-  - [ ] 100並列リクエストでのrequestID重複検証（未実装）
+  - [x] 100並列リクエストでのrequestID重複検証（実装済み - concurrency.test.ts）
   - [x] trace_idバインド維持確認
   - [x] レースコンディション防止
 - [x] **Fuzzテスト**（基本実装済み）
   - [x] 制御文字・改行注入耐性
-  - [ ] 巨大文字列処理（1MB+）（未実装）
-  - [ ] 無効JSON・破損データ処理（未実装）
+  - [x] 巨大文字列処理（1MB+）（実装済み - concurrency.test.ts）
+  - [x] 無効JSON・破損データ処理（実装済み - concurrency.test.ts）
 
 **特徴**:
 
@@ -2296,7 +2296,7 @@ NEXT_TELEMETRY_DISABLED=1
 - [x] HTTPログミドルウェアの動作
 - [x] **OpenTelemetry コンテキスト継承**（基本実装済み）
   - [x] async/await チェーンでのtrace_id継承
-  - [ ] Promise.all並行処理でのコンテキスト維持（未実装）
+  - [x] Promise.all並行処理でのコンテキスト維持（実装済み - concurrency.test.ts）
   - [ ] setTimeout/setInterval非同期でのtrace_id埋め込み（未実装）
   - [ ] Next.js API Route間のspan連携（未実装）
   - [ ] Edge Runtime環境でのコンテキスト制限対応（未実装）

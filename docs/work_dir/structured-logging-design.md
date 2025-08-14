@@ -129,18 +129,46 @@ interface Logger {
 LOG_LEVEL=info                    # サーバーサイドログレベル
 NEXT_PUBLIC_LOG_LEVEL=warn        # クライアントサイドログレベル（セキュリティ考慮）
 
-# 機能フラグ
+# 機能フラグ（Fail-safe設計）
 LOG_HEADERS=true                  # リクエストヘッダーログ出力
 LOG_BODY=false                   # リクエストボディログ出力（開発時のみ推奨）
+LOG_BODY_FORCE_DISABLE=false     # 本番環境でのLOG_BODY強制無効化
+
+# 動的設定（runtime変更対応）
+LOG_DYNAMIC_CONFIG_ENABLED=true  # 動的設定変更の有効化
+LOG_CONFIG_RELOAD_INTERVAL=300   # 設定再読み込み間隔（秒）
+LOG_CONFIG_SOURCE=env            # 設定ソース: env|file|api
 
 # セキュリティ設定
 IP_HASH_SECRET=your-secret-key    # IPアドレスハッシュ化用秘密鍵
 PII_TOKEN_SECRET=another-secret   # PII トークン化用秘密鍵
 
+# パフォーマンス設定
+LOG_MAX_BODY_BYTES=1024          # リクエストボディ最大ログサイズ
+LOG_SAMPLING_RATE=1.0            # ログサンプリングレート（0.0-1.0）
+LOG_RATE_LIMIT_ENABLED=true      # レート制限有効化
+LOG_RATE_LIMIT_MAX_PER_SECOND=100 # 秒間最大ログ数
+
 # OpenTelemetry設定
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
+OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=http://localhost:4318/v1/logs
 OTEL_SERVICE_NAME=nextjs-boilerplate
+OTEL_SERVICE_NAMESPACE=local
+OTEL_TRACES_SAMPLER_ARG=0.1      # トレースサンプリング率（10%）
+OTEL_LOGS_ENABLED=false          # OTel Logs送信（将来拡張用）
 OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development
+
+# バージョン・ビルド情報
+NEXT_PUBLIC_APP_VERSION=1.0.0
+NEXT_PUBLIC_GIT_COMMIT_SHA=abc123def
+NEXT_PUBLIC_BUILD_ID=build-2024-001
+
+# 運用・監視設定
+LOG_AUDIT_ENABLED=true           # 監査ログ有効化
+LOG_AUDIT_CATEGORY=security,admin # 監査対象カテゴリ
+LOG_METRICS_ENABLED=true         # メトリクス収集有効化
+LOG_HEALTH_CHECK_INTERVAL=60     # ヘルスチェック間隔（秒）
 ```
 
 ### 4.3 ログフォーマット
@@ -434,54 +462,418 @@ export async function register() {
 
 ## 7. 運用・監視
 
-### 7.1 ログ集約
+### 7.1 クラウド別ログ集約設定
+
+#### 7.1.1 AWS (CloudWatch Logs)
 
 ```yaml
-# docker-compose.yml例
+# AWS ECS/Fargate設定
+services:
+  app:
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: '/nextjs-boilerplate/app'
+        awslogs-region: 'ap-northeast-1'
+        awslogs-stream-prefix: 'ecs'
+        awslogs-create-group: 'true'
+
+# AWS Lambda設定（serverless.yml）
+provider:
+  logs:
+    httpApi:
+      format: >
+        {
+          "requestId": "$context.requestId",
+          "ip": "$context.identity.sourceIp",
+          "requestTime": "$context.requestTime",
+          "httpMethod": "$context.httpMethod",
+          "routeKey": "$context.routeKey",
+          "status": "$context.status",
+          "error": "$context.error.message",
+          "integrationError": "$context.integrationErrorMessage"
+        }
+```
+
+#### 7.1.2 GCP (Cloud Logging)
+
+```yaml
+# Google Cloud Run設定
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/logging: json
+    spec:
+      containers:
+        - image: gcr.io/project/nextjs-boilerplate
+          env:
+            - name: LOG_LEVEL
+              value: 'info'
+            - name: GCLOUD_PROJECT
+              value: 'your-project-id'
+
+# Structured logging設定
+resources:
+  - name: log-sink
+    type: gcp-types/logging-v2:projects.sinks
+    properties:
+      destination: 'bigquery.googleapis.com/projects/PROJECT/datasets/logs'
+      filter: 'resource.type="cloud_run_revision" AND jsonPayload.log_schema_version="1.0.0"'
+```
+
+#### 7.1.3 Grafana Loki (自己管理)
+
+```yaml
+# docker-compose.yml
 services:
   app:
     logging:
       driver: 'json-file'
       options:
-        max-size: '10m'
-        max-file: '3'
+        max-size: '50m'
+        max-file: '5'
+        labels: 'service,environment,version'
 
   promtail:
     image: grafana/promtail:latest
     volumes:
       - /var/log:/var/log:ro
+      - ./promtail.yml:/etc/promtail/config.yml
     command: -config.file=/etc/promtail/config.yml
 
   loki:
     image: grafana/loki:latest
     ports:
       - '3100:3100'
+    volumes:
+      - ./loki.yml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+
+# promtail.yml
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: containers
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: containerlogs
+          __path__: /var/log/containers/*log
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            timestamp: time
+            message: msg
+            app: app
+            trace_id: trace_id
+      - labels:
+          level:
+          app:
+          trace_id:
 ```
 
-### 7.2 アラート設定
+#### 7.1.4 Datadog
 
 ```yaml
-# Grafana Alert Rules例
+# Datadog Agent設定
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: datadog-config
+data:
+  datadog.yaml: |
+    api_key: "${DD_API_KEY}"
+    site: "datadoghq.com"
+    logs_enabled: true
+    logs_config:
+      container_collect_all: true
+      processing_rules:
+        - type: exclude_at_match
+          name: exclude_debug_logs
+          pattern: '"level":(10|20)'
+        - type: mask_sequences
+          name: mask_api_keys
+          pattern: '"api_key":"[^"]*"'
+          replace_placeholder: '"api_key":"[REDACTED]"'
+
+# アプリケーション設定
+environment:
+  DD_LOGS_INJECTION: 'true'
+  DD_TRACE_SAMPLE_RATE: '0.1'
+  DD_SERVICE: 'nextjs-boilerplate'
+  DD_VERSION: '${APP_VERSION}'
+  DD_ENV: '${NODE_ENV}'
+```
+
+### 7.2 SLOベースアラート設計
+
+#### 7.2.1 Error Budget & Burn Rate アラート
+
+```yaml
+# SLO定義（99.9% availability）
+slo_config:
+  error_budget_policy:
+    - burn_rate_threshold: 14.4 # 1h window (1% budget in 1h)
+      short_window: 2m
+      long_window: 1h
+      alert_severity: critical
+    - burn_rate_threshold: 6 # 6h window (5% budget in 6h)
+      short_window: 15m
+      long_window: 6h
+      alert_severity: warning
+
+# Prometheus Alert Rules
 groups:
-  - name: logging
+  - name: slo-alerts
     rules:
-      - alert: HighErrorRate
+      # Critical: 1% budget burn in 1 hour
+      - alert: ErrorBudgetBurnRateCritical
         expr: |
-          rate(log_entries_total{level="error"}[5m]) > 0.01
+          (
+            sum(rate(log_entries_total{level=~"error|fatal"}[2m])) /
+            sum(rate(log_entries_total[2m]))
+          ) > (14.4 * 0.001) 
+          and
+          (
+            sum(rate(log_entries_total{level=~"error|fatal"}[1h])) /
+            sum(rate(log_entries_total[1h]))
+          ) > (14.4 * 0.001)
+        for: 1m
+        labels:
+          severity: critical
+          service: nextjs-boilerplate
+        annotations:
+          summary: 'Critical error budget burn rate'
+          description: 'Error budget burning at {{ $value }}x rate'
+
+      # Warning: 5% budget burn in 6 hours
+      - alert: ErrorBudgetBurnRateWarning
+        expr: |
+          (
+            sum(rate(log_entries_total{level=~"error|fatal"}[15m])) /
+            sum(rate(log_entries_total[15m]))
+          ) > (6 * 0.001)
+          and
+          (
+            sum(rate(log_entries_total{level=~"error|fatal"}[6h])) /
+            sum(rate(log_entries_total[6h]))
+          ) > (6 * 0.001)
+        for: 2m
+        labels:
+          severity: warning
+          service: nextjs-boilerplate
+        annotations:
+          summary: 'Warning error budget burn rate'
+          description: 'Error budget burning at {{ $value }}x rate'
+
+      # Noise reduction: Contextual error rate
+      - alert: HighContextualErrorRate
+        expr: |
+          (
+            sum(rate(log_entries_total{level="error", http_request_method!=""}[5m])) by (url_path) /
+            sum(rate(log_entries_total{http_request_method!=""}[5m])) by (url_path)
+          ) > 0.05
         for: 2m
         labels:
           severity: warning
         annotations:
-          summary: 'High error log rate detected'
+          summary: 'High error rate on {{ $labels.url_path }}'
+          description: '{{ $labels.url_path }} error rate: {{ $value | humanizePercentage }}'
+```
 
-      - alert: LogVolumeSpike
-        expr: |
-          rate(log_entries_total[5m]) > 1000
-        for: 5m
-        labels:
-          severity: info
-        annotations:
-          summary: 'Unusual log volume detected'
+#### 7.2.2 ログスキーマ移行アラート
+
+```yaml
+# スキーマバージョン監視
+- alert: LogSchemaVersionMismatch
+  expr: |
+    count by (log_schema_version) (
+      count by (log_schema_version) (
+        {log_schema_version!="1.0.0"}
+      )
+    ) > 0
+  for: 1m
+  labels:
+    severity: info
+  annotations:
+    summary: 'Old log schema version detected'
+    description: 'Schema version {{ $labels.log_schema_version }} still in use'
+
+# ログボリューム異常検知
+- alert: LogVolumeAnomaly
+  expr: |
+    abs(
+      sum(rate(log_entries_total[5m])) - 
+      avg_over_time(sum(rate(log_entries_total[5m]))[1h:1m])
+    ) / avg_over_time(sum(rate(log_entries_total[5m]))[1h:1m]) > 3
+  for: 2m
+  labels:
+    severity: warning
+  annotations:
+    summary: 'Unusual log volume pattern'
+    description: 'Log volume deviates {{ $value | humanizePercentage }} from baseline'
+```
+
+#### 7.2.3 セキュリティ監査アラート
+
+```yaml
+# 認証失敗監視
+- alert: AuthenticationFailureSpike
+  expr: |
+    sum(rate(log_entries_total{msg=~".*authentication.*failed.*"}[5m])) > 5
+  for: 1m
+  labels:
+    severity: critical
+    category: security
+  annotations:
+    summary: 'High authentication failure rate'
+    description: '{{ $value }} auth failures per second'
+
+# 機密情報漏洩検知
+- alert: PotentialDataLeak
+  expr: |
+    sum(rate(log_entries_total{msg=~".*[Pp]assword.*|.*[Ss]ecret.*|.*[Kk]ey.*"}[1m])) > 0
+  for: 0s
+  labels:
+    severity: critical
+    category: security
+  annotations:
+    summary: 'Potential sensitive data in logs'
+    description: 'Redaction may have failed'
+
+# 管理操作監査
+- alert: AdminActionPerformed
+  expr: |
+    sum(increase(log_entries_total{
+      level="info",
+      msg=~".*admin.*|.*privilege.*|.*sudo.*",
+      user_id!=""
+    }[1m])) > 0
+  for: 0s
+  labels:
+    severity: info
+    category: audit
+  annotations:
+    summary: 'Administrative action performed'
+    description: 'Admin action by user {{ $labels.user_id }}'
+```
+
+### 7.3 ダッシュボード設計
+
+#### 7.3.1 運用ダッシュボード
+
+```json
+{
+  "dashboard": {
+    "title": "Logging Operations Dashboard",
+    "panels": [
+      {
+        "title": "Error Budget Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "1 - (sum(rate(log_entries_total{level=~'error|fatal'}[30d])) / sum(rate(log_entries_total[30d])))",
+            "legendFormat": "SLO Compliance (30d)"
+          }
+        ],
+        "thresholds": [
+          { "color": "red", "value": 0.999 },
+          { "color": "yellow", "value": 0.9995 },
+          { "color": "green", "value": 1.0 }
+        ]
+      },
+      {
+        "title": "Log Volume by Level",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(log_entries_total[5m])) by (level)",
+            "legendFormat": "{{ level }}"
+          }
+        ]
+      },
+      {
+        "title": "Response Time Percentiles",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_histogram_bucket[5m])) by (le))",
+            "legendFormat": "p50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_histogram_bucket[5m])) by (le))",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_histogram_bucket[5m])) by (le))",
+            "legendFormat": "p99"
+          }
+        ]
+      },
+      {
+        "title": "Top Error Endpoints",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, sum(rate(log_entries_total{level='error'}[1h])) by (url_path))",
+            "format": "table"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 7.4 ログローテーション戦略
+
+#### 7.4.1 環境別保持期間
+
+```yaml
+# 保持期間設定
+retention_policies:
+  development:
+    log_retention: '7d'
+    trace_retention: '3d'
+    cost_optimization: high
+
+  staging:
+    log_retention: '30d'
+    trace_retention: '14d'
+    cost_optimization: medium
+
+  production:
+    log_retention: '90d'
+    audit_log_retention: '7y' # 法的要件対応
+    trace_retention: '30d'
+    cost_optimization: low
+
+# 自動クリーンアップ
+cleanup_schedules:
+  - name: daily-cleanup
+    cron: '0 2 * * *' # 毎日2:00AM
+    actions:
+      - compress_logs_older_than: '1d'
+      - delete_debug_logs_older_than: '3d'
+      - delete_trace_logs_older_than: '7d'
+
+  - name: weekly-audit
+    cron: '0 3 * * 0' # 毎週日曜3:00AM
+    actions:
+      - audit_log_integrity_check
+      - backup_audit_logs_to_cold_storage
+      - generate_compliance_report
 ```
 
 ## 8. セキュリティガイドライン

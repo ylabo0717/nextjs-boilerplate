@@ -134,6 +134,15 @@ const eslintConfig = [
       'jsx-a11y/scope': 'error',
 
       // Import rules - Module management
+      // import/order グループ順序 (ガイドライン整合):
+      //  1. builtin (fs, path など Node 組込)
+      //  2. external (npm 依存 - react / next を最上部へ pathGroups 指定)
+      //  3. internal (@/** エイリアス)
+      //  4. parent/sibling (相対参照)
+      //  5. index (ディレクトリ index)
+      //  6. object (import * as X)
+      //  7. type (型専用 import)
+      // 自動整形: `pnpm lint --fix` or IDE ESLint Fix
       'import/order': [
         'error',
         {

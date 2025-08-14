@@ -33,7 +33,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Important:** This project uses `pnpm` as the package manager, not npm or yarn.
 
-## Development Guidelines
+## Essential Workflow
 
 ### IMPORTANT: Pre-commit Checks
 
@@ -68,6 +68,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Running these checks before committing prevents failures in the pre-commit hooks. Always resolve ESLint and TypeScript errors before committing.
 
+### IMPORTANT: Follow PR Review Checklist
+
+**All Pull Requests must follow the comprehensive review checklist:**
+
+📋 **Review Checklist**: [`docs/developer_guide/review-checklist.md`](docs/developer_guide/review-checklist.md)
+
+**For PR Authors:**
+
+1. **Self-review using the checklist** before submitting the PR
+2. **Copy the PR template** from the checklist into your PR description
+3. **Check off applicable items** to demonstrate compliance with standards
+
+**For Code Reviewers:**
+
+1. **Use the priority-based structure** (🚨 Blocker → ⚠️ Important → 💡 Improvement)
+2. **Focus on blocking issues first** - security, type safety, CI failures
+3. **Follow the reviewer guidelines** for consistent feedback quality
+
 ### IMPORTANT: Create Changeset for User-Facing Changes
 
 **When implementing features, fixing bugs, or making any user-facing changes, always create a Changeset:**
@@ -85,109 +103,52 @@ Running these checks before committing prevents failures in the pre-commit hooks
    - Commit the generated `.changeset/*.md` file along with your code changes
    - This ensures your changes are properly documented for the next release
 
-3. **When to create a Changeset**
-   - ✅ New features or functionality
-   - ✅ Bug fixes
-   - ✅ Performance improvements
-   - ✅ Breaking changes
-   - ❌ Internal refactoring (no user impact)
-   - ❌ Test additions/modifications
-   - ❌ Documentation updates (unless significant)
-
 For detailed instructions, see [Changeset Developer Guide](docs/developer_guide/changeset-developer-guide.md).
 
-### IMPORTANT: Verify Latest Versions and Best Practices
+### IMPORTANT: Follow Project Standards
 
 **Before implementing any feature or using any library/tool:**
 
-1. **Always verify the latest stable version** of libraries, tools, and GitHub Actions
-   - Check official documentation and GitHub repositories
-   - Verify if the tool/action is deprecated or has newer alternatives
-   - Use specific version tags rather than `latest` for reproducibility
+- **Verify latest versions** of libraries, tools, and GitHub Actions
+- **Research current best practices** before implementation
+- **Use Single Source of Truth (SSOT)** - constants from `src/constants/`, test constants from `tests/constants/`
+- **Follow TypeScript standards** - no `any`, use TSDoc for public APIs, Zod for validation
+- **Pure functions first** - stateless functions with no side effects, avoid classes except extreme cases
+- **Test with constants** - no magic numbers, use `tests/constants/test-constants.ts`
 
-2. **Research current best practices** before implementation
-   - Check official documentation for recommended patterns
-   - Verify security best practices for the specific use case
-   - Look for community standards and widely adopted patterns
+## Technical Guidelines
 
-3. **Validate external suggestions and recommendations**
-   - Don't blindly trust AI suggestions (including GitHub Copilot)
-   - Cross-reference with official documentation
-   - Test recommendations in development before applying to production
+For detailed implementation standards, refer to the specialized guidelines:
 
-4. **Stay updated with deprecation notices**
-   - Check for deprecation warnings in documentation
-   - Look for migration guides when tools are deprecated
-   - Replace deprecated dependencies proactively
+### Core Standards
 
-### Single Source of Truth Principle
+- 📖 [**Coding Guidelines**](docs/developer_guide/coding-guidelines.md) - SSOT principles, architecture patterns, pure functions
+- 📝 [**TypeScript Guidelines**](docs/developer_guide/typescript-guidelines.md) - Type safety, TSDoc standards, Zod validation
+- ⚛️ [**Next.js Patterns**](docs/developer_guide/nextjs-patterns.md) - Server/Client Components, async params, data fetching
+- 🏗️ [**Architecture Guidelines**](docs/developer_guide/architecture-guidelines.md) - Pure functions first, functional design patterns
 
-**All configuration values, constants, and thresholds should have a single, authoritative source.**
+### Quality & Security
 
-This principle is critical for maintainability and consistency across the codebase:
+- 🔒 [**Security Guidelines**](docs/developer_guide/security-guidelines.md) - Secure implementation, authentication patterns
+- 🚀 [**Performance Guidelines**](docs/developer_guide/performance-guidelines.md) - Optimization, accessibility standards
+- 🧪 [**Testing Guidelines**](docs/developer_guide/testing-guidelines.md) - Test pyramid, constants management
+- 📋 [**Review Checklist**](docs/developer_guide/review-checklist.md) - PR review standards and templates
 
-1. **Constants and Configuration**
-   - Define all numeric constants in centralized files (`/constants/` for app constants, `/tests/constants/test-constants.ts` for test constants)
-   - Never duplicate values across multiple files
-   - Use imports rather than hardcoding values
+### Documentation & Process
 
-2. **Environment-Specific Values**
-   - Use environment variables only for deployment-specific configuration (URLs, API keys)
-   - Avoid using environment variables to override constants that should be consistent
+- 📚 [**Documentation Guidelines**](docs/developer_guide/documentation-guidelines.md) - TSDoc standards, validation strategy
+- 🔄 [**Development Guidelines**](docs/developer_guide/development-guidelines.md) - State management, error handling, styling
+- 📦 [**Changeset Developer Guide**](docs/developer_guide/changeset-developer-guide.md) - Release management process
 
-3. **Benefits**
-   - **Consistency**: Same values used everywhere
-   - **Maintainability**: Update in one place, effect everywhere
-   - **Clarity**: Clear where each value comes from
-   - **Type Safety**: TypeScript ensures correct usage
+## Project Configuration
 
-4. **Example**
+### Technology Stack
 
-   ```typescript
-   // ❌ Bad - duplicated values
-   // scripts/performance-test.ts
-   const TIMEOUT = 3000;
-   // tests/e2e/test.spec.ts
-   const TIMEOUT = 3000;
-
-   // ✅ Good - single source
-   // tests/constants/test-constants.ts
-   export const PERFORMANCE_THRESHOLDS = {
-     PAGE_LOAD_TIME: 3000,
-   };
-   // scripts/performance-test.ts
-   import { PERFORMANCE_THRESHOLDS } from '../tests/constants/test-constants';
-   ```
-
-### Examples of Required Verification
-
-- **GitHub Actions:** Always check the latest version and verify if the action is still maintained
-- **Docker Images:** Verify the official image name and latest stable tags
-- **npm/pnpm packages:** Check for security vulnerabilities and latest versions
-- **APIs and SDKs:** Ensure you're using the current recommended approach, not legacy methods
-
-## Documentation Management
-
-### Document Creation Guidelines
-
-**Working Documents Location:**
-
-- Create work-in-progress documents, design notes, and research findings in `docs/work_dir/`
-- Use descriptive file names (e.g., `github-actions-best-practices.md`, `performance-optimization-notes.md`)
-
-**Production Documents Location:**
-
-- Place finalized and reviewed content from `docs/work_dir/` into `docs/developer_guide/`
-- `docs/developer_guide/` contains official design guides, architecture documents, and established best practices
-
-**Document Management Workflow:**
-
-1. Create new documents initially in `docs/work_dir/`
-2. Once content is finalized and team consensus is reached, move or refine it to `docs/developer_guide/`
-3. `docs/work_dir/` contains working documents that may change frequently
-4. `docs/developer_guide/` contains stable content that should be modified carefully
-
-## Boilerplate Configuration
+- **Framework:** Next.js 15.4.6 with App Router and React Server Components
+- **Language:** TypeScript with strict mode enabled
+- **Styling:** Tailwind CSS 4.0 with shadcn/ui component library integration
+- **Testing:** Vitest (Unit) + Playwright (E2E)
+- **Architecture:** Pure functions first (stateless functions with no side effects, avoid classes except extreme cases)
 
 ### Repository Setup for New Projects
 
@@ -197,393 +158,10 @@ When using this boilerplate for a new project:
    - Run `./scripts/setup-repository.sh` after cloning
    - This script automatically configures the repository name in all necessary files
 
-2. **GitHub Actions Integration**
-   - The `.changeset/config.json` uses a placeholder value by default
-   - GitHub Actions automatically updates this configuration during CI/CD using the `GITHUB_REPOSITORY` environment variable
-   - The `scripts/ci/update-changeset-config.sh` script handles this dynamic configuration
-
-3. **Files Updated During Setup**
-   - `package.json` - project name
-   - `.changeset/config.json` - GitHub repository for changelog generation
-   - `README.md` - project title (optional)
-
-### Changeset Configuration
-
-The changeset configuration is designed to work seamlessly with GitHub Actions:
-
-- Default config has placeholder values: `PLACEHOLDER_OWNER/PLACEHOLDER_REPO`
-- During GitHub Actions workflow execution, the config is dynamically updated
-- This ensures changelog links work correctly regardless of the repository name
-
-## Architecture
-
-### Project Structure
-
-This is a Next.js 15.4.6 application using the App Router architecture with React 19.1.0 and TypeScript.
-
-**Key directories:**
-
-- `/src/` - All application source code
-  - `/app/` - Next.js App Router pages and layouts
-  - `/components/` - React components
-    - `/ui/` - shadcn/ui base components
-    - `/layout/` - Layout components (header, footer, etc.)
-    - `/features/` - Feature-specific components
-  - `/lib/` - Complex business logic and external service integrations
-  - `/utils/` - Pure utility functions (side-effect free)
-  - `/hooks/` - Custom React hooks
-  - `/services/` - Business logic and API services
-  - `/features/` - Feature-based modules
-  - `/types/` - TypeScript type definitions
-  - `/constants/` - Application constants
-  - `/stores/` - State management
-  - `/repositories/` - Data access layer
-- `/public/` - Static assets
-- `/tests/` - Test files (unit and E2E)
-- `/docs/` - Documentation
-
-### Technology Stack
-
-- **Framework:** Next.js 15.4.6 with App Router and React Server Components
-- **Language:** TypeScript with strict mode enabled
-- **Styling:** Tailwind CSS 4.0 with shadcn/ui component library integration
-- **Icons:** Lucide React
-- **Fonts:** Geist Sans and Geist Mono from next/font/google
-- **Form Handling:** React Hook Form with Zod validation
-- **Notifications:** Sonner for toast notifications
-
-### Key Patterns
-
-1. **Path Aliases:** Use `@/` for imports from src directory (e.g., `@/utils/cn`, `@/components/ui/button`)
-2. **Styling:** Use Tailwind utility classes with the `cn()` utility from `@/utils/cn` for conditional classes
-3. **Components:** shadcn/ui is configured - use their CLI to add components: `pnpm dlx shadcn@latest add [component-name]`
-4. **CSS Variables:** The project uses CSS custom properties for theming with light/dark mode support
-
-### shadcn/ui Configuration
-
-- Style: "new-york"
-- Base color: zinc
-- CSS variables enabled
-- Components will be added to `/src/components/ui/`
-
-### Development Notes
-
-- Turbopack is enabled for faster development builds
-- **Testing Frameworks:**
-  - **Vitest** - Unit and integration testing (`pnpm test:unit`, `pnpm test:integration`)
-  - **Playwright** - E2E testing (`pnpm test:e2e`)
-  - Coverage reporting with V8 (`pnpm test:coverage`)
-- ESLint is configured with Next.js and TypeScript rules
-- The project is ready for Vercel deployment
-
-## Code Documentation Standards
-
-For comprehensive documentation guidelines, see [Documentation Guidelines](docs/developer_guide/documentation-guidelines.md).
-
-The documentation guide includes:
-
-- TSDoc syntax and best practices
-- Three-stage validation strategy (pre-commit, pre-push, CI)
-- What to document vs what NOT to document
-- Templates for common code patterns
-- Troubleshooting and migration guides
-
-### TSDoc Comments
-
-All code should use TSDoc-style comments for better documentation and IDE support. This project has adopted TSDoc as the official documentation standard, replacing JSDoc.
-
-#### For Constants and Variables
-
-```typescript
-/**
- * Maximum number of retry attempts for API calls
- *
- * @public
- */
-export const MAX_RETRIES = 3;
-```
-
-#### For Objects with Properties
-
-Use multi-line TSDoc comments for each property:
-
-```typescript
-/**
- * Application configuration constants
- *
- * @public
- */
-export const CONFIG = {
-  /**
-   * API endpoint base URL
-   *
-   * @remarks
-   * Used for all API requests in production
-   */
-  API_URL: 'https://api.example.com',
-
-  /**
-   * Request timeout
-   *
-   * @remarks
-   * Unit: milliseconds
-   */
-  TIMEOUT: 5000,
-} as const;
-```
-
-#### For Functions and Methods
-
-````typescript
-/**
- * Calculates the total price including tax
- *
- * @param price - The base price
- * @param taxRate - The tax rate as a decimal
- * @returns The total price including tax
- *
- * @remarks
- * Tax rate should be provided as a decimal (e.g., 0.08 for 8%)
- *
- * @example
- * ```typescript
- * const total = calculateTotal(100, 0.08); // Returns 108
- * ```
- *
- * @public
- */
-function calculateTotal(price: number, taxRate: number): number {
-  return price * (1 + taxRate);
-}
-````
-
-#### For Classes and Interfaces
-
-```typescript
-/**
- * Represents a user in the system
- *
- * @public
- */
-interface User {
-  /**
-   * Unique identifier
-   *
-   * @remarks
-   * Generated UUID v4 format
-   */
-  id: string;
-
-  /**
-   * User's display name
-   */
-  name: string;
-
-  /**
-   * User's email address
-   *
-   * @remarks
-   * Must be a valid email format
-   */
-  email: string;
-}
-```
-
-### TSDoc Best Practices
-
-#### Required Documentation
-
-- Use TSDoc comments for all exported constants, functions, classes, and interfaces
-- Mark public APIs with `@public` tag
-- Use `@remarks` for additional explanatory content
-- Add `@example` for complex functions to show usage
-
-#### TSDoc Tags Usage
-
-- `@param` - Parameter descriptions (no type needed, inferred from TypeScript)
-- `@returns` - Return value description
-- `@remarks` - Additional details, units, or constraints
-- `@example` - Code examples showing usage
-- `@public` - Mark as public API
-- `@deprecated` - Mark deprecated functionality
-- `@see` - References to related items
-- `@since` - Version when feature was added
-
-#### Style Guidelines
-
-- Keep main description concise but informative
-- Use `@remarks` for units of measurement (e.g., milliseconds, pixels)
-- Update comments when code changes
-- Avoid redundant comments that merely restate the code
-- Use proper TSDoc syntax to ensure compatibility with documentation generation tools
-
-#### Linting
-
-- ESLint with `eslint-plugin-tsdoc` enforces TSDoc syntax
-- Run `pnpm lint` to check TSDoc compliance
-- Documentation is generated using TypeDoc with `pnpm docs`
-
-### Documentation Validation Strategy
-
-This project implements a **staged documentation validation approach** to balance development speed with code quality:
-
-#### 1. Pre-commit (Development Flexibility)
-
-- **TSDoc warnings only** - Allows quick iterations and WIP commits
-- ESLint checks syntax but doesn't block commits for missing documentation
-- Focus on code functionality and immediate issues
-
-#### 2. Pre-push (Quality Gate)
-
-- **Strict TSDoc validation** - Runs `pnpm docs:check`
-- All exported items must have proper documentation
-- Prevents undocumented code from being shared with the team
-- Catches documentation issues before they reach the repository
-
-#### 3. CI/CD (Final Verification)
-
-- **Complete validation** - Runs as a separate job in CI pipeline
-- Ensures all code in main/develop branches is properly documented
-- Generates documentation to verify it builds successfully
-
-#### Benefits of This Approach
-
-- **Development Speed**: No interruption during local development
-- **Code Quality**: Ensures shared code is well-documented
-- **Team Collaboration**: Everyone gets properly documented code
-- **Gradual Adoption**: Easy to implement in existing projects
-
-#### Commands
-
-- `pnpm docs` - Generate documentation (with warnings as errors)
-- `pnpm docs:check` - Validate documentation without generating files
-- `pnpm lint` - Check code quality (TSDoc as warnings locally)
-
-#### Excluded from Documentation Requirements
-
-The following are intentionally excluded from documentation requirements:
-
-1. **shadcn/ui components** (`src/components/ui/**/*`)
-   - Third-party components copied from shadcn/ui
-   - Not maintained by this project
-   - Excluded via `typedoc.json`
-
-2. **Test files** (`*.test.ts`, `*.test.tsx`, `*.spec.ts`, `*.spec.tsx`)
-   - Test code doesn't need public API documentation
-   - Excluded via `typedoc.json`
-
-3. **Zod schema internal types** (`Schema.__type.*`)
-   - Auto-generated by Zod's `z.object()` and `z.array()`
-   - Impossible to document individually
-   - Filtered out by `scripts/check-docs.mjs`
-
-These exclusions ensure documentation efforts focus on:
-
-- Custom business logic
-- Public APIs and interfaces
-- Code written and maintained by the team
-- Components that serve as reusable modules
-
-The custom `scripts/check-docs.mjs` script (ES Modules) filters TypeDoc output to remove noise from auto-generated types while still catching missing documentation on important exports.
-
-## Testing Best Practices
-
-### No Magic Numbers Policy
-
-**Magic numbers are strictly prohibited in test files.** All numeric values should be defined as named constants in `/tests/constants/test-constants.ts` to improve code readability, maintainability, and consistency.
-
-#### Why No Magic Numbers?
-
-- **Clarity**: Named constants clearly express the intent and meaning of values
-- **Maintainability**: Values can be updated in one central location
-- **Consistency**: Ensures the same values are used across all test files
-- **Documentation**: Constants serve as self-documenting code
-
-#### How to Handle Numeric Values
-
-```typescript
-// ❌ Bad - using magic numbers
-await page.waitForTimeout(500);
-await page.setViewportSize({ width: 1920, height: 1080 });
-expect(loadTime).toBeLessThan(3000);
-await page.evaluate(() => window.scrollTo(0, 500));
-
-// ✅ Good - using named constants
-import {
-  UI_WAIT_TIMES,
-  VIEWPORT_SIZES,
-  NETWORK_WAIT_TIMES,
-  SCROLL_POSITIONS,
-} from '../constants/test-constants';
-
-await page.waitForTimeout(UI_WAIT_TIMES.STANDARD);
-await page.setViewportSize(VIEWPORT_SIZES.DESKTOP);
-expect(loadTime).toBeLessThan(NETWORK_WAIT_TIMES.API_RESPONSE);
-await page.evaluate((scrollY) => window.scrollTo(0, scrollY), SCROLL_POSITIONS.STANDARD);
-```
-
-#### Important Note for page.evaluate()
-
-When using constants inside `page.evaluate()`, you must pass them as arguments since the browser context cannot access external variables:
-
-```typescript
-// ❌ Wrong - constant not accessible in browser context
-await page.evaluate(() => window.scrollTo(0, SCROLL_POSITIONS.STANDARD));
-
-// ✅ Correct - pass constant as argument
-await page.evaluate((scrollY) => window.scrollTo(0, scrollY), SCROLL_POSITIONS.STANDARD);
-```
-
-### Available Test Constants
-
-All test constants are defined in `/tests/constants/test-constants.ts`:
-
-- **UI_WAIT_TIMES**: For UI interactions (MINIMAL: 100ms, SHORT: 300ms, STANDARD: 500ms, LONG: 1000ms, EXTRA_LONG: 2000ms)
-- **NETWORK_WAIT_TIMES**: For network operations (API_RESPONSE: 3000ms, PAGE_LOAD: 5000ms, NETWORK_IDLE: 2000ms)
-- **TEST_TIMEOUTS**: For test case timeouts (DEFAULT: 30s, EXTENDED: 60s, QUICK: 10s)
-- **RETRY_CONFIG**: For retry logic (MAX_RETRIES: 3, RETRY_DELAY: 1000ms)
-- **ANIMATION_DURATIONS**: For animations (TRANSITION: 300ms, MODAL: 400ms, DROPDOWN: 200ms)
-- **WEBSERVER_TIMEOUT**: For web server startup (STARTUP: 120s)
-- **SCROLL_POSITIONS**: For scroll testing (STANDARD: 500px)
-- **PERFORMANCE_THRESHOLDS**: For performance metrics (FCP_GOOD: 1800ms, MEMORY_INCREASE_MAX: 50MB)
-- **VIEWPORT_SIZES**: For responsive testing (DESKTOP: 1920x1080, MOBILE: 375x667)
-
-### Adding New Constants
-
-When you encounter a new numeric value in tests:
-
-1. **Identify the purpose** of the value
-2. **Choose an appropriate category** or create a new one if needed
-3. **Add the constant** to `/tests/constants/test-constants.ts` with:
-   - A descriptive name in UPPER_SNAKE_CASE
-   - A JSDoc comment explaining its purpose and unit
-4. **Import and use** the constant in your test files
-
-## GitHub Actions and YAML Guidelines
-
-### GitHub Actions Best Practices
-
-When implementing or modifying GitHub Actions workflows, refer to `docs/work_dir/github-actions-best-practices.md` for detailed best practices including:
-
-- Permissions configuration (最小権限の原則)
-- Version management for Actions and tools
-- Security best practices
-- Performance optimization techniques
-- Debugging and troubleshooting
-
-### YAML Guidelines
-
-**For comprehensive YAML writing and maintenance guidelines, see [YAML Guidelines](docs/developer_guide/yaml-guidelines.md).**
-
-The YAML guidelines document covers:
-
-- **Script Separation Policy**: When and how to extract complex scripts from YAML files
-- **Formatting Standards**: Linting rules and automated checks
-- **Best Practices**: Directory structure, error handling, and organization
-- **Migration Guide**: How to refactor existing YAML files
-- **Troubleshooting**: Common issues and solutions
-
-Key principle: Keep YAML files simple and declarative. Extract complex logic to separate script files in `scripts/ci/` for better maintainability and testability.
+2. **Manual Configuration**
+   - Update `package.json` project name
+   - Configure `.changeset/config.json` GitHub repository
+   - Update `README.md` project title
 
 ## Git Commit Convention
 
@@ -599,79 +177,16 @@ This project uses **Conventional Commits** specification. All commit messages ar
 <footer>
 ```
 
-#### Best Practices for Commit Messages
-
-1. **First Line (Header) - Keep it concise**
-   - Maximum 100 characters (enforced by commitlint)
-   - Format: `<type>(<scope>): <subject>`
-   - Should be a complete sentence that summarizes the change
-   - Use present tense ("add feature" not "added feature")
-
-2. **Message Body - Add details when needed**
-   - Separate from header with a blank line
-   - Explain **what** and **why** vs. how
-   - Wrap lines at 72 characters for better readability
-   - Use bullet points for multiple changes
-
-3. **When to use message body**
-   - Multiple related changes in one commit
-   - Complex changes that need explanation
-   - Breaking changes that affect users
-   - Performance improvements with metrics
-
-#### Example of a Well-Formatted Commit Message
-
-```text
-feat: enforce no magic numbers policy in test files
-
-- Renamed timeouts.ts to test-constants.ts for broader scope
-- Added constants for scroll positions, performance thresholds, viewport sizes
-- Updated all test files to use named constants
-- Updated CLAUDE.md with comprehensive policy documentation
-
-This improves code maintainability and makes test values self-documenting.
-```
-
-### Commit Types
+### Key Commit Types
 
 - **feat**: A new feature
 - **fix**: A bug fix
 - **docs**: Documentation only changes
-- **style**: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+- **style**: Changes that do not affect the meaning of the code
 - **refactor**: A code change that neither fixes a bug nor adds a feature
 - **perf**: A code change that improves performance
 - **test**: Adding missing tests or correcting existing tests
-- **chore**: Changes to the build process or auxiliary tools and libraries
-- **build**: Changes that affect the build system or external dependencies
-- **ci**: Changes to CI configuration files and scripts
-- **revert**: Reverts a previous commit
-
-### Examples
-
-```bash
-# New feature
-git commit -m "feat: add user authentication"
-
-# Bug fix
-git commit -m "fix: resolve login error handling"
-
-# Documentation update
-git commit -m "docs: add installation instructions to README"
-
-# Code formatting
-git commit -m "style: fix ESLint errors"
-
-# Refactoring
-git commit -m "refactor: extract API client to shared module"
-
-# With scope
-git commit -m "feat(auth): add OAuth provider support"
-
-# Breaking change
-git commit -m "feat!: change API response format
-
-BREAKING CHANGE: API responses now use camelCase instead of snake_case"
-```
+- **chore**: Changes to the build process or auxiliary tools
 
 ### Pre-commit Hooks
 
@@ -689,3 +204,9 @@ If any of these checks fail, the commit will be aborted. Fix the issues and try 
 ### Question Handling
 
 When the user asks a question (indicated by question marks or interrogative phrases), ONLY answer the question without making any code changes or file modifications. Do not proactively fix or modify anything unless explicitly requested. If the user wants changes made after your answer, they will explicitly ask for them.
+
+### Development Context
+
+- ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.
+- NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User.
+- Only use emojis if the user explicitly requests it. Avoid adding emojis to files unless asked.

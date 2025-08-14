@@ -62,7 +62,10 @@
       "Bash(pnpm docs:*)",
       "Bash(pnpm release:check:*)",
       "WebSearch",
-      "Bash(pnpm changeset:add:*)"
+      "Bash(pnpm changeset:add:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "WebFetch(domain:tailwindcss.com)"
     ],
     "deny": [
       "Bash(sudo *)",
@@ -70,7 +73,8 @@
       "Bash(rm -rf ~)",
       "Bash(rm -rf ~/*)",
       "Bash(rm -rf /*)"
-    ]
+    ],
+    "defaultMode": "acceptEdits"
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": ["serena"]

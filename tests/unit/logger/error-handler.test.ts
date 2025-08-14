@@ -385,12 +385,12 @@ describe('errorHandlerUtils (Pure Functions)', () => {
       const errorCall = (mockLogger.error as any).mock.calls[0];
       expect(errorCall).toBeDefined();
       expect(errorCall[0]).toMatch(/system_error/);
-      
+
       const logData = errorCall[1];
       expect(logData.error_category).toBe('system_error');
       expect(logData.event_name).toBe('error.system_error');
       expect(logData.event_category).toBe('error_event');
-      
+
       // contextの構造を確認して適切にアクセス
       expect(logData.context).toBeDefined();
       expect(logData.context.additionalData).toBeDefined();

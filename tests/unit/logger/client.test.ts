@@ -305,7 +305,7 @@ describe('ClientLoggerHelpers', () => {
       const errorCall = (mockConsole.error as any).mock.calls[0];
       expect(errorCall).toBeDefined();
       expect(errorCall[0]).toBe('Details:');
-      
+
       const logData = errorCall[1];
       expect(logData.event_category).toBe('error_event');
       expect(logData.event_name).toBe('error.performance');
@@ -370,7 +370,7 @@ describe('ClientLoggerHelpers', () => {
       const errorCall = (mockConsole.error as any).mock.calls[0];
       expect(errorCall).toBeDefined();
       expect(errorCall[0]).toBe('Details:');
-      
+
       const logData = errorCall[1];
       expect(logData.event_category).toBe('error_event');
       expect(logData.event_name).toBe('error.client');
@@ -378,8 +378,13 @@ describe('ClientLoggerHelpers', () => {
       expect(logData.event_attributes).toEqual(context);
       expect(logData.error).toBeDefined();
       // サニタイザーによりエスケープされた文字列でもマッチするように調整
-      expect(logData.error.message.includes('Test error') || logData.error.message.includes('\\u0054est error')).toBe(true);
-      expect(logData.error.name.includes('Error') || logData.error.name.includes('\\u0045rror')).toBe(true);
+      expect(
+        logData.error.message.includes('Test error') ||
+          logData.error.message.includes('\\u0054est error')
+      ).toBe(true);
+      expect(
+        logData.error.name.includes('Error') || logData.error.name.includes('\\u0045rror')
+      ).toBe(true);
     });
 
     it('非Errorオブジェクトも記録される', () => {
@@ -389,13 +394,16 @@ describe('ClientLoggerHelpers', () => {
       const errorCall = (mockConsole.error as any).mock.calls[0];
       expect(errorCall).toBeDefined();
       expect(errorCall[0]).toBe('Details:');
-      
+
       const logData = errorCall[1];
       expect(logData.event_category).toBe('error_event');
       expect(logData.event_name).toBe('error.client');
       expect(logData.level).toBe('error');
       expect(logData.error).toBeDefined();
-      expect(logData.error.message.includes('String error') || logData.error.message.includes('\\u0053tring error')).toBe(true);
+      expect(
+        logData.error.message.includes('String error') ||
+          logData.error.message.includes('\\u0053tring error')
+      ).toBe(true);
     });
   });
 

@@ -3,11 +3,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { 
+import {
   createIPHashConfig,
   hashIP,
   validateIPHashSecret,
-  defaultIPHashConfig
+  defaultIPHashConfig,
 } from '../../../src/lib/logger/crypto';
 import type { IPHashConfig } from '../../../src/lib/logger/crypto';
 
@@ -27,7 +27,7 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
   describe('🔒 GDPR準拠のIPハッシュ化', () => {
     it('should hash IPv4 addresses consistently', () => {
       const config = {
-        secret: 'test-secret-32-characters-long!!'
+        secret: 'test-secret-32-characters-long!!',
       };
 
       const ip = '192.168.1.1';
@@ -41,7 +41,7 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
 
     it('should hash IPv6 addresses consistently', () => {
       const config = {
-        secret: 'test-secret-32-characters-long!!'
+        secret: 'test-secret-32-characters-long!!',
       };
 
       const ip = '2001:0db8:85a3:0000:0000:8a2e:0370:7334';
@@ -55,7 +55,7 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
 
     it('should normalize IPv4-mapped IPv6 addresses', () => {
       const config = {
-        secret: 'test-secret-32-characters-long!!'
+        secret: 'test-secret-32-characters-long!!',
       };
 
       const ipv4 = '192.168.1.1';
@@ -69,7 +69,7 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
 
     it('should normalize localhost addresses', () => {
       const config = {
-        secret: 'test-secret-32-characters-long!!'
+        secret: 'test-secret-32-characters-long!!',
       };
 
       const ipv4Localhost = '127.0.0.1';
@@ -83,7 +83,7 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
 
     it('should produce different hashes for different IPs', () => {
       const config = {
-        secret: 'test-secret-32-characters-long!!'
+        secret: 'test-secret-32-characters-long!!',
       };
 
       const ip1 = '192.168.1.1';
@@ -99,10 +99,10 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
       const ip = '192.168.1.1';
 
       const config1 = {
-        secret: 'secret1-32-characters-long-test'
+        secret: 'secret1-32-characters-long-test',
       };
       const config2 = {
-        secret: 'secret2-32-characters-long-test'
+        secret: 'secret2-32-characters-long-test',
       };
 
       const hash1 = hashIP(config1, ip);
@@ -142,7 +142,7 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
     it('should validate secret key strength', () => {
       const strongSecret = 'test-secret-32-characters-long!!';
       const weakSecret = 'short';
-      
+
       const config1 = { secret: strongSecret } as IPHashConfig;
       const config2 = { secret: weakSecret } as IPHashConfig;
       expect(validateIPHashSecret(config1)).toBe(true);
@@ -153,7 +153,7 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
   describe('🛡️ エラーハンドリング', () => {
     it('should handle invalid IP addresses gracefully', () => {
       const config = {
-        secret: 'test-secret-32-characters-long!!'
+        secret: 'test-secret-32-characters-long!!',
       };
 
       expect(hashIP(config, '')).toBe('ip_invalid');
@@ -164,7 +164,7 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
 
     it('should handle crypto errors gracefully', () => {
       const config = {
-        secret: 'test-secret-32-characters-long!!'
+        secret: 'test-secret-32-characters-long!!',
       };
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -183,7 +183,7 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
   describe('📊 パフォーマンス要件', () => {
     it('should hash IPs efficiently', () => {
       const config = {
-        secret: 'test-secret-32-characters-long!!'
+        secret: 'test-secret-32-characters-long!!',
       };
 
       const ips = Array.from({ length: 1000 }, (_, i) => `192.168.1.${i % 255}`);
@@ -198,7 +198,7 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
 
     it('should maintain consistent performance', () => {
       const config = {
-        secret: 'test-secret-32-characters-long!!'
+        secret: 'test-secret-32-characters-long!!',
       };
 
       const ip = '192.168.1.1';
@@ -218,10 +218,10 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
   describe('Pure Function Tests', () => {
     it('createIPHashConfig should create immutable config', () => {
       const config = createIPHashConfig();
-      
+
       expect(config).toHaveProperty('secret');
       expect(typeof config.secret).toBe('string');
-      
+
       // オブジェクトが凍結されているかテスト
       expect(() => {
         (config as any).secret = 'modified';
@@ -230,7 +230,7 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
 
     it('hashIP should be a pure function', () => {
       const config = {
-        secret: 'test-secret-32-characters-long!!'
+        secret: 'test-secret-32-characters-long!!',
       };
       const ip = '192.168.1.1';
 
@@ -249,13 +249,12 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
       const config = defaultIPHashConfig;
       expect(config).toHaveProperty('secret');
       expect(typeof config.secret).toBe('string');
-      
+
       const ip = '192.168.1.1';
       const result = hashIP(config, ip);
-      
+
       expect(result).toMatch(/^ip_[a-f0-9]{8}$/);
       expect(result).not.toContain(ip);
     });
-
   });
 });

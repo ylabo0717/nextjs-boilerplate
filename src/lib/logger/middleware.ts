@@ -1,0 +1,378 @@
+/**
+ * Next.js Middleware統合ロガー
+ * Edge Runtime対応のリクエスト追跡とログ機能
+ */
+
+import type { NextRequest, NextResponse } from 'next/server';
+
+import { hashIP } from './crypto';
+import { sanitizeLogEntry, limitObjectSize } from './sanitizer';
+import { generateRequestId, serializeError } from './utils';
+
+import type { LoggerContext } from './types';
+
+/**
+ * Middleware用ログエントリ型定義
+ */
+interface MiddlewareLogEntry {
+  requestId: string;
+  method: string;
+  url: string;
+  userAgent?: string;
+  hashedIP: string;
+  timestamp: string;
+  duration?: number;
+  status?: number;
+  error?: Record<string, unknown>;
+  event_name: string;
+  event_category: 'middleware_event' | 'security_event' | 'error_event';
+  event_attributes?: Record<string, unknown>;
+}
+
+/**
+ * Edge Runtime対応の軽量ロガー
+ * Node.js固有機能を使用しない実装
+ */
+class EdgeLogger {
+  /**
+   * ログ出力（Edge Runtime対応）
+   */
+  static log(level: 'info' | 'warn' | 'error', entry: MiddlewareLogEntry): void {
+    // サニタイズ処理
+    const sanitized = sanitizeLogEntry(
+      `${entry.event_name}: ${entry.method} ${entry.url}`,
+      limitObjectSize(entry, 5, 30)
+    );
+
+    // Edge Runtimeでは console のみ使用可能
+    const logData = {
+      level,
+      timestamp: entry.timestamp,
+      message: sanitized.message,
+      data: sanitized.data,
+    };
+
+    switch (level) {
+      case 'error':
+        console.error(JSON.stringify(logData));
+        break;
+      case 'warn':
+        console.warn(JSON.stringify(logData));
+        break;
+      case 'info':
+      default:
+        console.log(JSON.stringify(logData));
+        break;
+    }
+  }
+}
+
+/**
+ * リクエスト追跡用のコンテキスト生成
+ */
+export function createRequestContext(request: NextRequest): LoggerContext {
+  const requestId = generateRequestId();
+  // Next.js 15ではrequest.ipが利用可能、存在しない場合は'unknown'を使用
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ip = (request as any).ip || 'unknown';
+  const hashedIP = hashIP(ip);
+
+  return {
+    requestId,
+    hashedIP,
+    method: request.method,
+    url: request.url,
+    userAgent: request.headers.get('user-agent') || undefined,
+    timestamp: new Date().toISOString(),
+  } as LoggerContext;
+}
+
+/**
+ * リクエスト開始ログ
+ */
+export function logRequestStart(request: NextRequest, context: LoggerContext): void {
+  const entry: MiddlewareLogEntry = {
+    requestId: context.requestId,
+    method: request.method,
+    url: request.url,
+    userAgent: context.userAgent as string | undefined,
+    hashedIP: (context.hashedIP as string) || 'unknown',
+    timestamp: (context.timestamp as string) || new Date().toISOString(),
+    event_name: 'middleware.request_start',
+    event_category: 'middleware_event',
+    event_attributes: {
+      path: new URL(request.url).pathname,
+      query: Object.fromEntries(new URL(request.url).searchParams),
+      headers: sanitizeHeaders(request.headers),
+    },
+  };
+
+  EdgeLogger.log('info', entry);
+}
+
+/**
+ * リクエスト終了ログ
+ */
+export function logRequestEnd(
+  request: NextRequest,
+  response: NextResponse,
+  context: LoggerContext,
+  startTime: number
+): void {
+  const duration = Date.now() - startTime;
+
+  const entry: MiddlewareLogEntry = {
+    requestId: context.requestId,
+    method: request.method,
+    url: request.url,
+    userAgent: context.userAgent as string | undefined,
+    hashedIP: (context.hashedIP as string) || 'unknown',
+    timestamp: new Date().toISOString(),
+    duration,
+    status: response.status,
+    event_name: 'middleware.request_end',
+    event_category: 'middleware_event',
+    event_attributes: {
+      path: new URL(request.url).pathname,
+      duration_ms: duration,
+      response_size: response.headers.get('content-length') || undefined,
+      cache_status: response.headers.get('x-cache') || undefined,
+    },
+  };
+
+  const level = response.status >= 400 ? 'error' : 'info';
+  EdgeLogger.log(level, entry);
+}
+
+/**
+ * セキュリティイベントログ
+ */
+export function logSecurityEvent(
+  request: NextRequest,
+  context: LoggerContext,
+  event: string,
+  details: Record<string, unknown> = {}
+): void {
+  const entry: MiddlewareLogEntry = {
+    requestId: context.requestId,
+    method: request.method,
+    url: request.url,
+    userAgent: context.userAgent as string | undefined,
+    hashedIP: (context.hashedIP as string) || 'unknown',
+    timestamp: new Date().toISOString(),
+    event_name: `security.${event}`,
+    event_category: 'security_event',
+    event_attributes: {
+      path: new URL(request.url).pathname,
+      security_event: event,
+      ...details,
+    },
+  };
+
+  EdgeLogger.log('warn', entry);
+}
+
+/**
+ * Middlewareエラーログ
+ */
+export function logMiddlewareError(
+  request: NextRequest,
+  context: LoggerContext,
+  error: Error | unknown,
+  details: Record<string, unknown> = {}
+): void {
+  const entry: MiddlewareLogEntry = {
+    requestId: context.requestId,
+    method: request.method,
+    url: request.url,
+    userAgent: context.userAgent as string | undefined,
+    hashedIP: (context.hashedIP as string) || 'unknown',
+    timestamp: new Date().toISOString(),
+    error: serializeError(error),
+    event_name: 'middleware.error',
+    event_category: 'error_event',
+    event_attributes: {
+      path: new URL(request.url).pathname,
+      error_type: error instanceof Error ? error.name : typeof error,
+      ...details,
+    },
+  };
+
+  EdgeLogger.log('error', entry);
+}
+
+/**
+ * ヘッダーのサニタイズ（機密情報の除去）
+ */
+function sanitizeHeaders(headers: Headers): Record<string, string> {
+  const sanitized: Record<string, string> = {};
+  const sensitiveHeaders = new Set([
+    'authorization',
+    'cookie',
+    'x-api-key',
+    'x-auth-token',
+    'x-session-id',
+  ]);
+
+  headers.forEach((value, key) => {
+    const lowerKey = key.toLowerCase();
+    if (sensitiveHeaders.has(lowerKey)) {
+      // 型安全な方法でプロパティを設定
+      Object.assign(sanitized, { [key]: '[REDACTED]' });
+    } else {
+      // 型安全な方法でプロパティを設定
+      Object.assign(sanitized, { [key]: value });
+    }
+  });
+
+  return sanitized;
+}
+
+/**
+ * レート制限ログ
+ */
+export function logRateLimit(
+  request: NextRequest,
+  context: LoggerContext,
+  limit: number,
+  remaining: number,
+  resetTime: number
+): void {
+  const entry: MiddlewareLogEntry = {
+    requestId: context.requestId,
+    method: request.method,
+    url: request.url,
+    userAgent: context.userAgent as string | undefined,
+    hashedIP: (context.hashedIP as string) || 'unknown',
+    timestamp: new Date().toISOString(),
+    event_name: 'middleware.rate_limit',
+    event_category: 'middleware_event',
+    event_attributes: {
+      path: new URL(request.url).pathname,
+      rate_limit: limit,
+      rate_remaining: remaining,
+      rate_reset: resetTime,
+      rate_exceeded: remaining <= 0,
+    },
+  };
+
+  const level = remaining <= 0 ? 'warn' : 'info';
+  EdgeLogger.log(level, entry);
+}
+
+/**
+ * リダイレクトログ
+ */
+export function logRedirect(
+  request: NextRequest,
+  context: LoggerContext,
+  destination: string,
+  permanent: boolean = false
+): void {
+  const entry: MiddlewareLogEntry = {
+    requestId: context.requestId,
+    method: request.method,
+    url: request.url,
+    userAgent: context.userAgent as string | undefined,
+    hashedIP: (context.hashedIP as string) || 'unknown',
+    timestamp: new Date().toISOString(),
+    event_name: 'middleware.redirect',
+    event_category: 'middleware_event',
+    event_attributes: {
+      from_path: new URL(request.url).pathname,
+      to_path: destination,
+      permanent,
+      redirect_type: permanent ? '301' : '302',
+    },
+  };
+
+  EdgeLogger.log('info', entry);
+}
+
+/**
+ * Middleware統合用のヘルパー関数
+ */
+export const middlewareLoggerHelpers = {
+  /**
+   * リクエスト全体のログ装飾
+   */
+  wrapRequest: async (
+    request: NextRequest,
+    handler: (request: NextRequest, context: LoggerContext) => Promise<NextResponse>
+  ): Promise<NextResponse> => {
+    const startTime = Date.now();
+    const context = createRequestContext(request);
+
+    // リクエスト開始ログ
+    logRequestStart(request, context);
+
+    try {
+      // ハンドラー実行
+      const response = await handler(request, context);
+
+      // リクエスト終了ログ
+      logRequestEnd(request, response, context, startTime);
+
+      // レスポンスヘッダーにリクエストIDを追加
+      response.headers.set('x-request-id', context.requestId);
+
+      return response;
+    } catch (error) {
+      // エラーログ
+      logMiddlewareError(request, context, error);
+      throw error;
+    }
+  },
+
+  /**
+   * セキュリティチェック付きラッパー
+   */
+  withSecurity: (
+    request: NextRequest,
+    context: LoggerContext,
+    checks: {
+      checkUserAgent?: boolean;
+      checkReferer?: boolean;
+      logSuspiciousActivity?: boolean;
+    } = {}
+  ): void => {
+    const { checkUserAgent = true, checkReferer = false, logSuspiciousActivity = true } = checks;
+
+    // User-Agentチェック
+    if (checkUserAgent && !context.userAgent) {
+      logSecurityEvent(request, context, 'missing_user_agent');
+    }
+
+    // Refererチェック
+    if (checkReferer) {
+      const referer = request.headers.get('referer');
+      if (!referer) {
+        logSecurityEvent(request, context, 'missing_referer');
+      }
+    }
+
+    // 疑わしいアクティビティの検出
+    if (logSuspiciousActivity) {
+      const path = new URL(request.url).pathname;
+
+      // 一般的な攻撃パターンの検出
+      const suspiciousPatterns = [
+        /\.\.\//, // Path traversal
+        /<script/i, // XSS attempt
+        /union.*select/i, // SQL injection
+        /\/admin\//, // Admin path access
+      ];
+
+      for (const pattern of suspiciousPatterns) {
+        if (pattern.test(path) || pattern.test(request.url)) {
+          logSecurityEvent(request, context, 'suspicious_pattern', {
+            pattern: pattern.source,
+            matched_url: request.url,
+          });
+        }
+      }
+    }
+  },
+};
+
+export default middlewareLoggerHelpers;

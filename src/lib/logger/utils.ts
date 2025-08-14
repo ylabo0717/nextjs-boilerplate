@@ -75,10 +75,10 @@ export const REDACT_PATHS = [
   '*.key',
 
   // HTTPヘッダー
-  'headers.authorization',
-  'headers.cookie',
-  'headers.x-api-key',
-  'headers.set-cookie',
+  'req.headers.authorization',
+  'req.headers.cookie',
+  'req.headers["x-api-key"]',
+  'res.headers["set-cookie"]',
 
   // 個人情報（PII）
   'user.email',

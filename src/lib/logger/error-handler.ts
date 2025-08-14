@@ -272,6 +272,7 @@ export type ErrorClassifierConfig = Record<string, never>;
  * @public
  */
 export type ErrorHandlerConfig = {
+  /** エラーログの記録に使用するロガーインスタンス */
   readonly logger: Logger;
 };
 

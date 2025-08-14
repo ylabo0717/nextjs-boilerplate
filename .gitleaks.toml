@@ -362,7 +362,13 @@ regexes = [
   '''abc123''',
   # Allow environment variable references (not the actual values)
   '''process\.env\.LOG_IP_HASH_SECRET''',
-  '''LOG_IP_HASH_SECRET'''
+  '''LOG_IP_HASH_SECRET''',
+  # Allow Redis example URLs in documentation
+  '''redis://localhost:6379''',
+  '''redis://new-host:6379''',
+  '''6379''',
+  # Allow JWT_SECRET environment variable references
+  '''process\.env\.JWT_SECRET'''
 ]
 
 # Note: commits allowlist is for specific commit SHAs, not file patterns

@@ -12,35 +12,85 @@ const EDGE_CONFIG_TYPE = 'edge-config' as const;
 const MEMORY_TYPE = 'memory' as const;
 
 /**
- * KV Storage interface (pure abstraction)
+ * Key-Value Storage 統一インターフェース
+ *
+ * Redis、Vercel Edge Config、メモリストレージを統一的に扱うためのインターフェースです。
+ * 純粋関数アプローチに従い、副作用を明確に分離して設計されています。
+ *
+ * @public
  */
 export interface KVStorage {
+  /**
+   * 指定されたキーの値を取得します
+   * @param key - 取得するキー
+   * @returns キーに対応する値、存在しない場合はnull
+   */
   get(key: string): Promise<string | null>;
+
+  /**
+   * 指定されたキーに値を設定します
+   * @param key - 設定するキー
+   * @param value - 設定する値
+   * @param ttl - TTL（秒）、省略時はデフォルト値を使用
+   */
   set(key: string, value: string, ttl?: number): Promise<void>;
+
+  /**
+   * 指定されたキーを削除します
+   * @param key - 削除するキー
+   */
   delete(key: string): Promise<void>;
+
+  /**
+   * 指定されたキーが存在するかチェックします
+   * @param key - チェックするキー
+   * @returns キーが存在する場合true
+   */
   exists(key: string): Promise<boolean>;
+
+  /** ストレージタイプの識別子 */
   readonly type: typeof REDIS_TYPE | typeof EDGE_CONFIG_TYPE | typeof MEMORY_TYPE;
 }
 
 /**
- * Storage configuration (immutable)
+ * ストレージ設定インターフェース（不変）
+ *
+ * KVストレージの設定パラメータを定義します。
+ * すべてのプロパティがreadonlyで不変性を保証しています。
+ *
+ * @public
  */
 export interface StorageConfig {
+  /** ストレージタイプ */
   readonly type: typeof REDIS_TYPE | typeof EDGE_CONFIG_TYPE | typeof MEMORY_TYPE;
+  /** 接続文字列（RedisまたはEdge Config用） */
   readonly connection_string?: string;
+  /** デフォルトTTL（秒） */
   readonly ttl_default: number;
+  /** 最大リトライ回数 */
   readonly max_retries: number;
+  /** タイムアウト時間（ミリ秒） */
   readonly timeout_ms: number;
+  /** フォールバック機能の有効化フラグ */
   readonly fallback_enabled: boolean;
 }
 
 /**
- * Operation result with error handling
+ * ストレージ操作結果インターフェース
+ *
+ * ストレージ操作の成功・失敗情報とエラーハンドリングを提供します。
+ *
+ * @typeParam T - 操作成功時のデータ型
+ * @public
  */
 export interface StorageOperationResult<T = void> {
+  /** 操作が成功したかどうか */
   readonly success: boolean;
+  /** 操作成功時のデータ */
   readonly data?: T;
+  /** エラーメッセージ（操作失敗時） */
   readonly error?: string;
+  /** リトライまでの待機時間（秒） */
   readonly retry_after?: number;
 }
 
@@ -127,12 +177,18 @@ export function validateStorageConfig(config: StorageConfig): boolean {
 
 /**
  * Redis Storage Implementation
+ *
+ * ioredisライブラリを使用したRedisストレージの実装です。
+ * 接続管理、エラーハンドリング、タイムアウト処理を含みます。
  */
 export class RedisStorage implements KVStorage {
   public readonly type = 'redis' as const;
+  /** ストレージ設定（不変） */
   private config: StorageConfig;
+  /** Redisクライアントインスタンス */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private client: any; // Redis client type
+  /** Redis接続状態 */
   private isConnected: boolean = false;
 
   constructor(config: StorageConfig) {
@@ -199,6 +255,7 @@ export class RedisStorage implements KVStorage {
     }
   }
 
+  /** Redisクライアントを取得・初期化する内部メソッド */
   private async getClient() {
     if (!this.client || !this.isConnected) {
       try {
@@ -241,6 +298,7 @@ export class RedisStorage implements KVStorage {
     return this.client;
   }
 
+  /** Promise操作にタイムアウトを適用する内部メソッド */
   private async withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Operation timeout')), timeoutMs);
@@ -252,10 +310,15 @@ export class RedisStorage implements KVStorage {
 
 /**
  * Memory Storage Implementation (fallback)
+ *
+ * インメモリストレージの実装です。フォールバック用として使用され、
+ * 定期的なクリーンアップ機能とTTL管理を提供します。
  */
 export class MemoryStorage implements KVStorage {
   public readonly type = 'memory' as const;
+  /** データストア（キーと有効期限付きの値） */
   private store: Map<string, { value: string; expires: number }>;
+  /** ストレージ設定（不変） */
   private config: StorageConfig;
 
   constructor(config: StorageConfig) {
@@ -297,6 +360,7 @@ export class MemoryStorage implements KVStorage {
     return value !== null;
   }
 
+  /** 期限切れエントリの定期クリーンアップを開始する内部メソッド */
   private startCleanupInterval(): void {
     // Run cleanup every 5 minutes
     setInterval(
@@ -315,11 +379,17 @@ export class MemoryStorage implements KVStorage {
 
 /**
  * Edge Config Storage Implementation (Vercel)
+ *
+ * Vercel Edge Configを使用したストレージ実装です。
+ * エッジ環境での高速なデータアクセスを提供します。
  */
 export class EdgeConfigStorage implements KVStorage {
   public readonly type = EDGE_CONFIG_TYPE;
+  /** ストレージ設定（不変） */
   private config: StorageConfig;
+  /** Edge Config API ベースURL */
   private baseUrl: string;
+  /** 認証トークン */
   private token: string;
 
   constructor(config: StorageConfig) {

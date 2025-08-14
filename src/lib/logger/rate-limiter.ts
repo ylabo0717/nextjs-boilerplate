@@ -11,80 +11,141 @@ import { getDefaultStorage } from './kv-storage';
 import type { LogLevel } from './types';
 
 /**
- * Rate limiter configuration (immutable)
+ * レート制限設定インターフェース（不変）
+ *
+ * Token Bucket + Exponential Backoff + Adaptive Sampling アルゴリズムの設定を定義します。
+ *
+ * @public
  */
 export interface RateLimiterConfig {
+  /** 最大トークン数（バケットサイズ） */
   readonly max_tokens: number;
-  readonly bucket_size?: number; // Alias for max_tokens (for compatibility)
-  readonly refill_rate: number; // tokens per second
-  readonly refill_interval_ms?: number; // For compatibility
+  /** max_tokensのエイリアス（互換性のため） */
+  readonly bucket_size?: number;
+  /** トークン補充レート（トークン/秒） */
+  readonly refill_rate: number;
+  /** 補充間隔（ミリ秒）（互換性のため） */
+  readonly refill_interval_ms?: number;
+  /** バースト許容量 */
   readonly burst_capacity: number;
+  /** バックオフ乗数 */
   readonly backoff_multiplier: number;
-  readonly max_backoff: number; // seconds
+  /** 最大バックオフ時間（秒） */
+  readonly max_backoff: number;
+  /** ログレベル別サンプリング率 */
   readonly sampling_rates: Readonly<Record<string, number>>;
+  /** 適応的サンプリングの有効化 */
   readonly adaptive_sampling: boolean;
-  readonly error_threshold: number; // errors per minute to trigger adaptive sampling
-  readonly enable_exponential_backoff?: boolean; // For compatibility
+  /** 適応的サンプリング発動しきい値（エラー数/分） */
+  readonly error_threshold: number;
+  /** 指数バックオフ有効化（互換性のため） */
+  readonly enable_exponential_backoff?: boolean;
+  /** エンドポイント別制限設定 */
   readonly endpoint_limits?: Record<string, { bucket_size?: number; refill_rate?: number }>;
 }
 
 /**
- * Rate limiter state (functional approach)
+ * レート制限状態インターフェース（関数型アプローチ）
+ *
+ * レートリミッターの現在状態を表す不変オブジェクトです。
+ *
+ * @public
  */
 export interface RateLimiterState {
+  /** 現在のトークン数 */
   readonly tokens: number;
+  /** 最後のトークン補充時刻 */
   readonly last_refill: number;
+  /** 連続拒否回数 */
   readonly consecutive_rejects: number;
+  /** バックオフ解除時刻 */
   readonly backoff_until: number;
+  /** エラータイプ別カウント */
   readonly error_counts: Readonly<Record<string, number>>;
+  /** エラー発生時刻の履歴 */
   readonly error_timestamps: readonly number[];
+  /** 総リクエスト数 */
   readonly total_requests: number;
+  /** 成功リクエスト数 */
   readonly successful_requests: number;
 }
 
 /**
- * Rate limiting decision result
+ * レート制限判定結果
+ *
+ * レートリミッターによる制限判定の結果を表します。
+ *
+ * @public
  */
 export interface RateLimitResult {
+  /** リクエストが許可されたかどうか */
   readonly allowed: boolean;
+  /** 残りトークン数 */
   readonly remaining_tokens: number;
+  /** リトライまでの待機時間（秒） */
   readonly retry_after?: number;
+  /** サンプリングが適用されたかどうか */
   readonly sampling_applied: boolean;
+  /** 判定理由 */
   readonly reason: 'allowed' | 'tokens' | 'backoff' | 'sampling';
+  /** 更新後の状態 */
   readonly new_state: RateLimiterState;
+  /** 適応的サンプリング率 */
   readonly adaptive_rate?: number;
 }
 
 /**
- * Error frequency analysis result
+ * エラー頻度分析結果
+ *
+ * エラー発生頻度の分析と適応的サンプリングの推奨設定を提供します。
+ *
+ * @public
  */
-
 export interface ErrorFrequencyAnalysis {
+  /** 総エラー数 */
   readonly total_errors: number;
+  /** 分あたりエラー数 */
   readonly errors_per_minute: number;
+  /** 上位エラータイプ */
   readonly top_error_types: readonly { type: string; count: number }[];
+  /** 適応的サンプリングの適用推奨 */
   readonly should_apply_adaptive: boolean;
+  /** 推奨サンプリング率 */
   readonly recommended_sampling_rate: number;
 }
 
 /**
- * テスト用レートリミッター設定オプション
+ * レートリミッター設定オプション
  *
  * レートリミッターの設定をカスタマイズするためのオプションインターフェースです。
  * プロダクション環境では環境変数から設定され、テスト環境ではこのオプションで上書きできます。
+ *
+ * @public
  */
 export interface RateLimiterConfigOptions {
+  /** バケットサイズ（max_tokensのエイリアス） */
   readonly bucket_size?: number;
+  /** 最大トークン数 */
   readonly max_tokens?: number;
+  /** トークン補充レート（トークン/秒） */
   readonly refill_rate?: number;
+  /** 補充間隔（ミリ秒）（互換性のため） */
   readonly refill_interval_ms?: number;
+  /** バースト許容量 */
   readonly burst_capacity?: number;
+  /** バックオフ乗数 */
   readonly backoff_multiplier?: number;
+  /** 最大バックオフ時間（秒） */
   readonly max_backoff?: number;
+  /** 指数バックオフ有効化 */
   readonly enable_exponential_backoff?: boolean;
+  /** ログレベル別サンプリング率 */
   readonly sampling_rates?: Record<string, number>;
+  /** 適応的サンプリングの有効化 */
   readonly adaptive_sampling?: boolean;
+  /** 適応的サンプリング発動しきい値（エラー数/分） */
   readonly error_threshold?: number;
+  /** エンドポイント別制限設定 */
   readonly endpoint_limits?: Record<string, { bucket_size?: number; refill_rate?: number }>;
 }
 

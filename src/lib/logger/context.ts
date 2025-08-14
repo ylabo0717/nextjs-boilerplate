@@ -19,6 +19,7 @@ import type { Logger, LoggerContext, LogArgument } from './types';
  * @public
  */
 export type LoggerContextConfig = {
+  /** AsyncLocalStorageを使ったコンテキスト保存領域 */
   readonly storage: AsyncLocalStorage<LoggerContext>;
 };
 

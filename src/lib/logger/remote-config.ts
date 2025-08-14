@@ -11,52 +11,91 @@ import { getDefaultStorage, type KVStorage } from './kv-storage';
 import type { LogLevel } from './types';
 
 /**
- * Remote configuration structure (immutable)
+ * リモートログ設定構造（不変）
+ *
+ * 動的に更新可能なログレベル設定を定義します。
+ * すべてのプロパティがreadonlyで不変性を保証しています。
+ *
+ * @public
  */
 export interface RemoteLogConfig {
+  /** グローバルログレベル */
   readonly global_level: LogLevel;
+  /** サービス別ログレベル設定 */
   readonly service_levels: Readonly<Record<string, LogLevel>>;
+  /** レート制限設定 */
   readonly rate_limits: Readonly<Record<string, number>>;
+  /** 最終更新日時（ISO文字列） */
   readonly last_updated: string;
+  /** 設定バージョン番号 */
   readonly version: number;
+  /** リモート設定の有効化フラグ */
   readonly enabled: boolean;
 }
 
 /**
- * Configuration fetch result (pure function return type)
+ * 設定取得結果（純粋関数戻り値型）
+ *
+ * リモート設定の取得操作の結果を表します。
+ *
+ * @public
  */
 export interface ConfigFetchResult {
+  /** 取得操作が成功したかどうか */
   readonly success: boolean;
+  /** 取得された設定（成功時のみ） */
   readonly config?: RemoteLogConfig;
+  /** エラーメッセージ（失敗時） */
   readonly error?: string;
+  /** キャッシュからの取得かどうか */
   readonly cached: boolean;
+  /** 設定の取得元 */
   readonly source: 'remote' | 'cache' | 'default';
 }
 
 /**
- * Configuration cache entry
+ * 設定キャッシュエントリ
+ *
+ * メモリキャッシュに保存される設定データとメタデータ。
  */
 interface CacheEntry {
+  /** キャッシュされた設定 */
   readonly config: RemoteLogConfig;
+  /** キャッシュ作成時刻（Unix時刻） */
   readonly cached_at: number;
+  /** キャッシュ有効期限（Unix時刻） */
   readonly expires_at: number;
 }
 
 /**
- * Configuration update result
+ * 設定更新結果
+ *
+ * リモート設定の更新操作の結果を表します。
+ *
+ * @public
  */
 export interface ConfigUpdateResult {
+  /** 更新操作が成功したかどうか */
   readonly success: boolean;
+  /** 更新後の設定（成功時のみ） */
   readonly config?: RemoteLogConfig;
+  /** エラーメッセージ（失敗時） */
   readonly error?: string;
+  /** 更新前のバージョン番号 */
   readonly previous_version?: number;
 }
 
 /**
- * Configuration validation result
+ * 設定バリデーション結果
+ *
+ * 設定データの妥当性検証結果を表します。
+ *
+ * @public
  */
 export interface ValidationResult {
+  /** バリデーションが成功したかどうか */
   readonly valid: boolean;
+  /** バリデーションエラーの詳細リスト */
   readonly errors: readonly string[];
 }
 

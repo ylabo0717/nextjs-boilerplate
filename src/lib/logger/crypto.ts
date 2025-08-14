@@ -14,6 +14,7 @@ import { randomBytes, createHmac } from 'node:crypto';
  * @public
  */
 export type IPHashConfig = {
+  /** HMAC-SHA256用の秘密鍵 */
   readonly secret: string;
 };
 

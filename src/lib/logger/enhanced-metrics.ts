@@ -7,28 +7,47 @@
 
 import { metrics } from '@opentelemetry/api';
 
+/**
+ * Enhanced Metrics インターフェース
+ *
+ * Phase Cで追加された高度なメトリクス収集機能を定義するインターフェースです。
+ * OpenTelemetryメーターを使用してカウンター、ゲージ、ヒストグラムを管理します。
+ *
+ * @public
+ */
 export interface EnhancedMetrics {
-  // Remote configuration metrics
+  /** リモート設定の取得回数 */
   config_fetch_total: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
+  /** リモート設定取得の所要時間分布 */
   config_fetch_duration: ReturnType<ReturnType<typeof metrics.getMeter>['createHistogram']>;
+  /** 設定キャッシュのヒット回数 */
   config_cache_hits: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
+  /** 設定バリデーションエラー回数 */
   config_validation_errors: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
 
-  // Rate limiter metrics
+  /** レート制限の決定回数（許可/拒否） */
   rate_limit_decisions: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
+  /** レート制限の現在のトークン数 */
   rate_limit_tokens: ReturnType<ReturnType<typeof metrics.getMeter>['createGauge']>;
+  /** レート制限のバックオフ時間分布 */
   rate_limit_backoff_time: ReturnType<ReturnType<typeof metrics.getMeter>['createHistogram']>;
+  /** レート制限の現在のサンプリング率 */
   rate_limit_sampling_rate: ReturnType<ReturnType<typeof metrics.getMeter>['createGauge']>;
 
-  // KV storage metrics
+  /** KVストレージの操作総数 */
   kv_operations_total: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
+  /** KVストレージ操作の所要時間分布 */
   kv_operation_duration: ReturnType<ReturnType<typeof metrics.getMeter>['createHistogram']>;
+  /** KVストレージの接続状態（1=接続、0=切断） */
   kv_connection_status: ReturnType<ReturnType<typeof metrics.getMeter>['createGauge']>;
+  /** KVストレージ操作のエラー回数 */
   kv_operation_errors: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
 
-  // Admin API metrics
+  /** Admin APIへのリクエスト総数 */
   admin_api_requests: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
+  /** Admin API認証失敗回数 */
   admin_api_auth_failures: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
+  /** Admin APIレート制限ヒット回数 */
   admin_api_rate_limits: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
 }
 
@@ -253,6 +272,13 @@ export function recordConfigFetchMetrics(
   }
 }
 
+/**
+ * 設定バリデーションエラーメトリクスを記録する関数
+ *
+ * @param errorType - エラーの種類
+ * @param errorMessage - エラーメッセージ（オプション）
+ * @public
+ */
 export function recordConfigValidationError(errorType: string, errorMessage?: string): void {
   try {
     // Increment internal counter
@@ -273,6 +299,14 @@ export function recordConfigValidationError(errorType: string, errorMessage?: st
   }
 }
 
+/**
+ * 設定更新メトリクスを記録する関数
+ *
+ * @param source - 更新の発生源
+ * @param oldVersion - 更新前のバージョン
+ * @param newVersion - 更新後のバージョン
+ * @public
+ */
 export function recordConfigUpdateMetrics(
   source: 'admin' | 'system',
   oldVersion: number,
@@ -416,6 +450,13 @@ export function recordKVMetrics(
   }
 }
 
+/**
+ * KVストレージの接続状態メトリクスを記録する関数
+ *
+ * @param connected - 接続状態（true=接続、false=切断）
+ * @param storageType - ストレージタイプ
+ * @public
+ */
 export function recordKVConnectionStatus(
   connected: boolean,
   storageType: 'redis' | 'edge-config' | 'memory'
@@ -435,6 +476,15 @@ export function recordKVConnectionStatus(
   }
 }
 
+/**
+ * Admin APIメトリクスを記録する関数
+ *
+ * @param method - HTTPメソッド
+ * @param endpoint - APIエンドポイント
+ * @param statusCode - HTTPステータスコード
+ * @param _duration - 処理時間（ミリ秒）（現在未使用）
+ * @public
+ */
 export function recordAdminAPIMetrics(
   method: string,
   endpoint: string,
@@ -537,6 +587,14 @@ export function getPhase3MetricsSnapshot(): {
   });
 }
 
+/**
+ * Phase 3メトリクスをリセットする関数
+ *
+ * すべてのメトリクスインスタンスと内部カウンターを初期化します。
+ * テスト環境で使用されることが多い関数です。
+ *
+ * @public
+ */
 export function resetPhase3Metrics(): void {
   enhancedMetricsInstance = null;
   isInitialized = false;
@@ -651,6 +709,15 @@ function processKVOperation(data: Record<string, unknown>): void {
   }
 }
 
+/**
+ * バッチメトリクス記録関数
+ *
+ * 複数の操作のメトリクスを一括で記録します。
+ * 効率的な一括処理により、パフォーマンスを向上させます。
+ *
+ * @param operations - 記録する操作の配列
+ * @public
+ */
 export function recordBatchMetrics(
   operations: Array<{
     type: 'config' | 'rate_limit' | 'kv' | 'admin_api';

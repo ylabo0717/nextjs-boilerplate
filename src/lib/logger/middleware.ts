@@ -13,19 +13,33 @@ import type { LoggerContext } from './types';
 
 /**
  * Middleware用ログエントリ型定義
+ *
+ * @internal
  */
-interface MiddlewareLogEntry {
+export interface MiddlewareLogEntry {
+  /** リクエスト固有の識別子 */
   requestId: string;
+  /** HTTPメソッド */
   method: string;
+  /** リクエストURL */
   url: string;
+  /** ユーザーエージェント文字列 */
   userAgent?: string;
+  /** ハッシュ化されたIPアドレス */
   hashedIP: string;
+  /** タイムスタンプ（ISO 8601形式） */
   timestamp: string;
+  /** リクエスト処理時間（ミリ秒） */
   duration?: number;
+  /** HTTPステータスコード */
   status?: number;
+  /** エラー情報 */
   error?: Record<string, unknown>;
+  /** イベント名 */
   event_name: string;
+  /** イベントカテゴリ */
   event_category: 'middleware_event' | 'security_event' | 'error_event';
+  /** イベント属性 */
   event_attributes?: Record<string, unknown>;
 }
 

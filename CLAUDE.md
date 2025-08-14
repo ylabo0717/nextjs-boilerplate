@@ -233,3 +233,14 @@ When the user asks a question (indicated by question marks or interrogative phra
 - ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.
 - NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User.
 - Only use emojis if the user explicitly requests it. Avoid adding emojis to files unless asked.
+
+### Testing Standards
+
+**CRITICAL: NO TEST SKIPPING ALLOWED**
+
+- **NEVER skip tests** with `test.skip()`, `describe.skip()`, or similar methods
+- **NEVER comment out failing tests** to make test suites pass
+- **ALWAYS fix the underlying issue** that causes test failures
+- **All tests must pass** before considering a task complete
+- When encountering test failures, **debug and fix the root cause** rather than avoiding the problem
+- Test failures indicate real issues that must be resolved, not bypassed

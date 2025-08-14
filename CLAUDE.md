@@ -211,6 +211,19 @@ If any of these checks fail, the commit will be aborted. Fix the issues and try 
 
 ## Important Instructions for Claude
 
+### Code Analysis and Exploration
+
+**IMPORTANT: Always use Serena tools for code analysis and exploration:**
+
+- **Use `mcp__serena__find_symbol`** for finding functions, classes, or variables by name
+- **Use `mcp__serena__get_symbols_overview`** to understand file structure before making changes
+- **Use `mcp__serena__search_for_pattern`** for pattern-based code searches
+- **Use `mcp__serena__find_referencing_symbols`** to understand symbol usage
+- **NEVER use basic Read tool** for exploring large code files when Serena tools are available
+- **Use Read tool only** for small files, configuration files, or when you need exact line-by-line content
+
+This approach is significantly more efficient and token-conscious than reading entire files.
+
 ### Question Handling
 
 When the user asks a question (indicated by question marks or interrogative phrases), ONLY answer the question without making any code changes or file modifications. Do not proactively fix or modify anything unless explicitly requested. If the user wants changes made after your answer, they will explicitly ask for them.

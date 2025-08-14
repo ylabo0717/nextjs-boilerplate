@@ -68,6 +68,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Running these checks before committing prevents failures in the pre-commit hooks. Always resolve ESLint and TypeScript errors before committing.
 
+### IMPORTANT: Follow PR Review Checklist
+
+**All Pull Requests must follow the comprehensive review checklist:**
+
+📋 **Review Checklist Location**: [`docs/developer_guide/review-checklist.md`](docs/developer_guide/review-checklist.md)
+
+**For PR Authors:**
+
+1. **Self-review using the checklist** before submitting the PR
+2. **Copy the PR template** from the checklist into your PR description
+3. **Check off applicable items** to demonstrate compliance with standards
+
+**For Code Reviewers:**
+
+1. **Use the priority-based structure** (🚨 Blocker → ⚠️ Important → 💡 Improvement)
+2. **Focus on blocking issues first** - security, type safety, CI failures
+3. **Follow the reviewer guidelines** for consistent feedback quality
+
+**Key Benefits:**
+
+- ✅ **Consistent quality standards** across all PRs
+- ✅ **Modern best practices** for Next.js 15 + React 19 + TypeScript
+- ✅ **Security-first approach** with comprehensive checks
+- ✅ **Improved team efficiency** through clear expectations
+
+The checklist covers all critical aspects: security, type safety, architecture, performance, accessibility, testing, and documentation. Always refer to it for thorough code reviews.
+
 ### IMPORTANT: Create Changeset for User-Facing Changes
 
 **When implementing features, fixing bugs, or making any user-facing changes, always create a Changeset:**

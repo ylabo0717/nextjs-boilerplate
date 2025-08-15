@@ -154,6 +154,15 @@ export function setIntervalWithContext<TArgs extends unknown[]>(
  *
  * Provides utilities for managing context-aware timers globally.
  *
+ * ## クラス実装の理由
+ *
+ * **Pure Functions First原則の例外として、以下の理由でクラス実装を採用:**
+ * - **状態管理**: アクティブタイマーの追跡とライフサイクル管理が必要
+ * - **リソース管理**: タイマーの適切なクリーンアップとメモリリーク防止
+ * - **グローバル管理**: アプリケーション全体でのタイマー統制とモニタリング
+ * - **コンテキスト保持**: 非同期処理でのロガーコンテキスト継承
+ * - **デバッグ支援**: アクティブタイマーの可視化とトラブルシューティング
+ *
  * @public
  */
 export class TimerContextManager {

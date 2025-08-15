@@ -308,6 +308,15 @@ export function detectRuntimeEnvironment(): 'edge' | 'nodejs' | 'browser' {
  * リクエストスコープのコンテキスト管理を提供します。
  * WeakMapとPromise chaining を使用して実装します。
  *
+ * ## クラス実装の理由
+ *
+ * **Pure Functions First原則の例外として、以下の理由でクラス実装を採用:**
+ * - **状態管理**: WeakMapによるオブジェクト関連付けと現在コンテキストの管理
+ * - **環境制約**: Edge Runtime環境でのAsyncLocalStorage代替実装
+ * - **ライフサイクル**: リクエストスコープでのコンテキスト継承と自動クリーンアップ
+ * - **メモリ効率**: WeakMapによるガベージコレクション対応のメモリ管理
+ * - **型安全性**: ジェネリック型パラメータでの型安全なコンテキスト管理
+ *
  * @internal
  */
 class EdgeContextStorage<T> {

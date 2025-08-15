@@ -154,6 +154,15 @@ type InternalLokiClientConfig = Required<Omit<LokiClientConfig, 'auth' | 'apiKey
  * 構造化ログをGrafana Lokiに効率的に送信するためのクライアント実装。
  * バッチング、リトライロジック、エラーハンドリングを提供。
  *
+ * ## クラス実装の理由
+ *
+ * **Pure Functions First原則の例外として、以下の理由でクラス実装を採用:**
+ * - **状態管理**: ログバッファ、送信タイマー、接続状態の継続的な管理が必要
+ * - **リソース管理**: HTTPクライアント、タイマーの適切なライフサイクル管理
+ * - **非同期処理**: バッチ送信、リトライ機能の複雑な状態遷移
+ * - **パフォーマンス**: メモリ効率的なバッファリングとコネクション再利用
+ * - **エラー回復**: 送信失敗時の状態復旧とバックオフ戦略
+ *
  * @example
  * ```typescript
  * const client = new LokiClient({

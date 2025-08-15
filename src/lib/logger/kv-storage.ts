@@ -180,6 +180,15 @@ export function validateStorageConfig(config: StorageConfig): boolean {
  *
  * ioredisライブラリを使用したRedisストレージの実装です。
  * 接続管理、エラーハンドリング、タイムアウト処理を含みます。
+ *
+ * ## クラス実装の理由
+ *
+ * **Pure Functions First原則の例外として、以下の理由でクラス実装を採用:**
+ * - **接続管理**: Redisクライアントの接続状態とコネクションプールの管理
+ * - **リソース管理**: 接続リソースの適切なライフサイクル管理と解放
+ * - **状態追跡**: 接続状態、エラー状態、リトライ状況の継続的な監視
+ * - **設定保持**: 接続設定、タイムアウト、リトライ設定の不変管理
+ * - **インターフェース実装**: KVStorageインターフェースの統一的な実装
  */
 export class RedisStorage implements KVStorage {
   public readonly type = 'redis' as const;
@@ -313,6 +322,15 @@ export class RedisStorage implements KVStorage {
  *
  * インメモリストレージの実装です。フォールバック用として使用され、
  * 定期的なクリーンアップ機能とTTL管理を提供します。
+ *
+ * ## クラス実装の理由
+ *
+ * **Pure Functions First原則の例外として、以下の理由でクラス実装を採用:**
+ * - **状態管理**: メモリ上のキー・バリューペアとTTLの継続的な管理
+ * - **タイマー管理**: TTL期限切れアイテムの自動削除タイマーの制御
+ * - **メモリ管理**: ガベージコレクション対象データの効率的な管理
+ * - **インターフェース実装**: KVStorageインターフェースの統一的な実装
+ * - **フォールバック機能**: 他のストレージ障害時の代替機能として動作
  */
 export class MemoryStorage implements KVStorage {
   public readonly type = 'memory' as const;
@@ -382,6 +400,15 @@ export class MemoryStorage implements KVStorage {
  *
  * Vercel Edge Configを使用したストレージ実装です。
  * エッジ環境での高速なデータアクセスを提供します。
+ *
+ * ## クラス実装の理由
+ *
+ * **Pure Functions First原則の例外として、以下の理由でクラス実装を採用:**
+ * - **接続管理**: Vercel Edge Configクライアントの接続状態管理
+ * - **設定保持**: エッジ環境固有の設定とアクセストークンの管理
+ * - **エラー処理**: ネットワーク障害やAPI制限のハンドリング
+ * - **インターフェース実装**: KVStorageインターフェースの統一的な実装
+ * - **環境依存**: Vercel特有の機能とエッジランタイムとの統合
  */
 export class EdgeConfigStorage implements KVStorage {
   public readonly type = EDGE_CONFIG_TYPE;

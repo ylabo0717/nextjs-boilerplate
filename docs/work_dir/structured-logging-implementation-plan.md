@@ -2298,7 +2298,7 @@ NEXT_TELEMETRY_DISABLED=1
   - [x] async/await チェーンでのtrace_id継承
   - [x] Promise.all並行処理でのコンテキスト維持（実装済み - concurrency.test.ts）
   - [x] setTimeout/setInterval非同期でのtrace_id埋め込み（実装済み - timer-context.ts）
-  - [ ] Next.js API Route間のspan連携（未実装）
+  - [x] Next.js API Route間のspan連携（実装済み - api-route-tracing.ts）
   - [ ] Edge Runtime環境でのコンテキスト制限対応（未実装）
 - [x] Pinoインスタンスとフォーマッター連携
 - [x] 環境別設定の切り替え動作
@@ -3017,6 +3017,13 @@ pnpm add -D @types/ioredis
   - trace_id、requestId等の非同期タイマーでの継承
   - TimerContextManager クラスでの集中管理
   - コンテキスト付きタイマーハンドルと自動クリーンアップ
+
+- ✅ **API Route分散トレーシング** (api-route-tracing.ts)
+  - Next.js API Route間でのOpenTelemetryスパン連携
+  - W3C Trace Contextヘッダーの自動伝搬
+  - withAPIRouteTracing高階関数でのラッピング
+  - 内部操作の子スパン作成と追跡
+  - TracedAPIClientでの自動コンテキスト注入
 
 ### 8.5 実装順序と依存関係
 

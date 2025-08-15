@@ -368,7 +368,10 @@ regexes = [
   '''redis://new-host:6379''',
   '''6379''',
   # Allow JWT_SECRET environment variable references
-  '''process\.env\.JWT_SECRET'''
+  '''process\.env\.JWT_SECRET''',
+  # Allow LOKI authentication environment variable references
+  '''process\.env\.LOKI_PASSWORD''',
+  '''process\.env\.LOKI_USERNAME'''
 ]
 
 # Note: commits allowlist is for specific commit SHAs, not file patterns

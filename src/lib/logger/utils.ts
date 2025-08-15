@@ -361,8 +361,26 @@ class EdgeContextStorage<T> {
  * @internal
  */
 export interface CompatibleStorage<T> {
+  /**
+   * 指定されたコンテキストでコールバック関数を実行します
+   * @param store - 設定するコンテキスト値
+   * @param callback - 実行するコールバック関数
+   * @returns コールバック関数の戻り値
+   */
   run<R>(store: T, callback: () => R): R;
+
+  /**
+   * 現在のコンテキスト値を取得します
+   * @returns 現在のコンテキスト値、設定されていない場合はundefined
+   */
   getStore(): T | undefined;
+
+  /**
+   * 関数を指定されたコンテキストでバインドします
+   * @param fn - バインドする関数
+   * @param context - バインドするコンテキスト値（省略時は現在のコンテキスト）
+   * @returns バインドされた関数
+   */
   bind<Args extends unknown[]>(fn: (...args: Args) => void, context?: T): (...args: Args) => void;
 }
 

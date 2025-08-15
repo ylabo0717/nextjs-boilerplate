@@ -148,10 +148,62 @@ type InternalLokiClientConfig = Required<Omit<LokiClientConfig, 'auth' | 'apiKey
   tenantId?: string;
 };
 
+/**
+ * Grafana Loki Push API クライアント
+ *
+ * 構造化ログをGrafana Lokiに効率的に送信するためのクライアント実装。
+ * バッチング、リトライロジック、エラーハンドリングを提供。
+ *
+ * @example
+ * ```typescript
+ * const client = new LokiClient({
+ *   url: 'http://localhost:3100',
+ *   defaultLabels: { service: 'my-app', environment: 'production' }
+ * });
+ *
+ * // 単一ログの送信
+ * await client.pushLog('info', 'Application started', {
+ *   userId: '123',
+ *   version: '1.0.0'
+ * });
+ *
+ * // バッチでログを送信
+ * await client.pushLogs([
+ *   { level: 'info', message: 'User logged in', labels: { action: 'login' } },
+ *   { level: 'error', message: 'Failed to connect', labels: { component: 'db' } }
+ * ]);
+ * ```
+ *
+ * @public
+ */
+
 export class LokiClient {
+  /**
+   * クライアント設定（内部使用）
+   *
+   * @internal
+   */
   private readonly config: InternalLokiClientConfig;
+
+  /**
+   * ログエントリバッファ（内部使用）
+   *
+   * @internal
+   */
   private readonly buffer: BufferedLogEntry[] = [];
+
+  /**
+   * 自動フラッシュタイマー（内部使用）
+   *
+   * @internal
+   */
   private flushTimer: NodeJS.Timeout | null = null;
+
+  /**
+   * シャットダウン状態フラグ（内部使用）
+   *
+   * @internal
+   */
   private isShutdown = false;
 
   /**
@@ -535,15 +587,6 @@ export class LokiClient {
 }
 
 /**
- * Loki クライアント設定の検証
- *
- * @param config - 検証する設定
- * @returns Promise that resolves if configuration is valid
- * @throws Error if configuration is invalid
- *
- * @public
- */
-/**
  * 基本設定の検証
  *
  * @param config - 検証する設定
@@ -642,6 +685,18 @@ async function validateConnectivity(config: LokiClientConfig): Promise<void> {
     }
   }
 }
+
+/**
+ * Loki クライアント設定の検証
+ *
+ * 設定の妥当性を検証し、オプションで接続性テストを実行します。
+ *
+ * @param config - 検証する設定
+ * @returns Promise that resolves if configuration is valid
+ * @throws Error if configuration is invalid
+ *
+ * @public
+ */
 
 export async function validateLokiConfig(config: LokiClientConfig): Promise<void> {
   validateBasicConfig(config);

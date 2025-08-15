@@ -55,13 +55,21 @@ export interface LokiTransportConfig extends Partial<LokiClientConfig> {
  * @public
  */
 export interface LokiTransportStats {
+  /** Loki トランスポートが有効かどうか */
   readonly enabled: boolean;
+  /** 送信を試行したログの総数 */
   readonly totalLogs: number;
+  /** 正常に送信されたログの数 */
   readonly successfulLogs: number;
+  /** 送信に失敗したログの数 */
   readonly failedLogs: number;
+  /** フィルタリングにより除外されたログの数 */
   readonly excludedLogs: number;
+  /** 現在バッファリングされているログの数 */
   readonly bufferedLogs: number;
+  /** 最後に発生したエラーメッセージ */
   readonly lastError?: string;
+  /** 最後にエラーが発生した時刻 */
   readonly lastErrorTime?: Date;
 }
 
@@ -106,9 +114,32 @@ interface MutableTransportStats {
  * @public
  */
 export class LokiTransport {
+  /**
+   * トランスポート設定（内部使用）
+   *
+   * @internal
+   */
   private readonly config: Required<LokiTransportConfig>;
+
+  /**
+   * Lokiクライアントインスタンス（内部使用）
+   *
+   * @internal
+   */
   private client: LokiClient | null = null;
+
+  /**
+   * トランスポート統計情報（内部使用）
+   *
+   * @internal
+   */
   private stats: MutableTransportStats;
+
+  /**
+   * 初期化完了フラグ（内部使用）
+   *
+   * @internal
+   */
   private isInitialized = false;
 
   /**

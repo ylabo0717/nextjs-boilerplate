@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { withAPIRouteTracing, traceOperation } from '@/lib/logger/api-route-tracing';
 import {
   saveRemoteConfig,
   createDefaultConfig,
@@ -166,275 +167,297 @@ function createSuccessResponse<T>(data: T, message?: string): NextResponse {
 /**
  * GET /api/admin/log-level - Fetch current configuration
  */
-export async function GET(request: NextRequest) {
-  const config = createAdminAuthConfig();
+export const GET = withAPIRouteTracing(
+  async function GET(request: NextRequest) {
+    const config = createAdminAuthConfig();
 
-  try {
-    // Rate limiting
-    const clientId = getClientIdentifier(request);
-    const rateCheck = checkRateLimit(clientId, config);
-    if (!rateCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: RATE_LIMIT_ERROR,
-          retry_after: Math.ceil((rateCheck.resetTime! - Date.now()) / 1000),
-        },
-        { status: 429 }
+    try {
+      // Rate limiting
+      const clientId = getClientIdentifier(request);
+      const rateCheck = checkRateLimit(clientId, config);
+      if (!rateCheck.allowed) {
+        return NextResponse.json(
+          {
+            error: RATE_LIMIT_ERROR,
+            retry_after: Math.ceil((rateCheck.resetTime! - Date.now()) / 1000),
+          },
+          { status: 429 }
+        );
+      }
+
+      // Authentication
+      const authResult = validateAdminAuth(request, config);
+      if (!authResult.valid) {
+        return createErrorResponse(authResult.error!, 401);
+      }
+
+      // Get include_summary query parameter
+      const url = new URL(request.url);
+      const includeSummary = url.searchParams.get('summary') === 'true';
+
+      // Fetch configuration with fallback
+      const configResult = await traceOperation('get-config-with-fallback', () =>
+        getConfigWithFallback()
       );
-    }
 
-    // Authentication
-    const authResult = validateAdminAuth(request, config);
-    if (!authResult.valid) {
-      return createErrorResponse(authResult.error!, 401);
-    }
+      if (!configResult.success) {
+        return createErrorResponse('Failed to fetch configuration', 500, {
+          error: configResult.error,
+          source: configResult.source,
+        });
+      }
 
-    // Get include_summary query parameter
-    const url = new URL(request.url);
-    const includeSummary = url.searchParams.get('summary') === 'true';
-
-    // Fetch configuration with fallback
-    const configResult = await getConfigWithFallback();
-
-    if (!configResult.success) {
-      return createErrorResponse('Failed to fetch configuration', 500, {
-        error: configResult.error,
+      const responseData = {
+        config: configResult.config,
         source: configResult.source,
+        cached: configResult.cached,
+        summary: includeSummary ? getConfigSummary(configResult.config!) : undefined,
+      };
+
+      return createSuccessResponse(responseData, 'Configuration retrieved successfully');
+    } catch (error) {
+      console.error('Admin API GET error:', {
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString(),
       });
+
+      return createErrorResponse(INTERNAL_SERVER_ERROR, 500);
     }
-
-    const responseData = {
-      config: configResult.config,
-      source: configResult.source,
-      cached: configResult.cached,
-      summary: includeSummary ? getConfigSummary(configResult.config!) : undefined,
-    };
-
-    return createSuccessResponse(responseData, 'Configuration retrieved successfully');
-  } catch (error) {
-    console.error('Admin API GET error:', {
-      error: error instanceof Error ? error.message : String(error),
-      timestamp: new Date().toISOString(),
-    });
-
-    return createErrorResponse(INTERNAL_SERVER_ERROR, 500);
-  }
-}
+  },
+  { spanName: 'GET /api/admin/log-level', attributes: { 'api.type': 'admin' } }
+);
 
 /**
  * POST /api/admin/log-level - Update configuration
  */
-export async function POST(request: NextRequest) {
-  const config = createAdminAuthConfig();
+export const POST = withAPIRouteTracing(
+  async function POST(request: NextRequest) {
+    const config = createAdminAuthConfig();
 
-  try {
-    // Rate limiting
-    const clientId = getClientIdentifier(request);
-    const rateCheck = checkRateLimit(clientId, config);
-    if (!rateCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: RATE_LIMIT_ERROR,
-          retry_after: Math.ceil((rateCheck.resetTime! - Date.now()) / 1000),
-        },
-        { status: 429 }
-      );
-    }
-
-    // Authentication
-    const authResult = validateAdminAuth(request, config);
-    if (!authResult.valid) {
-      return createErrorResponse(authResult.error!, 401);
-    }
-
-    // Parse request body
-    let body: unknown;
     try {
-      body = await request.json();
-    } catch {
-      return createErrorResponse('Invalid JSON in request body', 400);
-    }
+      // Rate limiting
+      const clientId = getClientIdentifier(request);
+      const rateCheck = checkRateLimit(clientId, config);
+      if (!rateCheck.allowed) {
+        return NextResponse.json(
+          {
+            error: RATE_LIMIT_ERROR,
+            retry_after: Math.ceil((rateCheck.resetTime! - Date.now()) / 1000),
+          },
+          { status: 429 }
+        );
+      }
 
-    // Validate configuration format
-    const validation = validateRemoteConfig(body);
-    if (!validation.valid) {
-      return createErrorResponse('Configuration validation failed', 400, {
-        errors: validation.errors,
+      // Authentication
+      const authResult = validateAdminAuth(request, config);
+      if (!authResult.valid) {
+        return createErrorResponse(authResult.error!, 401);
+      }
+
+      // Parse request body
+      let body: unknown;
+      try {
+        body = await request.json();
+      } catch {
+        return createErrorResponse('Invalid JSON in request body', 400);
+      }
+
+      // Validate configuration format
+      const validation = validateRemoteConfig(body);
+      if (!validation.valid) {
+        return createErrorResponse('Configuration validation failed', 400, {
+          errors: validation.errors,
+        });
+      }
+
+      // Get current configuration for merging
+      const currentResult = await traceOperation('get-current-config', () =>
+        getConfigWithFallback()
+      );
+      const baseConfig = currentResult.success ? currentResult.config! : createDefaultConfig();
+
+      // Merge new configuration with current
+      const newConfig = mergeConfigurations(baseConfig, body as Partial<RemoteLogConfig>);
+
+      // Save the updated configuration
+      const saveResult = await traceOperation('save-config', () => saveRemoteConfig(newConfig));
+
+      if (!saveResult.success) {
+        return createErrorResponse('Failed to save configuration', 500, {
+          error: saveResult.error,
+        });
+      }
+
+      // Clear cache to force refresh
+      await clearConfigCache();
+
+      const responseData = {
+        config: saveResult.config,
+        previous_version: saveResult.previous_version,
+        summary: getConfigSummary(saveResult.config!),
+      };
+
+      return createSuccessResponse(responseData, 'Configuration updated successfully');
+    } catch (error) {
+      console.error('Admin API POST error:', {
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString(),
       });
+
+      return createErrorResponse(INTERNAL_SERVER_ERROR, 500);
     }
-
-    // Get current configuration for merging
-    const currentResult = await getConfigWithFallback();
-    const baseConfig = currentResult.success ? currentResult.config! : createDefaultConfig();
-
-    // Merge new configuration with current
-    const newConfig = mergeConfigurations(baseConfig, body as Partial<RemoteLogConfig>);
-
-    // Save the updated configuration
-    const saveResult = await saveRemoteConfig(newConfig);
-
-    if (!saveResult.success) {
-      return createErrorResponse('Failed to save configuration', 500, {
-        error: saveResult.error,
-      });
-    }
-
-    // Clear cache to force refresh
-    await clearConfigCache();
-
-    const responseData = {
-      config: saveResult.config,
-      previous_version: saveResult.previous_version,
-      summary: getConfigSummary(saveResult.config!),
-    };
-
-    return createSuccessResponse(responseData, 'Configuration updated successfully');
-  } catch (error) {
-    console.error('Admin API POST error:', {
-      error: error instanceof Error ? error.message : String(error),
-      timestamp: new Date().toISOString(),
-    });
-
-    return createErrorResponse(INTERNAL_SERVER_ERROR, 500);
-  }
-}
+  },
+  { spanName: 'POST /api/admin/log-level', attributes: { 'api.type': 'admin' } }
+);
 
 /**
  * PATCH /api/admin/log-level - Partial configuration update
  */
-export async function PATCH(request: NextRequest) {
-  const config = createAdminAuthConfig();
+export const PATCH = withAPIRouteTracing(
+  async function PATCH(request: NextRequest) {
+    const config = createAdminAuthConfig();
 
-  try {
-    // Rate limiting
-    const clientId = getClientIdentifier(request);
-    const rateCheck = checkRateLimit(clientId, config);
-    if (!rateCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: RATE_LIMIT_ERROR,
-          retry_after: Math.ceil((rateCheck.resetTime! - Date.now()) / 1000),
-        },
-        { status: 429 }
-      );
-    }
-
-    // Authentication
-    const authResult = validateAdminAuth(request, config);
-    if (!authResult.valid) {
-      return createErrorResponse(authResult.error!, 401);
-    }
-
-    // Parse request body
-    let updates: Partial<RemoteLogConfig>;
     try {
-      updates = await request.json();
-    } catch {
-      return createErrorResponse('Invalid JSON in request body', 400);
-    }
+      // Rate limiting
+      const clientId = getClientIdentifier(request);
+      const rateCheck = checkRateLimit(clientId, config);
+      if (!rateCheck.allowed) {
+        return NextResponse.json(
+          {
+            error: RATE_LIMIT_ERROR,
+            retry_after: Math.ceil((rateCheck.resetTime! - Date.now()) / 1000),
+          },
+          { status: 429 }
+        );
+      }
 
-    // Get current configuration
-    const currentResult = await getConfigWithFallback();
-    if (!currentResult.success) {
-      return createErrorResponse('Failed to fetch current configuration', 500, {
-        error: currentResult.error,
+      // Authentication
+      const authResult = validateAdminAuth(request, config);
+      if (!authResult.valid) {
+        return createErrorResponse(authResult.error!, 401);
+      }
+
+      // Parse request body
+      let updates: Partial<RemoteLogConfig>;
+      try {
+        updates = await request.json();
+      } catch {
+        return createErrorResponse('Invalid JSON in request body', 400);
+      }
+
+      // Get current configuration
+      const currentResult = await traceOperation('get-current-config', () =>
+        getConfigWithFallback()
+      );
+      if (!currentResult.success) {
+        return createErrorResponse('Failed to fetch current configuration', 500, {
+          error: currentResult.error,
+        });
+      }
+
+      // Apply partial updates
+      const newConfig = mergeConfigurations(currentResult.config!, updates);
+
+      // Validate the merged configuration
+      const validation = validateRemoteConfig(newConfig);
+      if (!validation.valid) {
+        return createErrorResponse('Updated configuration validation failed', 400, {
+          errors: validation.errors,
+        });
+      }
+
+      // Save the updated configuration
+      const saveResult = await traceOperation('save-patched-config', () =>
+        saveRemoteConfig(newConfig)
+      );
+
+      if (!saveResult.success) {
+        return createErrorResponse('Failed to save configuration', 500, {
+          error: saveResult.error,
+        });
+      }
+
+      // Clear cache to force refresh
+      await clearConfigCache();
+
+      const responseData = {
+        config: saveResult.config,
+        previous_version: saveResult.previous_version,
+        changes: updates,
+        summary: getConfigSummary(saveResult.config!),
+      };
+
+      return createSuccessResponse(responseData, 'Configuration updated successfully');
+    } catch (error) {
+      console.error('Admin API PATCH error:', {
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString(),
       });
+
+      return createErrorResponse(INTERNAL_SERVER_ERROR, 500);
     }
-
-    // Apply partial updates
-    const newConfig = mergeConfigurations(currentResult.config!, updates);
-
-    // Validate the merged configuration
-    const validation = validateRemoteConfig(newConfig);
-    if (!validation.valid) {
-      return createErrorResponse('Updated configuration validation failed', 400, {
-        errors: validation.errors,
-      });
-    }
-
-    // Save the updated configuration
-    const saveResult = await saveRemoteConfig(newConfig);
-
-    if (!saveResult.success) {
-      return createErrorResponse('Failed to save configuration', 500, {
-        error: saveResult.error,
-      });
-    }
-
-    // Clear cache to force refresh
-    await clearConfigCache();
-
-    const responseData = {
-      config: saveResult.config,
-      previous_version: saveResult.previous_version,
-      changes: updates,
-      summary: getConfigSummary(saveResult.config!),
-    };
-
-    return createSuccessResponse(responseData, 'Configuration updated successfully');
-  } catch (error) {
-    console.error('Admin API PATCH error:', {
-      error: error instanceof Error ? error.message : String(error),
-      timestamp: new Date().toISOString(),
-    });
-
-    return createErrorResponse(INTERNAL_SERVER_ERROR, 500);
-  }
-}
+  },
+  { spanName: 'PATCH /api/admin/log-level', attributes: { 'api.type': 'admin' } }
+);
 
 /**
  * DELETE /api/admin/log-level - Reset to default configuration
  */
-export async function DELETE(request: NextRequest) {
-  const config = createAdminAuthConfig();
+export const DELETE = withAPIRouteTracing(
+  async function DELETE(request: NextRequest) {
+    const config = createAdminAuthConfig();
 
-  try {
-    // Rate limiting
-    const clientId = getClientIdentifier(request);
-    const rateCheck = checkRateLimit(clientId, config);
-    if (!rateCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: RATE_LIMIT_ERROR,
-          retry_after: Math.ceil((rateCheck.resetTime! - Date.now()) / 1000),
-        },
-        { status: 429 }
+    try {
+      // Rate limiting
+      const clientId = getClientIdentifier(request);
+      const rateCheck = checkRateLimit(clientId, config);
+      if (!rateCheck.allowed) {
+        return NextResponse.json(
+          {
+            error: RATE_LIMIT_ERROR,
+            retry_after: Math.ceil((rateCheck.resetTime! - Date.now()) / 1000),
+          },
+          { status: 429 }
+        );
+      }
+
+      // Authentication
+      const authResult = validateAdminAuth(request, config);
+      if (!authResult.valid) {
+        return createErrorResponse(authResult.error!, 401);
+      }
+
+      // Create default configuration
+      const defaultConfig = createDefaultConfig();
+
+      // Save default configuration
+      const saveResult = await traceOperation('save-default-config', () =>
+        saveRemoteConfig(defaultConfig)
       );
-    }
 
-    // Authentication
-    const authResult = validateAdminAuth(request, config);
-    if (!authResult.valid) {
-      return createErrorResponse(authResult.error!, 401);
-    }
+      if (!saveResult.success) {
+        return createErrorResponse('Failed to reset configuration', 500, {
+          error: saveResult.error,
+        });
+      }
 
-    // Create default configuration
-    const defaultConfig = createDefaultConfig();
+      // Clear cache
+      await clearConfigCache();
 
-    // Save default configuration
-    const saveResult = await saveRemoteConfig(defaultConfig);
+      const responseData = {
+        config: saveResult.config,
+        summary: getConfigSummary(saveResult.config!),
+      };
 
-    if (!saveResult.success) {
-      return createErrorResponse('Failed to reset configuration', 500, {
-        error: saveResult.error,
+      return createSuccessResponse(responseData, 'Configuration reset to default');
+    } catch (error) {
+      console.error('Admin API DELETE error:', {
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString(),
       });
+
+      return createErrorResponse(INTERNAL_SERVER_ERROR, 500);
     }
-
-    // Clear cache
-    await clearConfigCache();
-
-    const responseData = {
-      config: saveResult.config,
-      summary: getConfigSummary(saveResult.config!),
-    };
-
-    return createSuccessResponse(responseData, 'Configuration reset to default');
-  } catch (error) {
-    console.error('Admin API DELETE error:', {
-      error: error instanceof Error ? error.message : String(error),
-      timestamp: new Date().toISOString(),
-    });
-
-    return createErrorResponse(INTERNAL_SERVER_ERROR, 500);
-  }
-}
+  },
+  { spanName: 'DELETE /api/admin/log-level', attributes: { 'api.type': 'admin' } }
+);

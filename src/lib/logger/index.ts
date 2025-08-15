@@ -60,6 +60,19 @@ export {
 } from './timer-context';
 export type { ContextualTimerHandle } from './timer-context';
 
+// API Route トレーシング統合
+export {
+  withAPIRouteTracing,
+  createTracedAPIClient,
+  getCurrentSpanContext,
+  traceOperation,
+} from './api-route-tracing';
+export type {
+  APIRouteSpanContext,
+  APIRouteSpanResult,
+  CreateAPIRouteSpanOptions,
+} from './api-route-tracing';
+
 // サーバーサイドLogger
 export { serverLogger, serverLoggerWrapper, serverLoggerHelpers } from './server';
 

@@ -4,11 +4,11 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { 
-  setTimeoutWithContext, 
+import {
+  setTimeoutWithContext,
   setIntervalWithContext,
   TimerContextManager,
-  createTimerContextManager 
+  createTimerContextManager,
 } from '@/lib/logger/timer-context';
 import { createLoggerContextConfig, runWithLoggerContext } from '@/lib/logger/context';
 import { generateRequestId } from '@/lib/logger/utils';
@@ -24,7 +24,7 @@ describe('Timer Context Integration', () => {
 
   afterEach(() => {
     // Clear all active timers
-    activeTimers.forEach(clear => clear());
+    activeTimers.forEach((clear) => clear());
     activeTimers.length = 0;
     vi.useRealTimers();
   });
@@ -37,13 +37,17 @@ describe('Timer Context Integration', () => {
 
       await new Promise<void>((resolve) => {
         runWithLoggerContext(config, { requestId, traceId }, () => {
-          const timer = setTimeoutWithContext(config, () => {
-            const currentContext = config.storage.getStore();
-            results.push(currentContext?.requestId || 'no-context');
-            results.push(currentContext?.traceId || 'no-trace');
-            resolve();
-          }, 100);
-          
+          const timer = setTimeoutWithContext(
+            config,
+            () => {
+              const currentContext = config.storage.getStore();
+              results.push(currentContext?.requestId || 'no-context');
+              results.push(currentContext?.traceId || 'no-trace');
+              resolve();
+            },
+            100
+          );
+
           activeTimers.push(() => timer.clear());
         });
 
@@ -59,10 +63,14 @@ describe('Timer Context Integration', () => {
 
       await new Promise<void>((resolve) => {
         // Execute outside of any context
-        const timer = setTimeoutWithContext(config, () => {
-          results.push('executed');
-          resolve();
-        }, 50);
+        const timer = setTimeoutWithContext(
+          config,
+          () => {
+            results.push('executed');
+            resolve();
+          },
+          50
+        );
 
         activeTimers.push(() => timer.clear());
 
@@ -104,10 +112,10 @@ describe('Timer Context Integration', () => {
 
       runWithLoggerContext(config, { requestId: 'test' }, () => {
         const timer = setTimeoutWithContext(config, executed, 100);
-        
+
         // Clear the timer before it executes
         timer.clear();
-        
+
         vi.advanceTimersByTime(150);
       });
 
@@ -136,17 +144,21 @@ describe('Timer Context Integration', () => {
 
       await new Promise<void>((resolve) => {
         runWithLoggerContext(config, { requestId, traceId }, () => {
-          const timer = setIntervalWithContext(config, () => {
-            const currentContext = config.storage.getStore();
-            results.push(currentContext?.requestId || 'no-context');
-            results.push(currentContext?.traceId || 'no-trace');
-            
-            executionCount++;
-            if (executionCount >= 3) {
-              timer.clear();
-              resolve();
-            }
-          }, 50);
+          const timer = setIntervalWithContext(
+            config,
+            () => {
+              const currentContext = config.storage.getStore();
+              results.push(currentContext?.requestId || 'no-context');
+              results.push(currentContext?.traceId || 'no-trace');
+
+              executionCount++;
+              if (executionCount >= 3) {
+                timer.clear();
+                resolve();
+              }
+            },
+            50
+          );
 
           activeTimers.push(() => timer.clear());
         });
@@ -156,9 +168,12 @@ describe('Timer Context Integration', () => {
       });
 
       expect(results).toEqual([
-        requestId, traceId,  // First execution
-        requestId, traceId,  // Second execution  
-        requestId, traceId   // Third execution
+        requestId,
+        traceId, // First execution
+        requestId,
+        traceId, // Second execution
+        requestId,
+        traceId, // Third execution
       ]);
       expect(executionCount).toBe(3);
     });
@@ -170,17 +185,21 @@ describe('Timer Context Integration', () => {
 
       await new Promise<void>((resolve) => {
         runWithLoggerContext(config, { requestId: 'test', sessionId }, () => {
-          const timer = setIntervalWithContext(config, () => {
-            const currentContext = config.storage.getStore();
-            if (currentContext?.sessionId === sessionId) {
-              executions.push(++executionCount);
-            }
-            
-            if (executionCount >= 5) {
-              timer.clear();
-              resolve();
-            }
-          }, 25);
+          const timer = setIntervalWithContext(
+            config,
+            () => {
+              const currentContext = config.storage.getStore();
+              if (currentContext?.sessionId === sessionId) {
+                executions.push(++executionCount);
+              }
+
+              if (executionCount >= 5) {
+                timer.clear();
+                resolve();
+              }
+            },
+            25
+          );
 
           activeTimers.push(() => timer.clear());
         });
@@ -196,13 +215,13 @@ describe('Timer Context Integration', () => {
 
       runWithLoggerContext(config, { requestId: 'test' }, () => {
         const timer = setIntervalWithContext(config, executed, 50);
-        
+
         // Let it execute twice
         vi.advanceTimersByTime(100);
-        
+
         // Clear the timer
         timer.clear();
-        
+
         // Advance more time
         vi.advanceTimersByTime(100);
       });
@@ -232,7 +251,7 @@ describe('Timer Context Integration', () => {
           }, 100);
 
           expect(manager.getActiveTimerCount()).toBe(1);
-          
+
           const activeTimers = manager.getActiveTimers();
           expect(activeTimers).toHaveLength(1);
           expect(activeTimers[0].context?.requestId).toBe(requestId);
@@ -310,8 +329,8 @@ describe('Timer Context Integration', () => {
 
       const activeTimers = manager.getActiveTimers();
       expect(activeTimers).toHaveLength(2);
-      
-      const contexts = activeTimers.map(t => t.context?.requestId).sort();
+
+      const contexts = activeTimers.map((t) => t.context?.requestId).sort();
       expect(contexts).toEqual([requestId1, requestId2].sort());
     });
 
@@ -341,29 +360,34 @@ describe('Timer Context Integration', () => {
       await new Promise<void>((resolve) => {
         runWithLoggerContext(config, { requestId: outerRequestId }, () => {
           // Outer timeout
-          setTimeoutWithContext(config, () => {
-            const outerContext = config.storage.getStore();
-            results.push(`outer:${outerContext?.requestId}`);
+          setTimeoutWithContext(
+            config,
+            () => {
+              const outerContext = config.storage.getStore();
+              results.push(`outer:${outerContext?.requestId}`);
 
-            // Inner context with different requestId
-            runWithLoggerContext(config, { requestId: innerRequestId }, () => {
-              // Inner timeout should preserve inner context
-              setTimeoutWithContext(config, () => {
-                const innerContext = config.storage.getStore();
-                results.push(`inner:${innerContext?.requestId}`);
-                resolve();
-              }, 50);
-            });
-          }, 100);
+              // Inner context with different requestId
+              runWithLoggerContext(config, { requestId: innerRequestId }, () => {
+                // Inner timeout should preserve inner context
+                setTimeoutWithContext(
+                  config,
+                  () => {
+                    const innerContext = config.storage.getStore();
+                    results.push(`inner:${innerContext?.requestId}`);
+                    resolve();
+                  },
+                  50
+                );
+              });
+            },
+            100
+          );
         });
 
         vi.advanceTimersByTime(200);
       });
 
-      expect(results).toEqual([
-        `outer:${outerRequestId}`,
-        `inner:${innerRequestId}`
-      ]);
+      expect(results).toEqual([`outer:${outerRequestId}`, `inner:${innerRequestId}`]);
     });
 
     test('handles rapid successive timer creation with different contexts', async () => {
@@ -372,14 +396,18 @@ describe('Timer Context Integration', () => {
 
       for (let i = 0; i < 5; i++) {
         const requestId = `request_${i}`;
-        
+
         const promise = new Promise<void>((resolve) => {
           runWithLoggerContext(config, { requestId }, () => {
-            setTimeoutWithContext(config, () => {
-              const currentContext = config.storage.getStore();
-              results.push(currentContext?.requestId || 'no-context');
-              resolve();
-            }, 50 + i * 10); // Staggered timing
+            setTimeoutWithContext(
+              config,
+              () => {
+                const currentContext = config.storage.getStore();
+                results.push(currentContext?.requestId || 'no-context');
+                resolve();
+              },
+              50 + i * 10
+            ); // Staggered timing
           });
         });
 
@@ -390,26 +418,32 @@ describe('Timer Context Integration', () => {
       await Promise.all(promises);
 
       expect(results).toHaveLength(5);
-      expect(results).toEqual([
-        'request_0', 'request_1', 'request_2', 'request_3', 'request_4'
-      ]);
+      expect(results).toEqual(['request_0', 'request_1', 'request_2', 'request_3', 'request_4']);
     });
   });
 
   describe('Error Handling', () => {
     test('handles errors in timer callbacks gracefully', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
+
       await new Promise<void>((resolve) => {
         runWithLoggerContext(config, { requestId: 'test' }, () => {
-          setTimeoutWithContext(config, () => {
-            throw new Error('Timer callback error');
-          }, 50);
+          setTimeoutWithContext(
+            config,
+            () => {
+              throw new Error('Timer callback error');
+            },
+            50
+          );
 
           // This timer should still execute despite the error in the previous one
-          setTimeoutWithContext(config, () => {
-            resolve();
-          }, 100);
+          setTimeoutWithContext(
+            config,
+            () => {
+              resolve();
+            },
+            100
+          );
         });
 
         vi.advanceTimersByTime(150);
@@ -424,15 +458,23 @@ describe('Timer Context Integration', () => {
 
       await new Promise<void>((resolve) => {
         runWithLoggerContext(config, { requestId }, () => {
-          setTimeoutWithContext(config, () => {
-            const currentContext = config.storage.getStore();
-            results.push(currentContext?.requestId || 'no-context');
-            throw new Error('Intentional error');
-          }, 50);
+          setTimeoutWithContext(
+            config,
+            () => {
+              const currentContext = config.storage.getStore();
+              results.push(currentContext?.requestId || 'no-context');
+              throw new Error('Intentional error');
+            },
+            50
+          );
 
-          setTimeoutWithContext(config, () => {
-            resolve();
-          }, 100);
+          setTimeoutWithContext(
+            config,
+            () => {
+              resolve();
+            },
+            100
+          );
         });
 
         vi.advanceTimersByTime(150);

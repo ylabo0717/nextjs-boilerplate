@@ -35,35 +35,47 @@ describe('Rate Limiter Configuration', () => {
     expect(validateRateLimiterConfig(validConfig)).toBe(true);
 
     // Test invalid configurations
-    expect(validateRateLimiterConfig({
-      ...validConfig,
-      max_tokens: 0,
-    })).toBe(false);
+    expect(
+      validateRateLimiterConfig({
+        ...validConfig,
+        max_tokens: 0,
+      })
+    ).toBe(false);
 
-    expect(validateRateLimiterConfig({
-      ...validConfig,
-      refill_rate: -1,
-    })).toBe(false);
+    expect(
+      validateRateLimiterConfig({
+        ...validConfig,
+        refill_rate: -1,
+      })
+    ).toBe(false);
 
-    expect(validateRateLimiterConfig({
-      ...validConfig,
-      burst_capacity: validConfig.max_tokens - 1,
-    })).toBe(false);
+    expect(
+      validateRateLimiterConfig({
+        ...validConfig,
+        burst_capacity: validConfig.max_tokens - 1,
+      })
+    ).toBe(false);
 
-    expect(validateRateLimiterConfig({
-      ...validConfig,
-      backoff_multiplier: 1,
-    })).toBe(false);
+    expect(
+      validateRateLimiterConfig({
+        ...validConfig,
+        backoff_multiplier: 1,
+      })
+    ).toBe(false);
 
-    expect(validateRateLimiterConfig({
-      ...validConfig,
-      sampling_rates: { error: 1.5 }, // Invalid rate > 1
-    })).toBe(false);
+    expect(
+      validateRateLimiterConfig({
+        ...validConfig,
+        sampling_rates: { error: 1.5 }, // Invalid rate > 1
+      })
+    ).toBe(false);
 
-    expect(validateRateLimiterConfig({
-      ...validConfig,
-      sampling_rates: { error: -0.1 }, // Invalid rate < 0
-    })).toBe(false);
+    expect(
+      validateRateLimiterConfig({
+        ...validConfig,
+        sampling_rates: { error: -0.1 }, // Invalid rate < 0
+      })
+    ).toBe(false);
   });
 
   test('createInitialState creates immutable state', () => {
@@ -97,7 +109,7 @@ describe('Rate Limiting Operations', () => {
 
   test('checkRateLimit handles different endpoints separately', async () => {
     const clientId = 'test-client-2';
-    
+
     const result1 = await checkRateLimit(config, clientId, '/api/endpoint1', 'info');
     const result2 = await checkRateLimit(config, clientId, '/api/endpoint2', 'info');
 
@@ -126,24 +138,24 @@ describe('Rate Limiting Operations', () => {
 describe('Error Frequency Analysis', () => {
   test('analyzeErrorFrequency calculates errors per minute correctly', () => {
     const currentTime = Date.now();
-    const oneMinuteAgo = currentTime - (60 * 1000);
-    const twoMinutesAgo = currentTime - (120 * 1000);
+    const oneMinuteAgo = currentTime - 60 * 1000;
+    const twoMinutesAgo = currentTime - 120 * 1000;
 
     // Create state with errors at different times
     const timestamps = [
-      twoMinutesAgo,          // Should be excluded (>1 minute ago)
-      oneMinuteAgo + 1000,    // Should be included
-      oneMinuteAgo + 30000,   // Should be included
-      currentTime - 5000,     // Should be included
+      twoMinutesAgo, // Should be excluded (>1 minute ago)
+      oneMinuteAgo + 1000, // Should be included
+      oneMinuteAgo + 30000, // Should be included
+      currentTime - 5000, // Should be included
     ];
 
     const state: RateLimiterState = {
       ...createInitialState(),
       error_timestamps: timestamps,
       error_counts: {
-        'TypeError': 10,
-        'ReferenceError': 5,
-        'NetworkError': 2,
+        TypeError: 10,
+        ReferenceError: 5,
+        NetworkError: 2,
       },
     };
 
@@ -159,10 +171,10 @@ describe('Error Frequency Analysis', () => {
 
   test('analyzeErrorFrequency recommends adaptive sampling for high error rates', () => {
     const currentTime = Date.now();
-    
+
     // Create state with many recent errors
-    const recentTimestamps = Array.from({ length: 600 }, (_, i) => currentTime - (i * 100));
-    
+    const recentTimestamps = Array.from({ length: 600 }, (_, i) => currentTime - i * 100);
+
     const state: RateLimiterState = {
       ...createInitialState(),
       error_timestamps: recentTimestamps,
@@ -249,7 +261,7 @@ describe('Edge Cases', () => {
   test('handles empty error data', () => {
     const state = createInitialState();
     const analysis = analyzeErrorFrequency(state, Date.now());
-    
+
     expect(analysis.total_errors).toBe(0);
     expect(analysis.errors_per_minute).toBe(0);
     expect(analysis.should_apply_adaptive).toBe(false);

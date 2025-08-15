@@ -9,7 +9,7 @@ import {
   withAPIRouteTracing,
   createTracedAPIClient,
   getCurrentSpanContext,
-  traceOperation
+  traceOperation,
 } from '@/lib/logger/api-route-tracing';
 
 // Simple mocks
@@ -22,32 +22,32 @@ vi.mock('@opentelemetry/api', () => ({
             spanContext: () => ({
               traceId: 'test-trace-id',
               spanId: 'test-span-id',
-              traceFlags: 1
+              traceFlags: 1,
             }),
             setAttributes: () => {},
             setStatus: () => {},
             recordException: () => {},
-            end: () => {}
+            end: () => {},
           };
           return callback(mockSpan);
         }
         return null;
-      }
+      },
     }),
     getActiveSpan: () => ({
       spanContext: () => ({
         traceId: 'active-trace-id',
         spanId: 'active-span-id',
-        traceFlags: 1
-      })
-    })
+        traceFlags: 1,
+      }),
+    }),
   },
   context: {
     active: () => ({}),
-    with: (ctx: any, callback: any) => callback()
+    with: (ctx: any, callback: any) => callback(),
   },
   SpanKind: { SERVER: 1, INTERNAL: 3 },
-  SpanStatusCode: { OK: 1, ERROR: 2 }
+  SpanStatusCode: { OK: 1, ERROR: 2 },
 }));
 
 // Mock fetch with proper vi mock
@@ -73,7 +73,7 @@ describe('API Route Tracing - Basic Functionality', () => {
     const wrappedHandler = withAPIRouteTracing(handler);
 
     const request = new NextRequest('https://example.com/api/test');
-    
+
     await expect(wrappedHandler(request)).rejects.toThrow('Test error');
     expect(handler).toHaveBeenCalled();
   });
@@ -82,7 +82,7 @@ describe('API Route Tracing - Basic Functionality', () => {
     const handler = vi.fn(async () => NextResponse.json({ success: true }));
     const wrappedHandler = withAPIRouteTracing(handler, {
       spanName: 'Custom Span',
-      attributes: { 'custom.attr': 'value' }
+      attributes: { 'custom.attr': 'value' },
     });
 
     const request = new NextRequest('https://example.com/api/test');
@@ -105,8 +105,7 @@ describe('API Route Tracing - Basic Functionality', () => {
       throw new Error('Operation error');
     });
 
-    await expect(traceOperation('failing-op', operation))
-      .rejects.toThrow('Operation error');
+    await expect(traceOperation('failing-op', operation)).rejects.toThrow('Operation error');
     expect(operation).toHaveBeenCalled();
   });
 
@@ -123,17 +122,17 @@ describe('API Route Tracing - Basic Functionality', () => {
 
   test('createTracedAPIClient methods work', async () => {
     const client = createTracedAPIClient();
-    
+
     // This should not throw
     await expect(client.get('/api/test')).resolves.toBeTruthy();
   });
 
   test('getCurrentSpanContext returns context or null', () => {
     const context = getCurrentSpanContext();
-    
+
     // Should either return a valid context or null
     expect(context === null || typeof context === 'object').toBe(true);
-    
+
     if (context) {
       expect(context).toHaveProperty('traceId');
       expect(context).toHaveProperty('spanId');
@@ -160,9 +159,9 @@ describe('API Route Tracing - Basic Functionality', () => {
 
     const request = new NextRequest('https://example.com/api/test', {
       headers: {
-        'traceparent': 'invalid-header',
-        'tracestate': 'malformed'
-      }
+        traceparent: 'invalid-header',
+        tracestate: 'malformed',
+      },
     });
 
     // Should not throw despite invalid headers
@@ -176,12 +175,14 @@ describe('API Route Tracing - Basic Functionality', () => {
     await client.get('/api/test');
 
     expect(mockFetch).toHaveBeenCalled();
-    
+
     // Check that request includes proper headers
     const calls = mockFetch.mock.calls;
-    const call = calls.find(([url]) => url === '/api/test' || (url instanceof Request && url.url.includes('/api/test')));
+    const call = calls.find(
+      ([url]) => url === '/api/test' || (url instanceof Request && url.url.includes('/api/test'))
+    );
     expect(call).toBeTruthy();
-    
+
     // If it's a Request object, check its headers
     if (call && call[0] instanceof Request) {
       const request = call[0] as Request;
@@ -196,13 +197,13 @@ describe('API Route Tracing - Basic Functionality', () => {
     await client.post('/api/test', {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer token'
+        Authorization: 'Bearer token',
       },
-      body: JSON.stringify({ data: 'test' })
+      body: JSON.stringify({ data: 'test' }),
     });
 
     expect(mockFetch).toHaveBeenCalled();
-    
+
     // Find the POST call
     const calls = mockFetch.mock.calls;
     const postCall = calls.find(([url]) => {
@@ -211,9 +212,9 @@ describe('API Route Tracing - Basic Functionality', () => {
       }
       return false;
     });
-    
+
     expect(postCall).toBeTruthy();
-    
+
     if (postCall && postCall[0] instanceof Request) {
       const request = postCall[0] as Request;
       expect(request.headers.get('Content-Type')).toBe('application/json');

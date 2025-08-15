@@ -9,7 +9,11 @@ import {
   detectRuntimeEnvironment,
   createCompatibleStorage,
 } from '@/lib/logger/utils';
-import { createLoggerContextConfig, runWithLoggerContext, getLoggerContext } from '@/lib/logger/context';
+import {
+  createLoggerContextConfig,
+  runWithLoggerContext,
+  getLoggerContext,
+} from '@/lib/logger/context';
 import type { LoggerContext } from '@/lib/logger/types';
 
 describe('Edge Runtime Environment Detection', () => {
@@ -32,7 +36,7 @@ describe('Edge Runtime Environment Detection', () => {
   test('should detect Edge Runtime when EdgeRuntime global is string', () => {
     // Mock Edge Runtime environment
     (globalThis as any).EdgeRuntime = 'edge-runtime';
-    
+
     expect(isEdgeRuntime()).toBe(true);
     expect(detectRuntimeEnvironment()).toBe('edge');
   });
@@ -40,7 +44,7 @@ describe('Edge Runtime Environment Detection', () => {
   test('should detect non-Edge environment when EdgeRuntime is not available', () => {
     // Ensure EdgeRuntime is not defined
     delete (globalThis as any).EdgeRuntime;
-    
+
     expect(isEdgeRuntime()).toBe(false);
     // In test environment, it will be detected as 'browser' which is expected
     expect(['nodejs', 'browser']).toContain(detectRuntimeEnvironment());
@@ -62,11 +66,11 @@ describe('Edge Runtime Environment Detection', () => {
 describe('Compatible Storage', () => {
   test('should create storage with correct interface', () => {
     const storage = createCompatibleStorage<string>();
-    
+
     expect(storage).toHaveProperty('run');
     expect(storage).toHaveProperty('getStore');
     expect(storage).toHaveProperty('bind');
-    
+
     expect(typeof storage.run).toBe('function');
     expect(typeof storage.getStore).toBe('function');
     expect(typeof storage.bind).toBe('function');
@@ -75,30 +79,30 @@ describe('Compatible Storage', () => {
   test('should store and retrieve context correctly', () => {
     const storage = createCompatibleStorage<string>();
     const testContext = 'test-context';
-    
+
     let retrievedContext: string | undefined;
-    
+
     storage.run(testContext, () => {
       retrievedContext = storage.getStore();
     });
-    
+
     expect(retrievedContext).toBe(testContext);
   });
 
   test('should handle nested context execution', () => {
     const storage = createCompatibleStorage<string>();
     const contexts: (string | undefined)[] = [];
-    
+
     storage.run('outer', () => {
       contexts.push(storage.getStore());
-      
+
       storage.run('inner', () => {
         contexts.push(storage.getStore());
       });
-      
+
       contexts.push(storage.getStore());
     });
-    
+
     expect(contexts).toEqual(['outer', 'inner', 'outer']);
   });
 
@@ -106,22 +110,22 @@ describe('Compatible Storage', () => {
     const storage = createCompatibleStorage<string>();
     const testContext = 'bound-context';
     let capturedContext: string | undefined;
-    
+
     const boundFunction = storage.bind(() => {
       capturedContext = storage.getStore();
     }, testContext);
-    
+
     boundFunction();
-    
+
     expect(capturedContext).toBe(testContext);
   });
 
   test('should return original function when binding without context', () => {
     const storage = createCompatibleStorage<string>();
     const originalFunction = vi.fn();
-    
+
     const boundFunction = storage.bind(originalFunction);
-    
+
     expect(boundFunction).toBe(originalFunction);
   });
 });
@@ -129,7 +133,7 @@ describe('Compatible Storage', () => {
 describe('Logger Context Integration', () => {
   test('should create logger context config with compatible storage', () => {
     const config = createLoggerContextConfig();
-    
+
     expect(config).toHaveProperty('storage');
     expect(config.storage).toHaveProperty('run');
     expect(config.storage).toHaveProperty('getStore');
@@ -146,13 +150,13 @@ describe('Logger Context Integration', () => {
       url: '/test',
       timestamp: new Date().toISOString(),
     };
-    
+
     let retrievedContext: LoggerContext | undefined;
-    
+
     runWithLoggerContext(config, testContext, () => {
       retrievedContext = getLoggerContext(config);
     });
-    
+
     expect(retrievedContext).toEqual(testContext);
   });
 
@@ -165,17 +169,17 @@ describe('Logger Context Integration', () => {
       url: '/async-test',
       timestamp: new Date().toISOString(),
     };
-    
+
     const results: (LoggerContext | undefined)[] = [];
-    
+
     await runWithLoggerContext(config, testContext, async () => {
       results.push(getLoggerContext(config));
-      
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       results.push(getLoggerContext(config));
     });
-    
+
     expect(results).toHaveLength(2);
     expect(results[0]).toEqual(testContext);
     expect(results[1]).toEqual(testContext);
@@ -183,7 +187,7 @@ describe('Logger Context Integration', () => {
 
   test('should maintain separate contexts in parallel execution', async () => {
     const config = createLoggerContextConfig();
-    
+
     const context1: LoggerContext = {
       requestId: 'request-1',
       traceId: 'trace-1',
@@ -191,7 +195,7 @@ describe('Logger Context Integration', () => {
       url: '/test-1',
       timestamp: new Date().toISOString(),
     };
-    
+
     const context2: LoggerContext = {
       requestId: 'request-2',
       traceId: 'trace-2',
@@ -199,16 +203,16 @@ describe('Logger Context Integration', () => {
       url: '/test-2',
       timestamp: new Date().toISOString(),
     };
-    
+
     const results = await Promise.all([
-      new Promise<LoggerContext | undefined>(resolve => {
+      new Promise<LoggerContext | undefined>((resolve) => {
         runWithLoggerContext(config, context1, () => {
           setTimeout(() => {
             resolve(getLoggerContext(config));
           }, 20);
         });
       }),
-      new Promise<LoggerContext | undefined>(resolve => {
+      new Promise<LoggerContext | undefined>((resolve) => {
         runWithLoggerContext(config, context2, () => {
           setTimeout(() => {
             resolve(getLoggerContext(config));
@@ -216,7 +220,7 @@ describe('Logger Context Integration', () => {
         });
       }),
     ]);
-    
+
     expect(results).toHaveLength(2);
     expect(results[0]).toEqual(context1);
     expect(results[1]).toEqual(context2);
@@ -228,9 +232,9 @@ describe('Edge Runtime Context Performance', () => {
     const storage = createCompatibleStorage<number>();
     const iterations = 1000;
     const results: number[] = [];
-    
+
     const start = performance.now();
-    
+
     for (let i = 0; i < iterations; i++) {
       storage.run(i, () => {
         const value = storage.getStore();
@@ -239,10 +243,10 @@ describe('Edge Runtime Context Performance', () => {
         }
       });
     }
-    
+
     const end = performance.now();
     const duration = end - start;
-    
+
     expect(results).toHaveLength(iterations);
     expect(results).toEqual(Array.from({ length: iterations }, (_, i) => i));
     expect(duration).toBeLessThan(100); // Should complete within 100ms
@@ -252,20 +256,20 @@ describe('Edge Runtime Context Performance', () => {
     const storage = createCompatibleStorage<string>();
     const depth = 100;
     let currentDepth = 0;
-    
+
     function recursiveRun(d: number): void {
       if (d === 0) {
         currentDepth = depth;
         return;
       }
-      
+
       storage.run(`level-${d}`, () => {
         const context = storage.getStore();
         expect(context).toBe(`level-${d}`);
         recursiveRun(d - 1);
       });
     }
-    
+
     recursiveRun(depth);
     expect(currentDepth).toBe(depth);
   });

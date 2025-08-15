@@ -7,8 +7,10 @@
 import { clientLoggerWrapper, clientLoggerHelpers } from './client';
 import { loggerContextManager, createContextualLoggerCompat } from './context';
 import { errorHandler } from './error-handler';
+import { initializeLokiTransport, createLokiConfigFromEnv } from './loki-transport';
 import { serverLoggerWrapper, serverLoggerHelpers } from './server';
 
+import type { LokiTransportConfig } from './loki-transport';
 import type { Logger, LogArgument, LogLevel, LoggerContext } from './types';
 
 // 型定義とインターフェース
@@ -91,6 +93,28 @@ export {
   middlewareLoggerHelpers,
 } from './middleware';
 
+// Loki統合
+export {
+  LokiClient,
+  LokiTransport,
+  validateLokiConfig,
+  createDefaultLokiConfig,
+  initializeLokiTransport,
+  getLokiTransport,
+  shutdownLokiTransport,
+  createLokiConfigFromEnv,
+} from './loki-transport';
+
+export type {
+  LokiLabels,
+  LokiLogEntry,
+  LokiLogStream,
+  LokiPushPayload,
+  LokiClientConfig,
+} from './loki-client';
+
+export type { LokiTransportConfig, LokiTransportStats } from './loki-transport';
+
 // エラーハンドリング
 export { errorHandler, errorHandlerUtils } from './error-handler';
 
@@ -125,13 +149,28 @@ export function initializeLogger(
   options: {
     enableGlobalErrorHandlers?: boolean;
     context?: Record<string, unknown>;
+    enableLoki?: boolean;
+    lokiConfig?: LokiTransportConfig;
   } = {}
 ): void {
-  const { enableGlobalErrorHandlers = true, context = {} } = options;
+  const {
+    enableGlobalErrorHandlers = true,
+    context = {},
+    enableLoki = process.env.LOKI_ENABLED !== 'false',
+    lokiConfig,
+  } = options;
 
   // グローバルエラーハンドラーの設定
   if (enableGlobalErrorHandlers) {
     setupGlobalErrorHandlers();
+  }
+
+  // Loki トランスポートの初期化（非同期だが初期化は妨げない）
+  if (enableLoki) {
+    const config = lokiConfig || createLokiConfigFromEnv();
+    initializeLokiTransport(config).catch((error) => {
+      console.warn('Failed to initialize Loki transport:', error);
+    });
   }
 
   // 初期コンテキストの設定
@@ -205,7 +244,7 @@ function setupGlobalErrorHandlers(): void {
  * コンテキスト付きLogger取得
  * @internal
  */
-function _getLoggerWithContext(context: Record<string, unknown>): Logger {
+export function getLoggerWithContext(context: Record<string, unknown>): Logger {
   if (typeof window === 'undefined') {
     // サーバーサイド
     return createContextualLoggerCompat(logger, context);
@@ -276,7 +315,7 @@ export function logUserAction(action: string, details: Record<string, unknown> =
  * 統合エラーログ
  * @internal
  */
-function _logError(error: Error | unknown, context: Record<string, unknown> = {}): void {
+export function logError(error: Error | unknown, context: Record<string, unknown> = {}): void {
   if (typeof window === 'undefined') {
     // サーバーサイド - 既存のerrorHandlerオブジェクトを使用
     errorHandler.handle(error, context);

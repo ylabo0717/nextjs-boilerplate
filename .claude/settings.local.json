@@ -68,7 +68,9 @@
       "WebFetch(domain:tailwindcss.com)",
       "mcp__serena__think_about_task_adherence",
       "mcp__ide__getDiagnostics",
-      "Bash(.husky/pre-push:*)"
+      "Bash(.husky/pre-push:*)",
+      "WebFetch(domain:grafana.com)",
+      "mcp__serena__read_memory"
     ],
     "deny": [
       "Bash(sudo *)",

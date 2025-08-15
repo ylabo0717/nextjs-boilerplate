@@ -30,7 +30,7 @@ const originalConsole = {
 beforeEach(() => {
   // Reset metrics before each test
   resetPhase3Metrics();
-  
+
   // Mock console methods to avoid noise in test output
   console.log = vi.fn();
   console.warn = vi.fn();
@@ -42,7 +42,7 @@ afterEach(() => {
   console.log = originalConsole.log;
   console.warn = originalConsole.warn;
   console.error = originalConsole.error;
-  
+
   // Reset metrics after each test
   resetPhase3Metrics();
 });
@@ -58,7 +58,7 @@ describe('Phase 3 Metrics Initialization', () => {
     expect(metrics.rate_limit_decisions).toBeDefined();
     expect(metrics.kv_operations_total).toBeDefined();
     expect(metrics.admin_api_requests).toBeDefined();
-    
+
     expect(isPhase3MetricsInitialized()).toBe(true);
     expect(console.log).toHaveBeenCalledWith('✅ Enhanced Metrics initialized successfully');
   });
@@ -118,7 +118,7 @@ describe('Configuration Metrics', () => {
 
   test('recordConfigFetchMetrics handles uninitialized metrics gracefully', () => {
     resetPhase3Metrics();
-    
+
     recordConfigFetchMetrics('remote', 'success', 100);
 
     expect(console.warn).toHaveBeenCalledWith(
@@ -170,7 +170,7 @@ describe('Rate Limit Metrics', () => {
 
   test('recordRateLimitMetrics handles uninitialized metrics gracefully', () => {
     resetPhase3Metrics();
-    
+
     recordRateLimitMetrics('client-5', '/api/test', 'hit', 'token_exhausted');
 
     expect(console.warn).toHaveBeenCalledWith(
@@ -222,7 +222,7 @@ describe('KV Storage Metrics', () => {
 
   test('recordKVMetrics handles uninitialized metrics gracefully', () => {
     resetPhase3Metrics();
-    
+
     recordKVMetrics('redis', 'get', 'success', 25);
 
     expect(console.warn).toHaveBeenCalledWith(
@@ -262,7 +262,7 @@ describe('Admin API Metrics', () => {
 
   test('recordAdminAPIMetrics handles uninitialized metrics gracefully', () => {
     resetPhase3Metrics();
-    
+
     recordAdminAPIMetrics('GET', '/api/admin/log-level', 200, 50);
 
     expect(console.warn).toHaveBeenCalledWith(
@@ -290,11 +290,11 @@ describe('Metrics Snapshot and Utilities', () => {
 
   test('getPhase3MetricsSnapshot returns correct snapshot when initialized', () => {
     initializePhase3Metrics();
-    
+
     // Record some metrics to test counters
     recordConfigFetchMetrics('remote', 'success', 100);
     recordRateLimitMetrics('client-1', '/test', 'hit', 'token_exhausted');
-    
+
     const snapshot = getPhase3MetricsSnapshot();
 
     expect(snapshot.config_fetch_total).toBeGreaterThan(0);
@@ -365,21 +365,21 @@ describe('Batch Metrics Recording', () => {
     const operations = [
       {
         type: 'kv' as const,
-        data: { 
-          operation: 'get', 
-          duration: 25, 
-          success: true, 
-          storageType: 'redis' 
+        data: {
+          operation: 'get',
+          duration: 25,
+          success: true,
+          storageType: 'redis',
         },
       },
       {
         type: 'kv' as const,
-        data: { 
-          operation: 'set', 
-          duration: 75, 
-          success: false, 
+        data: {
+          operation: 'set',
+          duration: 75,
+          success: false,
           storageType: 'redis',
-          errorType: 'timeout'
+          errorType: 'timeout',
         },
       },
     ];
@@ -427,7 +427,7 @@ describe('Batch Metrics Recording', () => {
 
   test('recordBatchMetrics handles uninitialized metrics gracefully', () => {
     resetPhase3Metrics();
-    
+
     const operations = [
       {
         type: 'config' as const,
@@ -446,7 +446,7 @@ describe('Batch Metrics Recording', () => {
 describe('Error Handling and Edge Cases', () => {
   test('metrics functions handle recording errors gracefully', () => {
     initializePhase3Metrics();
-    
+
     // Mock a metrics method to throw an error
     const metrics = getPhase3Metrics()!;
     const originalAdd = metrics.config_fetch_total.add;

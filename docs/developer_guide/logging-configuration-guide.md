@@ -377,6 +377,20 @@ LOKI_TENANT_ID=isolated-tenant-production
 
 ### 📊 Grafana連携
 
+#### セキュリティ設定
+
+```bash
+# 🔐 Grafana管理者パスワード（必須）
+GRAFANA_ADMIN_PASSWORD=your_secure_admin_password_here
+
+# 📝 重要事項:
+# - デフォルトの 'changeme123!' は開発環境のみ
+# - 本番環境では必ず複雑なパスワードに変更
+# - 最低16文字、大小英数字・記号を含む
+```
+
+#### データソース設定
+
 ```bash
 # Loki データソース設定
 LOKI_URL=https://loki.monitoring.example.com

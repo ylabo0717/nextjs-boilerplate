@@ -203,7 +203,7 @@ export const logger = createAppropriateLogger(detectEnvironment());
 
 ### 🔴 **即座対応必要** (1-2週間以内)
 
-1. Grafanaパスワードのハードコード修正
+1. ✅ **完了** Grafanaパスワードのハードコード修正
 
 ### 🟡 **中期対応** (1-2ヶ月以内)
 
@@ -247,7 +247,11 @@ export const logger = createAppropriateLogger(detectEnvironment());
 
 ### 即座対応
 
-- [ ] Grafanaパスワード環境変数化
+- [x] ✅ **完了** Grafanaパスワード環境変数化
+  - docker-compose.loki.yml の環境変数化
+  - .env.example への設定例追加
+  - ドキュメントのセキュリティ情報更新
+  - 統合テストによる検証完了 (8テスト全成功)
 
 ### 中期計画
 

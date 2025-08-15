@@ -19,8 +19,21 @@ curl http://localhost:3000/api/health  # Grafana
 
 - URL: http://localhost:3000
 - Username: `admin`
-- Password: `admin`
+- Password: 環境変数`GRAFANA_ADMIN_PASSWORD`で設定（デフォルト: `changeme123!`）
 - ダッシュボード: "Next.js Application Logging Dashboard"
+
+#### 🔐 セキュリティ注意事項
+
+**重要**: 本番環境では必ず`GRAFANA_ADMIN_PASSWORD`環境変数を設定してください：
+
+```bash
+# 開発環境（.env.local）
+GRAFANA_ADMIN_PASSWORD=your_secure_password_here
+
+# Docker Compose起動前に設定
+export GRAFANA_ADMIN_PASSWORD=your_secure_password_here
+docker-compose -f docker-compose.loki.yml up -d
+```
 
 ### 3. アプリケーションでのLoki統合有効化
 

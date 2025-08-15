@@ -121,10 +121,11 @@ logger.info('アクセスログ', {
 **実装**: `src/lib/logger/context.ts`
 
 ```typescript
-import { runWithLoggerContext, logWithContext } from '@/lib/logger/context';
+import { logger } from '@/lib/logger';
+import { loggerContextManager } from '@/lib/logger/context';
 
 // リクエストコンテキスト作成
-await runWithLoggerContext(
+await loggerContextManager.runWithContext(
   {
     requestId: '12345',
     userId: 'user-001',
@@ -180,15 +181,19 @@ logger.error('重要エラー'); // 常に出力（優先保持）
 ```typescript
 import { measurePerformance, measurePerformanceAsync } from '@/lib/logger';
 
-// 同期処理の測定
+// 同期処理の測定（パフォーマンス情報は自動でログ出力）
 const result = measurePerformance('計算処理', () => {
   return heavyCalculation();
 });
+// result は heavyCalculation() の戻り値
+// パフォーマンス情報は自動的にログに記録される
 
 // 非同期処理の測定
 const result = await measurePerformanceAsync('API呼び出し', async () => {
   return await apiCall();
 });
+// result は apiCall() の戻り値
+// パフォーマンス情報は自動的にログに記録される
 ```
 
 ### 5. 監視・メトリクス
@@ -346,10 +351,11 @@ LOG_IP_HASH_SECRET=your-production-secret
 ### 1. カスタムロガー作成
 
 ```typescript
-import { createContextualLogger } from '@/lib/logger/context';
+import { logger } from '@/lib/logger';
+import { loggerContextManager } from '@/lib/logger/context';
 
 // 特定コンポーネント用ロガー
-const componentLogger = createContextualLogger({
+const componentLogger = loggerContextManager.createContextualLogger(logger, {
   component: 'UserProfile',
   version: '1.2.0',
 });

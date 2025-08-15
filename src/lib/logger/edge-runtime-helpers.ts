@@ -314,6 +314,7 @@ export function analyzeEdgeRuntimeCompliance(codePattern: {
  * await wrappedFunction(arg1, arg2);
  * ```
  *
+ * @typeParam T - ラップ対象関数の型（関数シグネチャを保持）
  * @public
  */
 export function wrapWithContext<T extends (...args: unknown[]) => unknown>(

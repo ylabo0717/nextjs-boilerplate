@@ -51,6 +51,15 @@ export {
   loggerContextManager,
 } from './context';
 
+// タイマーコンテキスト統合
+export {
+  setTimeoutWithContext,
+  setIntervalWithContext,
+  TimerContextManager,
+  createTimerContextManager,
+} from './timer-context';
+export type { ContextualTimerHandle } from './timer-context';
+
 // サーバーサイドLogger
 export { serverLogger, serverLoggerWrapper, serverLoggerHelpers } from './server';
 

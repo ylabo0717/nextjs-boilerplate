@@ -8,14 +8,11 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
-    // globalSetup removed for unit tests - they should use mocks only
+    globalSetup: ['./tests/setup/vitest-global-setup.ts'], // Enable for integration tests
     css: true,
     globals: true,
     passWithNoTests: true,
-    include: [
-      'tests/unit/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-      'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-    ],
+    include: ['tests/integration/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
@@ -23,7 +20,7 @@ export default defineConfig({
       '**/.{idea,git,cache,output,temp}/**',
       '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
       '**/tests/e2e/**', // Exclude Playwright E2E tests
-      '**/tests/integration/**', // Exclude integration tests from unit runs
+      '**/tests/unit/**', // Exclude unit tests from integration runs
     ],
     alias: {
       '@': fileURLToPath(new URL('./src/', import.meta.url)),
@@ -67,7 +64,7 @@ export default defineConfig({
         'vitest.setup.*',
       ],
       reporter: ['text', 'html', 'lcov', 'json-summary'],
-      reportsDirectory: './coverage',
+      reportsDirectory: './coverage/integration',
     },
   },
 });

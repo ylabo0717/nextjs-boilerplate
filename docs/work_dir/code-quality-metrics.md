@@ -291,8 +291,6 @@ function processTypeA(data) {
 
 1. **ESLint complexity warnings**
    - Review flagged files for refactoring opportunities
-   - Adjust thresholds if too strict for your project
-   - Use `// eslint-disable-next-line` for justified exceptions
 
 2. **Low maintainability scores**
    - Add JSDoc comments

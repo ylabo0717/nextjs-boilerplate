@@ -35,6 +35,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Essential Workflow
 
+### IMPORTANT: Code Quality Standards
+
+**🚨 STRICT ENFORCEMENT:**
+
+- **Never skip pre-commit hooks** with `--no-verify` or similar flags
+- **Never disable ESLint rules** without proper justification and approval
+- **All TypeScript errors must be resolved** before committing
+- **All ESLint errors must be properly fixed** (not suppressed)
+- **Security linting rules are mandatory** and cannot be bypassed
+
 ### IMPORTANT: Pre-commit Checks
 
 **Always run the following checks before committing:**
@@ -188,6 +198,8 @@ This project uses **Conventional Commits** specification. All commit messages ar
 - **test**: Adding missing tests or correcting existing tests
 - **chore**: Changes to the build process or auxiliary tools
 
+**IMPORTANT: All commit messages must be written in English.**
+
 ### Pre-commit Hooks
 
 The following checks run automatically on commit:
@@ -201,6 +213,20 @@ If any of these checks fail, the commit will be aborted. Fix the issues and try 
 
 ## Important Instructions for Claude
 
+### Code Analysis and Exploration
+
+**IMPORTANT: Always use Serena tools for code analysis and exploration:**
+
+- **Use `mcp__serena__find_symbol`** for finding functions, classes, or variables by name
+- **Use `mcp__serena__get_symbols_overview`** to understand file structure before making changes
+- **Use `mcp__serena__search_for_pattern`** for pattern-based code searches
+- **Use `mcp__serena__find_referencing_symbols`** to understand symbol usage
+- **NEVER use basic Read tool** for exploring large code files when Serena tools are available
+- **Use Read tool only** for small files, configuration files, or when you need exact line-by-line content
+
+This approach is significantly more efficient and token-conscious than reading entire files.  
+For details, refer to `.claude/commands/serena.md`
+
 ### Question Handling
 
 When the user asks a question (indicated by question marks or interrogative phrases), ONLY answer the question without making any code changes or file modifications. Do not proactively fix or modify anything unless explicitly requested. If the user wants changes made after your answer, they will explicitly ask for them.
@@ -210,3 +236,14 @@ When the user asks a question (indicated by question marks or interrogative phra
 - ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.
 - NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User.
 - Only use emojis if the user explicitly requests it. Avoid adding emojis to files unless asked.
+
+### Testing Standards
+
+**CRITICAL: NO TEST SKIPPING ALLOWED**
+
+- **NEVER skip tests** with `test.skip()`, `describe.skip()`, or similar methods
+- **NEVER comment out failing tests** to make test suites pass
+- **ALWAYS fix the underlying issue** that causes test failures
+- **All tests must pass** before considering a task complete
+- When encountering test failures, **debug and fix the root cause** rather than avoiding the problem
+- Test failures indicate real issues that must be resolved, not bypassed

@@ -527,6 +527,270 @@ export const OrderForm = () => {
 
 ---
 
+## 構造化ロギング設計パターン
+
+**🎯 原則**: ロギングシステムも**純粋関数ベース**で実装し、サイドエフェクトを制御された範囲に限定する。
+
+### 基本アーキテクチャ
+
+```typescript
+// ✅ Good - 純粋関数ベースのロガー設計
+export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+
+export interface Logger {
+  trace(message: string, ...args: LogArgument[]): void;
+  debug(message: string, ...args: LogArgument[]): void;
+  info(message: string, ...args: LogArgument[]): void;
+  warn(message: string, ...args: LogArgument[]): void;
+  error(message: string, ...args: LogArgument[]): void;
+  fatal(message: string, ...args: LogArgument[]): void;
+  isLevelEnabled(level: LogLevel): boolean;
+}
+
+// 設定オブジェクト（不変）
+export interface ClientLoggerConfig {
+  readonly level: LogLevel;
+  readonly baseProperties: Readonly<Record<string, unknown>>;
+}
+
+// ✅ 純粋関数による設定作成
+export function createClientLoggerConfig(): ClientLoggerConfig {
+  const level = process.env.NEXT_PUBLIC_LOG_LEVEL || 'info';
+  const baseProperties = {
+    app: 'nextjs-boilerplate',
+    env: process.env.NODE_ENV || 'development',
+    version: '1.0.0',
+  };
+
+  return Object.freeze({
+    level: level as LogLevel,
+    baseProperties: Object.freeze(baseProperties),
+  });
+}
+
+// ✅ 純粋関数による前処理 + 制御されたサイドエフェクト
+export function log(
+  config: ClientLoggerConfig,
+  level: LogLevel,
+  message: string,
+  ...args: LogArgument[]
+): void {
+  // 純粋関数による事前処理
+  const isEnabled = isLevelEnabled(config, level);
+  if (!isEnabled) return;
+
+  const processedArgs = processLogArguments(args);
+  const sanitizedMessage = sanitizeControlCharacters(message);
+
+  // 制御されたサイドエフェクト（最小限に限定）
+  outputToConsole(level, sanitizedMessage, processedArgs);
+}
+```
+
+### セキュリティ機能の実装
+
+```typescript
+// ✅ GDPR準拠IPハッシュ化（純粋関数）
+export function createIPHashConfig(): IPHashConfig {
+  const secret = process.env.LOG_IP_HASH_SECRET || generateSecret();
+  return Object.freeze({ secret });
+}
+
+export function hashIP(config: IPHashConfig, ipAddress: string): string {
+  if (!ipAddress || typeof ipAddress !== 'string') {
+    return 'ip_invalid';
+  }
+
+  try {
+    const normalizedIP = normalizeIPv6(ipAddress);
+    const hmac = createHmac('sha256', config.secret);
+    hmac.update(normalizedIP);
+    const hash = hmac.digest('hex');
+    return `ip_${hash.substring(0, 8)}`;
+  } catch (error) {
+    return 'ip_hash_error';
+  }
+}
+
+// ✅ ログインジェクション攻撃防止（純粋関数）
+export function sanitizeControlCharacters(input: unknown): unknown {
+  if (typeof input === 'string') {
+    return input.replace(/[\x00-\x1F\x7F-\x9F]/g, (char) => {
+      return `\\u${char.charCodeAt(0).toString(16).padStart(4, '0').toUpperCase()}`;
+    });
+  }
+
+  if (Array.isArray(input)) {
+    return input.map((item) => sanitizeControlCharacters(item));
+  }
+
+  if (input && typeof input === 'object') {
+    const seen = new Set<object>();
+    return sanitizeObjectWithCircularCheck(input, seen);
+  }
+
+  return input;
+}
+```
+
+### エラーハンドリング統合
+
+```typescript
+// ✅ エラーハンドラーとの統合（純粋関数＋制御された副作用）
+export interface ErrorHandlerConfig {
+  readonly logger: Logger;
+}
+
+export function createErrorHandlerConfig(logger: Logger): ErrorHandlerConfig {
+  return { logger } as const;
+}
+
+export function handleError(
+  config: ErrorHandlerConfig,
+  error: Error | unknown,
+  context: ErrorContext = {}
+): StructuredError {
+  // 純粋関数による分類
+  const classifierConfig = {};
+  const structuredError = classifyError(classifierConfig, error, context);
+
+  // 純粋関数による前処理
+  const logLevel = getLogLevel(structuredError.severity);
+  const logEntry = createLogEntry(structuredError);
+
+  // 制御されたサイドエフェクト（ログ出力のみ）
+  logWithLevel(config.logger, logLevel, logEntry.message, logEntry.data);
+
+  return structuredError;
+}
+
+// ✅ フォールバック機能（純粋関数パターン）
+export const defaultErrorHandlerConfig = (() => {
+  let _config: ErrorHandlerConfig | null = null;
+
+  return () => {
+    if (!_config) {
+      try {
+        const { serverLoggerWrapper } = require('./server');
+        _config = createErrorHandlerConfig(serverLoggerWrapper);
+      } catch {
+        // フォールバック: クライアントロガーを使用
+        const { clientLoggerWrapper } = require('./client');
+        _config = createErrorHandlerConfig(clientLoggerWrapper);
+      }
+    }
+    return _config;
+  };
+})();
+```
+
+### Next.js統合パターン
+
+```typescript
+// ✅ ミドルウェア統合（Edge Runtime対応）
+export function logForEdgeRuntime(
+  level: 'info' | 'warn' | 'error',
+  entry: MiddlewareLogEntry
+): void {
+  // 純粋関数による前処理
+  const sanitized = sanitizeLogEntry(
+    `${entry.event_name}: ${entry.method} ${entry.url}`,
+    limitObjectSize(entry, 5, 30)
+  );
+
+  // 制御されたサイドエフェクト（Edge Runtime制約対応）
+  const logData = {
+    level,
+    timestamp: entry.timestamp,
+    message: sanitized.message,
+    data: sanitized.data,
+  };
+
+  switch (level) {
+    case 'error':
+      console.error(JSON.stringify(logData));
+      break;
+    case 'warn':
+      console.warn(JSON.stringify(logData));
+      break;
+    case 'info':
+    default:
+      console.log(JSON.stringify(logData));
+      break;
+  }
+}
+
+// ✅ リクエストコンテキスト生成
+export function createRequestContext(request: NextRequest): LoggerContext {
+  const requestId = generateRequestId();
+  const ip = 'ip' in request ? (request as { ip?: string }).ip || 'unknown' : 'unknown';
+
+  // 純粋関数でIPハッシュ化
+  const { hashIPWithDefault } = require('./crypto') as typeof import('./crypto');
+  const hashedIP = hashIPWithDefault(ip);
+
+  return {
+    requestId,
+    hashedIP,
+    method: request.method,
+    url: request.url,
+    userAgent: request.headers.get('user-agent') || undefined,
+    timestamp: new Date().toISOString(),
+  } as LoggerContext;
+}
+```
+
+### テスト戦略
+
+```typescript
+// ✅ 純粋関数テスト（モック不要）
+describe('Logger Pure Functions', () => {
+  it('should sanitize control characters', () => {
+    const input = 'Hello\x00\x1FWorld';
+    const result = sanitizeControlCharacters(input);
+    expect(result).toBe('Hello\\u0000\\u001FWorld');
+  });
+
+  it('should hash IP addresses consistently', () => {
+    const config = createTestIPHashConfig('test-secret-32-chars');
+    const result1 = hashIP(config, '192.168.1.1');
+    const result2 = hashIP(config, '192.168.1.1');
+
+    expect(result1).toBe(result2);
+    expect(result1).toMatch(/^ip_[a-f0-9]{8}$/);
+  });
+
+  it('should create immutable configurations', () => {
+    const config = createClientLoggerConfig();
+
+    expect(() => {
+      (config as any).level = 'debug';
+    }).toThrow();
+
+    expect(() => {
+      (config.baseProperties as any).newProp = 'value';
+    }).toThrow();
+  });
+});
+
+// ✅ 統合テスト（エフェクト分離）
+describe('Logger Integration', () => {
+  it('should handle server logger fallback', () => {
+    // サーバーモジュール不可用時のフォールバック
+    const config = defaultErrorHandlerConfig();
+    expect(config).toBeDefined();
+    expect(config.logger).toBeDefined();
+  });
+});
+```
+
+この構造化ロギング設計により以下が実現されます：
+
+- **🔒 セキュリティ**: GDPR準拠とログインジェクション攻撃防止
+- **⚡ パフォーマンス**: 純粋関数による最適化とEdge Runtime対応
+- **🧪 テスタビリティ**: モック不要の包括的テストスイート
+- **🔄 保守性**: 不変性とフォールバック機能による堅牢性
+
 ## まとめ
 
 この**純粋関数型優先アーキテクチャ**により、以下の利点を実現します：

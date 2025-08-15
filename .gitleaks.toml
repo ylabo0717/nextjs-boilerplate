@@ -360,6 +360,9 @@ regexes = [
   '''dragon''',
   '''master''',
   '''abc123''',
+  # Common example passwords in documentation
+  '''pass''',
+  '''user:pass@''',
   # Allow environment variable references (not the actual values)
   '''process\.env\.LOG_IP_HASH_SECRET''',
   '''\$\{LOG_IP_HASH_SECRET\}''',        # Docker Compose style environment variable expansion

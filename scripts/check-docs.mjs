@@ -37,6 +37,10 @@ import { execSync } from 'child_process';
 const IGNORE_PATTERNS = [
   /Schema\.__type\./, // Zod schema internal types (auto-generated)
   /\.__(type|index)\./, // TypeScript compiler internal types
+  /InternalLokiClientConfig/, // Internal Loki client configuration type
+  /BufferedLogEntry/, // Internal buffered log entry type
+  /MutableTransportStats/, // Internal mutable transport stats type
+  /LokiResponse/, // Internal Loki response type
   // Add more patterns here if other libraries generate similar noise
 ];
 

@@ -1,12 +1,16 @@
 /**
  * Edge Runtime環境でのコンテキスト制限対応統合テスト
- * 
+ *
  * Edge Runtime環境における制限事項と回避策の包括的なテストスイートです。
  * AsyncLocalStorageの制限、非同期コンテキスト継承、メモリ制約に対する対応を検証します。
  */
 
 import { describe, it, expect, beforeEach, beforeAll, afterAll } from 'vitest';
-import { createCompatibleStorage, isEdgeRuntime, detectRuntimeEnvironment } from '@/lib/logger/utils';
+import {
+  createCompatibleStorage,
+  isEdgeRuntime,
+  detectRuntimeEnvironment,
+} from '@/lib/logger/utils';
 import { loggerContextManager } from '@/lib/logger/context';
 import type { LoggerContext } from '@/lib/logger/types';
 
@@ -18,8 +22,8 @@ const mockProcess = {
     heapTotal: 2000000,
     external: 100000,
     arrayBuffers: 50000,
-    rss: 3000000
-  })
+    rss: 3000000,
+  }),
 };
 
 describe('Edge Runtime Context Limitations Integration Tests', () => {
@@ -28,7 +32,7 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
   beforeAll(() => {
     // Store original EdgeRuntime value
     originalEdgeRuntime = (globalThis as any).EdgeRuntime;
-    
+
     // Ensure process object exists for Node.js environment simulation
     if (typeof process === 'undefined') {
       (globalThis as any).process = mockProcess;
@@ -53,7 +57,7 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
     it('should detect Edge Runtime environment correctly', () => {
       // Simulate Edge Runtime environment
       (globalThis as any).EdgeRuntime = 'edge-runtime';
-      
+
       expect(isEdgeRuntime()).toBe(true);
       expect(detectRuntimeEnvironment()).toBe('edge');
     });
@@ -61,19 +65,19 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
     it('should fallback to Node.js detection when EdgeRuntime is not available', () => {
       // Remove EdgeRuntime global
       delete (globalThis as any).EdgeRuntime;
-      
+
       // Temporarily hide window object to simulate Node.js environment
       const originalWindow = (globalThis as any).window;
       delete (globalThis as any).window;
-      
+
       // Ensure process object exists for Node.js detection
       if (typeof process === 'undefined') {
         (globalThis as any).process = mockProcess;
       }
-      
+
       expect(isEdgeRuntime()).toBe(false);
       expect(detectRuntimeEnvironment()).toBe('nodejs');
-      
+
       // Restore window object
       if (originalWindow !== undefined) {
         (globalThis as any).window = originalWindow;
@@ -83,17 +87,17 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
     it('should handle browser environment detection', () => {
       // Simulate browser environment
       delete (globalThis as any).EdgeRuntime;
-      
+
       // Mock window object
       const originalWindow = (globalThis as any).window;
       (globalThis as any).window = {};
-      
+
       // Temporarily hide process to simulate browser
       const originalProcess = (globalThis as any).process;
       delete (globalThis as any).process;
-      
+
       expect(detectRuntimeEnvironment()).toBe('browser');
-      
+
       // Restore globals
       if (originalProcess) {
         (globalThis as any).process = originalProcess;
@@ -114,7 +118,7 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
 
     it('should use EdgeContextStorage when AsyncLocalStorage is not available', () => {
       const storage = createCompatibleStorage<LoggerContext>();
-      
+
       // EdgeContextStorage should not have an 'asyncLocalStorage' property
       expect('asyncLocalStorage' in storage).toBe(false);
     });
@@ -127,7 +131,7 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
       };
 
       let capturedContext: LoggerContext | undefined;
-      
+
       loggerContextManager.runWithContext(testContext, () => {
         capturedContext = loggerContextManager.getContext();
       });
@@ -154,11 +158,11 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
 
       loggerContextManager.runWithContext(outerContext, () => {
         outerCaptured = loggerContextManager.getContext();
-        
+
         loggerContextManager.runWithContext(innerContext, () => {
           innerCaptured = loggerContextManager.getContext();
         });
-        
+
         restoredOuter = loggerContextManager.getContext();
       });
 
@@ -207,7 +211,7 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
 
       await loggerContextManager.runWithContext(testContext, async () => {
         const storage = createCompatibleStorage<LoggerContext>();
-        
+
         const boundFunction = storage.bind(() => {
           contextInBoundPromise = storage.getStore();
         }, testContext);
@@ -233,19 +237,19 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
           // Standard setTimeout behavior in our implementation
           setTimeout(() => {
             contextInTimeout = loggerContextManager.getContext();
-            
+
             // Manual binding preserves context
             const storage = createCompatibleStorage<LoggerContext>();
             const boundTimeout = storage.bind(() => {
               boundContextInTimeout = storage.getStore();
-              
+
               // Verify results
               // Note: Our implementation preserves context due to AsyncLocalStorage
               expect(contextInTimeout).toEqual(testContext);
               expect(boundContextInTimeout).toEqual(testContext);
               resolve();
             }, testContext);
-            
+
             boundTimeout();
           }, 0);
         });
@@ -257,7 +261,7 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
       const results = await Promise.all([
         Promise.resolve('result1'),
         Promise.resolve('result2'),
-        Promise.resolve('result3')
+        Promise.resolve('result3'),
       ]);
 
       expect(results).toHaveLength(3);
@@ -284,7 +288,7 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
         };
 
         contexts.push(context);
-        
+
         storage.run(context, () => {
           expect(storage.getStore()).toEqual(context);
         });
@@ -307,13 +311,16 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
 
         storage.run(context, () => {
           // Nested operations
-          storage.run({
-            ...context,
-            requestId: `nested-${i}`,
-          }, () => {
-            expect(storage.getStore()?.requestId).toBe(`nested-${i}`);
-          });
-          
+          storage.run(
+            {
+              ...context,
+              requestId: `nested-${i}`,
+            },
+            () => {
+              expect(storage.getStore()?.requestId).toBe(`nested-${i}`);
+            }
+          );
+
           // Context should be restored
           expect(storage.getStore()?.requestId).toBe(`switch-test-${i}`);
         });
@@ -361,7 +368,7 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
 
   describe('5. Integration with Middleware and API Routes', () => {
     beforeEach(() => {
-      // Simulate Edge Runtime environment  
+      // Simulate Edge Runtime environment
       (globalThis as any).EdgeRuntime = 'edge-runtime';
     });
 
@@ -380,14 +387,14 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
       // Simulate middleware operation
       loggerContextManager.runWithContext(requestContext, () => {
         middlewareContext = loggerContextManager.getContext();
-        
+
         // Simulate handler call (would lose context in Edge Runtime)
         // This demonstrates the need for explicit context passing
         const storage = createCompatibleStorage<LoggerContext>();
         const boundHandler = storage.bind(() => {
           handlerContext = storage.getStore();
         }, requestContext);
-        
+
         boundHandler();
       });
 
@@ -409,7 +416,7 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
         // Simulate API route handler without setTimeout
         return {
           success: true,
-          requestId: requestContext.requestId
+          requestId: requestContext.requestId,
         };
       });
 
@@ -443,18 +450,21 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
     it('should provide fallback when context is unavailable', () => {
       // Don't set any context
       const fallbackContext = loggerContextManager.getContext();
-      
+
       expect(fallbackContext).toBeUndefined();
-      
+
       // Operations should still work without context
       expect(() => {
-        loggerContextManager.runWithContext({
-          requestId: 'fallback-test',
-          timestamp: new Date().toISOString(),
-          hashedIP: 'fallback-hash',
-        }, () => {
-          // Should execute successfully
-        });
+        loggerContextManager.runWithContext(
+          {
+            requestId: 'fallback-test',
+            timestamp: new Date().toISOString(),
+            hashedIP: 'fallback-hash',
+          },
+          () => {
+            // Should execute successfully
+          }
+        );
       }).not.toThrow();
     });
 
@@ -478,7 +488,7 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
     it('should document Edge Runtime limitations clearly', () => {
       // Test that the implementation includes proper JSDoc documentation
       const storage = createCompatibleStorage<LoggerContext>();
-      
+
       // Check that the storage indicates its type appropriately
       expect(typeof storage.run).toBe('function');
       expect(typeof storage.getStore).toBe('function');
@@ -495,7 +505,7 @@ describe('Edge Runtime Context Limitations Integration Tests', () => {
 
       // Recommended pattern for Edge Runtime
       const storage = createCompatibleStorage<LoggerContext>();
-      
+
       // ✅ DO: Use explicit binding for async operations
       const boundAsyncFunction = storage.bind(async () => {
         await Promise.resolve();

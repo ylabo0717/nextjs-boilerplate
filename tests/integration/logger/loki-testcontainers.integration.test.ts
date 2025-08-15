@@ -3,7 +3,17 @@
  * Testcontainersを使用した実際のLokiサーバーとの統合テスト
  */
 
-import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach, vi, inject } from 'vitest';
+import {
+  describe,
+  test,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+  vi,
+  inject,
+} from 'vitest';
 import { runWithLoggerContext, defaultLoggerContextConfig } from '@/lib/logger/context';
 import { LokiClient, LokiTransport } from '@/lib/logger/loki-transport';
 import { generateRequestId } from '@/lib/logger/utils';
@@ -34,7 +44,7 @@ describe('Loki Testcontainers Integration Tests', () => {
   beforeAll(async () => {
     lokiUrl = getLokiUrl();
     console.log(`🎯 Running tests against Loki at: ${lokiUrl}`);
-    
+
     // Lokiサーバーの健全性を確認
     const healthResponse = await fetch(`${lokiUrl}/ready`);
     expect(healthResponse.ok).toBe(true);
@@ -55,7 +65,7 @@ describe('Loki Testcontainers Integration Tests', () => {
       const client = new LokiClient({
         url: lokiUrl,
         batchSize: 1,
-        defaultLabels: { 
+        defaultLabels: {
           service: 'connectivity-test',
           test_id: generateUniqueTestId(),
         },
@@ -63,9 +73,9 @@ describe('Loki Testcontainers Integration Tests', () => {
 
       // ログを送信
       await client.pushLog('info', `Connectivity test - ${new Date().toISOString()}`);
-      
+
       // 少し待ってからshutdown
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       await client.shutdown();
 
       // 例外が投げられなければ成功
@@ -77,7 +87,7 @@ describe('Loki Testcontainers Integration Tests', () => {
       const client = new LokiClient({
         url: lokiUrl,
         batchSize: 3,
-        defaultLabels: { 
+        defaultLabels: {
           service: 'client-test',
           test_id: testId,
         },
@@ -89,19 +99,19 @@ describe('Loki Testcontainers Integration Tests', () => {
       await client.pushLog('error', `Client test message 3 - ${testId}`);
 
       // バッチが送信されるまで少し待つ
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
       await client.shutdown();
 
       // ログがLokiに送信されたかクエリで確認
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Lokiでの処理待ち
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Lokiでの処理待ち
+
       const result = await queryLokiLogs(lokiUrl, `service="client-test", test_id="${testId}"`);
       expect(result).toBeTruthy();
-      
+
       if (result) {
         const totalLogs = result.data.result.reduce((sum, stream) => sum + stream.values.length, 0);
         expect(totalLogs).toBe(3);
-        
+
         // メッセージ内容を確認
         expect(findLogMessage(result, `Client test message 1 - ${testId}`)).toBe(true);
         expect(findLogMessage(result, `Client test message 2 - ${testId}`)).toBe(true);
@@ -112,7 +122,7 @@ describe('Loki Testcontainers Integration Tests', () => {
     test('should handle direct log sending via HTTP API', async () => {
       const testId = generateUniqueTestId();
       const message = `Direct HTTP test - ${testId}`;
-      
+
       const success = await sendDirectLog(lokiUrl, 'info', message, {
         service: 'direct-http-test',
         test_id: testId,
@@ -121,11 +131,14 @@ describe('Loki Testcontainers Integration Tests', () => {
       expect(success).toBe(true);
 
       // ログが実際に送信されたか確認
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const result = await queryLokiLogs(lokiUrl, `service="direct-http-test", test_id="${testId}"`);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const result = await queryLokiLogs(
+        lokiUrl,
+        `service="direct-http-test", test_id="${testId}"`
+      );
       expect(result).toBeTruthy();
-      
+
       if (result) {
         expect(findLogMessage(result, message)).toBe(true);
       }
@@ -152,11 +165,11 @@ describe('Loki Testcontainers Integration Tests', () => {
         expect(stats.failedLogs).toBe(0);
 
         // Lokiクエリで実際のログを確認
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         const result = await waitForLogs(lokiUrl, `test_run="${testId}"`, 3, 5000);
         expect(result).toBeTruthy();
-        
+
         if (result) {
           expect(findLogMessage(result, `Transport test 1 - ${testId}`)).toBe(true);
           expect(findLogMessage(result, `Transport test 2 - ${testId}`)).toBe(true);
@@ -196,17 +209,19 @@ describe('Loki Testcontainers Integration Tests', () => {
         expect(stats.successfulLogs).toBe(1);
 
         // Lokiクエリでコンテキスト情報を確認
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         const result = await waitForLogs(lokiUrl, `test_run="${testId}"`, 1, 5000);
         expect(result).toBeTruthy();
-        
+
         if (result) {
-          expect(validateStreamLabels(result, {
-            request_id: requestId,
-            trace_id: traceId,
-            user_id: userId,
-          })).toBe(true);
+          expect(
+            validateStreamLabels(result, {
+              request_id: requestId,
+              trace_id: traceId,
+              user_id: userId,
+            })
+          ).toBe(true);
         }
       } finally {
         await cleanupTestTransport(transport);
@@ -215,7 +230,7 @@ describe('Loki Testcontainers Integration Tests', () => {
 
     test('should handle different log levels correctly', async () => {
       const testId = generateUniqueTestId();
-      
+
       // 全レベルを受け入れるトランスポートを作成
       const transport = new LokiTransport({
         url: lokiUrl,
@@ -243,14 +258,14 @@ describe('Loki Testcontainers Integration Tests', () => {
         expect(stats.successfulLogs).toBe(4);
 
         // Lokiクエリで各レベルのログを確認
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         const result = await waitForLogs(lokiUrl, `test_run="${testId}"`, 4, 5000);
         expect(result).toBeTruthy();
-        
+
         if (result) {
           // 各レベルのログが存在することを確認
-          const levels = result.data.result.map(stream => stream.stream.level);
+          const levels = result.data.result.map((stream) => stream.stream.level);
           expect(levels).toContain('debug');
           expect(levels).toContain('info');
           expect(levels).toContain('warn');
@@ -280,7 +295,7 @@ describe('Loki Testcontainers Integration Tests', () => {
         await transport.sendLog('error', 'This will fail to send');
 
         // 短時間待機してエラー処理を完了させる
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
         const stats = transport.getStats();
         expect(stats.failedLogs).toBeGreaterThan(0);
@@ -297,19 +312,19 @@ describe('Loki Testcontainers Integration Tests', () => {
       try {
         // 正常なログ送信
         await transport.sendLog('info', `Success message 1 - ${testId}`);
-        
+
         // 一時的にURLを変更してエラーを発生させる
         // @ts-ignore - プライベートプロパティアクセス（テスト用）
         const originalUrl = transport.client.config.url;
         // @ts-ignore
         transport.client.config.url = 'http://localhost:9999';
-        
+
         await transport.sendLog('error', `This will fail - ${testId}`);
-        
+
         // URLを元に戻す
         // @ts-ignore
         transport.client.config.url = originalUrl;
-        
+
         // 再び正常なログ送信
         await transport.sendLog('info', `Success message 2 - ${testId}`);
 
@@ -317,14 +332,14 @@ describe('Loki Testcontainers Integration Tests', () => {
 
         const stats = transport.getStats();
         expect(stats.successfulLogs).toBe(2); // 成功したログ
-        expect(stats.failedLogs).toBe(1);     // 失敗したログ
+        expect(stats.failedLogs).toBe(1); // 失敗したログ
 
         // 成功したログがLokiに送信されているか確認
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         const result = await waitForLogs(lokiUrl, `test_run="${testId}"`, 2, 5000);
         expect(result).toBeTruthy();
-        
+
         if (result) {
           expect(findLogMessage(result, `Success message 1 - ${testId}`)).toBe(true);
           expect(findLogMessage(result, `Success message 2 - ${testId}`)).toBe(true);
@@ -339,12 +354,12 @@ describe('Loki Testcontainers Integration Tests', () => {
     test('should handle high-volume logging efficiently', async () => {
       const testId = generateUniqueTestId();
       const logCount = 50; // CI環境を考慮して50ログに調整
-      
+
       const transport = new LokiTransport({
         url: lokiUrl,
         batchSize: 10,
         flushInterval: 1000,
-        defaultLabels: { 
+        defaultLabels: {
           service: 'performance-test',
           test_run: testId,
         },
@@ -365,8 +380,8 @@ describe('Loki Testcontainers Integration Tests', () => {
         expect(logsPerSecond).toBeGreaterThan(30);
 
         // 実際にLokiに送信されたか確認
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
         const result = await waitForLogs(lokiUrl, `test_run="${testId}"`, logCount, 10000);
         expect(result).toBeTruthy();
       } finally {
@@ -377,12 +392,12 @@ describe('Loki Testcontainers Integration Tests', () => {
     test('should batch logs efficiently', async () => {
       const testId = generateUniqueTestId();
       const batchSize = 5;
-      
+
       const transport = new LokiTransport({
         url: lokiUrl,
         batchSize,
         flushInterval: 10000, // 長い間隔でバッチングをテスト
-        defaultLabels: { 
+        defaultLabels: {
           service: 'batch-test',
           test_run: testId,
         },
@@ -397,7 +412,7 @@ describe('Loki Testcontainers Integration Tests', () => {
         }
 
         // バッチが自動的に送信されることを確認
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
         const stats = transport.getStats();
         expect(stats.successfulLogs).toBe(batchSize);
@@ -411,8 +426,8 @@ describe('Loki Testcontainers Integration Tests', () => {
         expect(finalStats.successfulLogs).toBe(batchSize + 1);
 
         // Lokiで実際のログを確認
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         const result = await waitForLogs(lokiUrl, `test_run="${testId}"`, batchSize + 1, 5000);
         expect(result).toBeTruthy();
       } finally {
@@ -425,7 +440,7 @@ describe('Loki Testcontainers Integration Tests', () => {
     test('should query and validate sent logs', async () => {
       const testId = generateUniqueTestId();
       const uniqueMessage = `Query validation test - ${testId}`;
-      
+
       const transport = await createTestTransport(lokiUrl, testId);
 
       try {
@@ -433,21 +448,23 @@ describe('Loki Testcontainers Integration Tests', () => {
         await transport.shutdown();
 
         // ログが反映されるまで待機
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         // ログをクエリ
         const result = await queryLokiLogs(lokiUrl, `test_run="${testId}"`);
-        
+
         expect(result).toBeTruthy();
         expect(result!.status).toBe('success');
-        
+
         // メッセージとラベルを検証
         expect(findLogMessage(result!, uniqueMessage)).toBe(true);
-        expect(validateStreamLabels(result!, {
-          service: 'testcontainer-integration-test',
-          test_run: testId,
-          environment: 'test',
-        })).toBe(true);
+        expect(
+          validateStreamLabels(result!, {
+            service: 'testcontainer-integration-test',
+            test_run: testId,
+            environment: 'test',
+          })
+        ).toBe(true);
       } finally {
         await cleanupTestTransport(transport);
       }
@@ -465,14 +482,17 @@ describe('Loki Testcontainers Integration Tests', () => {
 
         await transport.shutdown();
 
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         // エラーレベルのみをクエリ
         const errorResult = await queryLokiLogs(lokiUrl, `test_run="${testId}", level="error"`);
         expect(errorResult).toBeTruthy();
-        
+
         if (errorResult) {
-          const errorLogs = errorResult.data.result.reduce((sum, stream) => sum + stream.values.length, 0);
+          const errorLogs = errorResult.data.result.reduce(
+            (sum, stream) => sum + stream.values.length,
+            0
+          );
           expect(errorLogs).toBe(1);
           expect(findLogMessage(errorResult, 'Database connection failed')).toBe(true);
         }
@@ -480,9 +500,12 @@ describe('Loki Testcontainers Integration Tests', () => {
         // 特定のメッセージパターンをクエリ
         const patternResult = await queryLokiLogs(lokiUrl, `test_run="${testId}"`);
         expect(patternResult).toBeTruthy();
-        
+
         if (patternResult) {
-          const totalLogs = patternResult.data.result.reduce((sum, stream) => sum + stream.values.length, 0);
+          const totalLogs = patternResult.data.result.reduce(
+            (sum, stream) => sum + stream.values.length,
+            0
+          );
           expect(totalLogs).toBe(3);
         }
       } finally {

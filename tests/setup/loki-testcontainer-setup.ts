@@ -19,15 +19,11 @@ export interface LokiTestContainer {
  */
 export async function createLokiTestContainer(): Promise<LokiTestContainer> {
   console.log('🚀 Creating Loki test container...');
-  
+
   const container = await new GenericContainer('grafana/loki:latest')
     .withExposedPorts(3100)
     .withCommand(['-config.file=/etc/loki/local-config.yaml'])
-    .withWaitStrategy(
-      Wait.forHttp('/ready', 3100)
-        .forStatusCode(200)
-        .withStartupTimeout(30_000)
-    )
+    .withWaitStrategy(Wait.forHttp('/ready', 3100).forStatusCode(200).withStartupTimeout(30_000))
     .withLogConsumer((stream) => {
       stream.on('data', (line) => console.log(`[Loki Container] ${line}`));
       stream.on('err', (line) => console.error(`[Loki Container Error] ${line}`));
@@ -78,18 +74,20 @@ export async function waitForLokiReady(
   retryInterval = 1000
 ): Promise<boolean> {
   console.log(`⏳ Waiting for Loki to be ready at ${lokiUrl}...`);
-  
+
   for (let i = 0; i < maxRetries; i++) {
     const isHealthy = await checkLokiHealth(lokiUrl);
     if (isHealthy) {
       console.log(`✅ Loki is ready at ${lokiUrl}`);
       return true;
     }
-    
-    console.log(`⏳ Loki not ready yet, retrying in ${retryInterval}ms... (${i + 1}/${maxRetries})`);
-    await new Promise(resolve => setTimeout(resolve, retryInterval));
+
+    console.log(
+      `⏳ Loki not ready yet, retrying in ${retryInterval}ms... (${i + 1}/${maxRetries})`
+    );
+    await new Promise((resolve) => setTimeout(resolve, retryInterval));
   }
-  
+
   console.error(`❌ Loki failed to become ready after ${maxRetries} retries`);
   return false;
 }

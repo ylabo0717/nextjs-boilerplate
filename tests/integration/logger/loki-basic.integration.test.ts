@@ -22,7 +22,7 @@ describe('Loki Basic Integration Tests', () => {
   beforeAll(async () => {
     lokiUrl = getLokiUrl();
     console.log(`🎯 Running basic tests against Loki at: ${lokiUrl}`);
-    
+
     // Lokiサーバーの健全性を確認
     const healthResponse = await fetch(`${lokiUrl}/ready`);
     expect(healthResponse.ok).toBe(true);
@@ -40,7 +40,7 @@ describe('Loki Basic Integration Tests', () => {
     const client = new LokiClient({
       url: lokiUrl,
       batchSize: 1,
-      defaultLabels: { 
+      defaultLabels: {
         service: 'basic-test',
         test_id: testId,
       },
@@ -49,10 +49,10 @@ describe('Loki Basic Integration Tests', () => {
     try {
       // ログを送信
       await client.pushLog('info', `Basic test message - ${testId}`);
-      
+
       // 送信完了まで短時間待機
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
       // shutdownして全てを送信
       await client.shutdown();
 
@@ -67,7 +67,7 @@ describe('Loki Basic Integration Tests', () => {
   test('should handle Loki health check', async () => {
     const response = await fetch(`${lokiUrl}/ready`);
     expect(response.status).toBe(200);
-    
+
     const metricsResponse = await fetch(`${lokiUrl}/metrics`);
     expect(metricsResponse.status).toBe(200);
   }, 5_000);

@@ -26,7 +26,10 @@ export function generateUniqueTestId(): string {
 /**
  * テスト用のLokiTransportを作成
  */
-export async function createTestTransport(lokiUrl: string, testId?: string): Promise<LokiTransport> {
+export async function createTestTransport(
+  lokiUrl: string,
+  testId?: string
+): Promise<LokiTransport> {
   const transport = new LokiTransport({
     url: lokiUrl,
     batchSize: 1, // テスト用：即座に送信
@@ -53,10 +56,10 @@ export async function queryLokiLogs(
   try {
     const query = `{${labels}}`;
     const url = new URL(`${lokiUrl}/loki/api/v1/query_range`);
-    
+
     const endTime = Date.now() * 1_000_000; // ナノ秒
-    const startTime = endTime - (timeRangeMinutes * 60 * 1000 * 1_000_000); // ナノ秒
-    
+    const startTime = endTime - timeRangeMinutes * 60 * 1000 * 1_000_000; // ナノ秒
+
     url.searchParams.set('query', query);
     url.searchParams.set('start', startTime.toString());
     url.searchParams.set('end', endTime.toString());
@@ -90,26 +93,26 @@ export async function waitForLogs(
   retryInterval = 500
 ): Promise<LokiQueryResult | null> {
   console.log(`⏳ Waiting for ${expectedCount} logs with labels: ${labels}`);
-  
+
   const startTime = Date.now();
-  
+
   while (Date.now() - startTime < timeoutMs) {
     const result = await queryLokiLogs(lokiUrl, labels, 1);
-    
+
     if (result?.data?.result) {
       const totalLogs = result.data.result.reduce((sum, stream) => sum + stream.values.length, 0);
-      
+
       console.log(`📊 Found ${totalLogs} logs, expecting ${expectedCount}`);
-      
+
       if (totalLogs >= expectedCount) {
         console.log(`✅ Found expected logs: ${totalLogs}/${expectedCount}`);
         return result;
       }
     }
-    
-    await new Promise(resolve => setTimeout(resolve, retryInterval));
+
+    await new Promise((resolve) => setTimeout(resolve, retryInterval));
   }
-  
+
   console.warn(`⚠️ Timeout waiting for logs. Expected: ${expectedCount}`);
   return null;
 }
@@ -194,14 +197,14 @@ export function validateStreamLabels(
 
   for (const stream of queryResult.data.result) {
     let allLabelsMatch = true;
-    
+
     for (const [key, expectedValue] of Object.entries(expectedLabels)) {
       if (stream.stream[key] !== expectedValue) {
         allLabelsMatch = false;
         break;
       }
     }
-    
+
     if (allLabelsMatch) {
       return true;
     }
@@ -219,21 +222,23 @@ export async function sendLogBatch(
   messagePrefix = 'Batch test message'
 ): Promise<{ startTime: number; endTime: number; duration: number }> {
   const startTime = Date.now();
-  
+
   console.log(`📊 Sending ${count} logs...`);
-  
+
   for (let i = 0; i < count; i++) {
     await transport.sendLog('info', `${messagePrefix} ${i + 1}/${count}`);
   }
-  
+
   // 全てのログが送信されるまで待機
   await transport.shutdown();
-  
+
   const endTime = Date.now();
   const duration = endTime - startTime;
-  
-  console.log(`📈 Sent ${count} logs in ${duration}ms (${(count / duration * 1000).toFixed(1)} logs/sec)`);
-  
+
+  console.log(
+    `📈 Sent ${count} logs in ${duration}ms (${((count / duration) * 1000).toFixed(1)} logs/sec)`
+  );
+
   return { startTime, endTime, duration };
 }
 

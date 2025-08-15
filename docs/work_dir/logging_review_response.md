@@ -208,7 +208,7 @@ export const logger = createAppropriateLogger(detectEnvironment());
 ### 🟡 **中期対応** (1-2ヶ月以内)
 
 1. ✅ **完了** シークレットスキャニングパターン改善
-2. IIFE → Pure Function リファクタリング
+2. ✅ **完了** IIFE → Pure Function リファクタリング
 3. 言語統一性改善（段階的）
 
 ### 🟢 **長期改善** (次期バージョン)
@@ -258,7 +258,11 @@ export const logger = createAppropriateLogger(detectEnvironment());
 - [x] ✅ **完了** シークレットスキャニング強化
   - .gitleaks.tomlの厳密なパターンへの修正
   - 29テストによる包括的検証完了
-- [ ] 純粋関数への段階的リファクタリング
+- [x] ✅ **完了** 純粋関数への段階的リファクタリング
+  - IIFEパターンを純粋関数に変換 (src/lib/logger/index.ts)
+  - 環境判定ロジックの純粋関数化
+  - 172テスト全成功でリグレッションなし
+  - クラス実装は状態管理が必要な部分のみ適切に維持
 - [ ] 英語統一ガイドライン策定
 
 ### 継続改善

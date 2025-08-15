@@ -121,25 +121,44 @@ export { errorHandler, errorHandlerUtils } from './error-handler';
 export type { ErrorCategory, ErrorContext, StructuredError } from './error-handler';
 
 /**
- * 環境自動判定Logger
- * サーバー/クライアント環境を自動判定して適切なLoggerを返す
+ * 環境判定関数
+ * サーバー/クライアント環境を判定する純粋関数
  */
-export const logger = (() => {
+function detectEnvironment(): 'server' | 'client' | 'edge' {
   // サーバーサイド判定
   if (typeof window === 'undefined') {
-    // Node.js環境
     try {
-      // Pinoが利用できるかテスト
-      return serverLoggerWrapper;
+      // Node.js環境でPinoが利用可能かテスト
+      // この時点でserverLoggerWrapperがアクセス可能なら Node.js
+      return 'server';
     } catch {
-      // Edge Runtime等でPinoが使用できない場合のフォールバック
-      return clientLoggerWrapper;
+      // Edge Runtime等でPinoが使用できない場合
+      return 'edge';
     }
   } else {
     // ブラウザ環境
-    return clientLoggerWrapper;
+    return 'client';
   }
-})();
+}
+
+/**
+ * 環境に応じた適切なLoggerを作成する純粋関数
+ */
+function createAppropriateLogger(environment: 'server' | 'client' | 'edge'): Logger {
+  switch (environment) {
+    case 'server':
+      return serverLoggerWrapper;
+    case 'edge':
+    case 'client':
+      return clientLoggerWrapper;
+  }
+}
+
+/**
+ * 環境自動判定Logger
+ * サーバー/クライアント環境を自動判定して適切なLoggerを返す
+ */
+export const logger = createAppropriateLogger(detectEnvironment());
 
 /**
  * 統合Logger初期化関数

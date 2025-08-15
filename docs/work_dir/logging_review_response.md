@@ -255,7 +255,9 @@ export const logger = createAppropriateLogger(detectEnvironment());
 
 ### 中期計画
 
-- [ ] シークレットスキャニング強化
+- [x] ✅ **完了** シークレットスキャニング強化
+  - .gitleaks.tomlの厳密なパターンへの修正
+  - 29テストによる包括的検証完了
 - [ ] 純粋関数への段階的リファクタリング
 - [ ] 英語統一ガイドライン策定
 

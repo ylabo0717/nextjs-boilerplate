@@ -362,16 +362,26 @@ regexes = [
   '''abc123''',
   # Allow environment variable references (not the actual values)
   '''process\.env\.LOG_IP_HASH_SECRET''',
-  '''LOG_IP_HASH_SECRET''',
+  '''\$\{LOG_IP_HASH_SECRET\}''',        # Docker Compose style environment variable expansion
+  '''LOG_IP_HASH_SECRET=\$\{.*\}''',     # Docker Compose environment variable setting
   # Allow Redis example URLs in documentation
   '''redis://localhost:6379''',
   '''redis://new-host:6379''',
   '''6379''',
   # Allow JWT_SECRET environment variable references
   '''process\.env\.JWT_SECRET''',
+  '''\$\{JWT_SECRET\}''',
+  '''JWT_SECRET=\$\{.*\}''',
   # Allow LOKI authentication environment variable references
   '''process\.env\.LOKI_PASSWORD''',
-  '''process\.env\.LOKI_USERNAME'''
+  '''process\.env\.LOKI_USERNAME''',
+  '''\$\{LOKI_PASSWORD\}''',
+  '''\$\{LOKI_USERNAME\}''',
+  '''LOKI_PASSWORD=\$\{.*\}''',
+  '''LOKI_USERNAME=\$\{.*\}''',
+  # Allow GRAFANA authentication environment variable references
+  '''\$\{GRAFANA_ADMIN_PASSWORD\}''',
+  '''GRAFANA_ADMIN_PASSWORD=\$\{.*\}'''
 ]
 
 # Note: commits allowlist is for specific commit SHAs, not file patterns

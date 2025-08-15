@@ -157,7 +157,9 @@ export function setIntervalWithContext<TArgs extends unknown[]>(
  * @public
  */
 export class TimerContextManager {
+  /** Logger context configuration */
   private readonly config: LoggerContextConfig;
+  /** Set of currently active timers being managed */
   private readonly activeTimers = new Set<ContextualTimerHandle>();
 
   constructor(config: LoggerContextConfig) {

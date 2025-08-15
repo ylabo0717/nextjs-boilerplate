@@ -543,7 +543,15 @@ export class LokiClient {
  *
  * @public
  */
-export async function validateLokiConfig(config: LokiClientConfig): Promise<void> {
+/**
+ * 基本設定の検証
+ *
+ * @param config - 検証する設定
+ * @throws Error if basic configuration is invalid
+ *
+ * @internal
+ */
+function validateBasicConfig(config: LokiClientConfig): void {
   if (!config.url) {
     throw new Error('Loki URL is required');
   }
@@ -553,11 +561,31 @@ export async function validateLokiConfig(config: LokiClientConfig): Promise<void
   } catch {
     throw new Error('Invalid Loki URL format');
   }
+}
 
+/**
+ * タイムアウト設定の検証
+ *
+ * @param config - 検証する設定
+ * @throws Error if timeout configuration is invalid
+ *
+ * @internal
+ */
+function validateTimeoutConfig(config: LokiClientConfig): void {
   if (config.timeout && config.timeout <= 0) {
     throw new Error('Timeout must be positive');
   }
+}
 
+/**
+ * バッチ設定の検証
+ *
+ * @param config - 検証する設定
+ * @throws Error if batch configuration is invalid
+ *
+ * @internal
+ */
+function validateBatchConfig(config: LokiClientConfig): void {
   if (config.batchSize && config.batchSize <= 0) {
     throw new Error('Batch size must be positive');
   }
@@ -565,7 +593,17 @@ export async function validateLokiConfig(config: LokiClientConfig): Promise<void
   if (config.flushInterval && config.flushInterval <= 0) {
     throw new Error('Flush interval must be positive');
   }
+}
 
+/**
+ * リトライ設定の検証
+ *
+ * @param config - 検証する設定
+ * @throws Error if retry configuration is invalid
+ *
+ * @internal
+ */
+function validateRetryConfig(config: LokiClientConfig): void {
   if (config.maxRetries && config.maxRetries < 0) {
     throw new Error('Max retries must be non-negative');
   }
@@ -573,7 +611,17 @@ export async function validateLokiConfig(config: LokiClientConfig): Promise<void
   if (config.retryDelay && config.retryDelay <= 0) {
     throw new Error('Retry delay must be positive');
   }
+}
 
+/**
+ * 接続性の検証
+ *
+ * @param config - 検証する設定
+ * @throws Error if connectivity test fails
+ *
+ * @internal
+ */
+async function validateConnectivity(config: LokiClientConfig): Promise<void> {
   // Test connectivity (optional)
   if (process.env.NODE_ENV !== 'test') {
     try {
@@ -593,6 +641,14 @@ export async function validateLokiConfig(config: LokiClientConfig): Promise<void
       );
     }
   }
+}
+
+export async function validateLokiConfig(config: LokiClientConfig): Promise<void> {
+  validateBasicConfig(config);
+  validateTimeoutConfig(config);
+  validateBatchConfig(config);
+  validateRetryConfig(config);
+  await validateConnectivity(config);
 }
 
 /**

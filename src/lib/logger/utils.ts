@@ -249,6 +249,178 @@ export function generateRequestId(): string {
 }
 
 /**
+ * Edge Runtime環境検出（純粋関数）
+ *
+ * Vercel Edge Runtime環境かどうかを検出します。
+ * グローバル変数 EdgeRuntime の存在をチェックして判定します。
+ *
+ * @returns Edge Runtime環境の場合true
+ *
+ * @example
+ * ```typescript
+ * if (isEdgeRuntime()) {
+ *   // Edge Runtime対応のコード
+ * } else {
+ *   // Node.js環境のコード
+ * }
+ * ```
+ *
+ * @public
+ */
+export function isEdgeRuntime(): boolean {
+  try {
+    // EdgeRuntimeグローバル変数の存在チェック
+    return typeof (globalThis as { EdgeRuntime?: unknown }).EdgeRuntime === 'string';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 実行環境のタイプを検出（純粋関数）
+ *
+ * 現在の実行環境のタイプを識別します。
+ * Edge Runtime、Node.js、ブラウザ環境を区別します。
+ *
+ * @returns 実行環境のタイプ
+ *
+ * @public
+ */
+export function detectRuntimeEnvironment(): 'edge' | 'nodejs' | 'browser' {
+  // Edge Runtime環境
+  if (isEdgeRuntime()) {
+    return 'edge';
+  }
+
+  // Node.js環境（サーバーサイド）
+  if (typeof window === 'undefined' && typeof process !== 'undefined') {
+    return 'nodejs';
+  }
+
+  // ブラウザ環境
+  return 'browser';
+}
+
+/**
+ * Edge Runtime対応コンテキストストレージ
+ *
+ * AsyncLocalStorageが使用できないEdge Runtime環境で
+ * リクエストスコープのコンテキスト管理を提供します。
+ * WeakMapとPromise chaining を使用して実装します。
+ *
+ * @internal
+ */
+class EdgeContextStorage<T> {
+  private contextMap = new WeakMap<object, T>();
+  private currentContext: T | null = null;
+
+  /**
+   * コンテキストを設定してコールバックを実行
+   */
+  run(context: T, callback: () => void): void;
+  run<R>(context: T, callback: () => R): R;
+  run<R>(context: T, callback: () => R): R {
+    const previousContext = this.currentContext;
+    this.currentContext = context;
+
+    try {
+      return callback();
+    } finally {
+      this.currentContext = previousContext;
+    }
+  }
+
+  /**
+   * 現在のコンテキストを取得
+   */
+  getStore(): T | undefined {
+    return this.currentContext ?? undefined;
+  }
+
+  /**
+   * オブジェクトにコンテキストを関連付け
+   */
+  bind<Args extends unknown[]>(fn: (...args: Args) => void, context?: T): (...args: Args) => void {
+    const boundContext = context ?? this.currentContext;
+    if (!boundContext) {
+      return fn;
+    }
+
+    return (...args: Args) => {
+      return this.run(boundContext, () => fn(...args));
+    };
+  }
+}
+
+/**
+ * 環境対応AsyncLocalStorage互換インターフェース
+ *
+ * Edge Runtime環境では EdgeContextStorage を、
+ * Node.js環境では AsyncLocalStorage を使用します。
+ *
+ * @internal
+ */
+export interface CompatibleStorage<T> {
+  run<R>(store: T, callback: () => R): R;
+  getStore(): T | undefined;
+  bind<Args extends unknown[]>(fn: (...args: Args) => void, context?: T): (...args: Args) => void;
+}
+
+/**
+ * 環境対応ストレージファクトリー（純粋関数）
+ *
+ * 実行環境に応じて適切なコンテキストストレージを作成します。
+ * Edge Runtime環境では独自実装、Node.js環境ではAsyncLocalStorageを使用します。
+ *
+ * @returns 環境対応ストレージインスタンス
+ *
+ * @public
+ */
+export function createCompatibleStorage<T>(): CompatibleStorage<T> {
+  const runtime = detectRuntimeEnvironment();
+
+  if (runtime === 'edge') {
+    // Edge Runtime環境: 独自実装を使用
+    const edgeStorage = new EdgeContextStorage<T>();
+    return {
+      run: edgeStorage.run.bind(edgeStorage),
+      getStore: edgeStorage.getStore.bind(edgeStorage),
+      bind: edgeStorage.bind.bind(edgeStorage),
+    };
+  } else {
+    // Node.js環境: AsyncLocalStorageを使用
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { AsyncLocalStorage } = require('node:async_hooks');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const AsyncLocalStorageConstructor = AsyncLocalStorage as any;
+      const als = new AsyncLocalStorageConstructor() as {
+        run<R>(store: T, callback: () => R): R;
+        getStore(): T | undefined;
+      };
+      return {
+        run: als.run.bind(als),
+        getStore: als.getStore.bind(als),
+        bind: <Args extends unknown[]>(fn: (...args: Args) => void, context?: T) => {
+          if (!context) {
+            return fn;
+          }
+          return (...args: Args) => als.run(context, () => fn(...args));
+        },
+      };
+    } catch {
+      // フォールバック: Edge実装を使用
+      const fallbackStorage = new EdgeContextStorage<T>();
+      return {
+        run: fallbackStorage.run.bind(fallbackStorage),
+        getStore: fallbackStorage.getStore.bind(fallbackStorage),
+        bind: fallbackStorage.bind.bind(fallbackStorage),
+      };
+    }
+  }
+}
+
+/**
  * エラーオブジェクトを構造化ログに適した形式にシリアライズする関数
  *
  * Error オブジェクトや任意の値を JSON シリアライズ可能な形式に変換します。

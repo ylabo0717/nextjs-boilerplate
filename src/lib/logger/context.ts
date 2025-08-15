@@ -1,14 +1,15 @@
 /**
- * 🚨 高リスク対応: Child Logger + AsyncLocalStorage完全実装
+ * 🚨 高リスク対応: Child Logger + Edge Runtime対応コンテキスト完全実装
  * リクエストコンテキストの完全管理によるトレース追跡の向上
+ * Edge Runtime環境でのAsyncLocalStorage制限に対応
  */
-
-import { AsyncLocalStorage } from 'node:async_hooks';
 
 import { sanitizeLogEntry } from './sanitizer';
 import { SEVERITY_NUMBERS } from './types';
+import { createCompatibleStorage } from './utils';
 
 import type { Logger, LoggerContext, LogArgument } from './types';
+import type { CompatibleStorage } from './utils';
 
 /**
  * Logger コンテキスト管理設定型
@@ -19,8 +20,8 @@ import type { Logger, LoggerContext, LogArgument } from './types';
  * @public
  */
 export type LoggerContextConfig = {
-  /** AsyncLocalStorageを使ったコンテキスト保存領域 */
-  readonly storage: AsyncLocalStorage<LoggerContext>;
+  /** 環境対応コンテキスト保存領域（AsyncLocalStorage互換） */
+  readonly storage: CompatibleStorage<LoggerContext>;
 };
 
 /**
@@ -35,7 +36,7 @@ export type LoggerContextConfig = {
  */
 export function createLoggerContextConfig(): LoggerContextConfig {
   return {
-    storage: new AsyncLocalStorage<LoggerContext>(),
+    storage: createCompatibleStorage<LoggerContext>(),
   } as const;
 }
 

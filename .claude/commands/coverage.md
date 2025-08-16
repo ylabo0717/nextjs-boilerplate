@@ -16,6 +16,7 @@ Improve the quality of the test suite while incrementally increasing code covera
 - Phase 2: Increase coverage toward 100% where feasible. For unreachable or defensive branches, document the rationale and record them as exceptions.
 - Avoid duplication with existing tests; consolidate or refactor redundant cases.
 - Cover critical paths: utilities, logging, error handling, boundary values, and failure flows.
+- All newly added tests must include TSDoc-style comments describing the test purpose and intent.
 
 ## Policy and Guidelines
 
@@ -24,6 +25,7 @@ Improve the quality of the test suite while incrementally increasing code covera
 - Mocking policy: control external I/O, time, randomness, and environment variables. For logging, verify effects (content and call counts) without excessive mocking.
 - Minimize snapshot tests; prefer explicit assertions that validate structure and contracts.
 - Flake prevention: use reliable wait conditions and timeouts, and eliminate non‑determinism.
+- Document tests with TSDoc-style comments: state the unit/behavior under test, scenario, intent, notable edge cases, and references to specs or issues when relevant.
 
 ## Priorities
 

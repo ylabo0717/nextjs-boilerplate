@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { LOGGER_TEST_DATA } from '../../constants/test-constants';
 
 describe('Server Logger Basic', () => {
   beforeEach(() => {
@@ -90,7 +91,7 @@ describe('Server Logger Basic', () => {
 
       const testFunction = () => {
         let sum = 0;
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < LOGGER_TEST_DATA.PERFORMANCE_LOOP_ITERATIONS; i++) {
           sum += i;
         }
         return sum;
@@ -98,14 +99,14 @@ describe('Server Logger Basic', () => {
 
       const result = serverLoggerHelpers.measurePerformance('test-sync', testFunction);
 
-      expect(result).toBe(4950); // Sum of 0-99
+      expect(result).toBe(LOGGER_TEST_DATA.PERFORMANCE_EXPECTED_SUM);
     });
 
     it('should measure performance asynchronously', async () => {
       const { serverLoggerHelpers } = await import('../../../src/lib/logger/server');
 
       const asyncFunction = async () => {
-        await new Promise(resolve => setTimeout(resolve, 1));
+        await new Promise(resolve => setTimeout(resolve, LOGGER_TEST_DATA.ASYNC_DELAY_SHORT));
         return 'async-result';
       };
 

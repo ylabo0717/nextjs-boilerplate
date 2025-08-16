@@ -15,6 +15,7 @@ import {
   getLoggerContext,
 } from '@/lib/logger/context';
 import type { LoggerContext } from '@/lib/logger/types';
+import { LOGGER_TEST_DATA } from '../../constants/test-constants';
 
 describe('Edge Runtime Environment Detection', () => {
   let originalEdgeRuntime: any;
@@ -230,7 +231,7 @@ describe('Logger Context Integration', () => {
 describe('Edge Runtime Context Performance', () => {
   test('should handle high-frequency context operations', () => {
     const storage = createCompatibleStorage<number>();
-    const iterations = 1000;
+    const iterations = LOGGER_TEST_DATA.CONCURRENT_REQUESTS_HIGH;
     const results: number[] = [];
 
     const start = performance.now();
@@ -249,12 +250,12 @@ describe('Edge Runtime Context Performance', () => {
 
     expect(results).toHaveLength(iterations);
     expect(results).toEqual(Array.from({ length: iterations }, (_, i) => i));
-    expect(duration).toBeLessThan(100); // Should complete within 100ms
+    expect(duration).toBeLessThan(LOGGER_TEST_DATA.PERFORMANCE_TIMEOUT_100MS); // Should complete within 100ms
   });
 
   test('should handle deeply nested context calls', () => {
     const storage = createCompatibleStorage<string>();
-    const depth = 100;
+    const depth = LOGGER_TEST_DATA.EDGE_CONTEXT_DEPTH;
     let currentDepth = 0;
 
     function recursiveRun(d: number): void {

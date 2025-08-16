@@ -15,6 +15,7 @@ import {
   type StorageConfig,
   type KVStorage,
 } from '@/lib/logger/kv-storage';
+import { LOGGER_TEST_DATA } from '../../constants/test-constants';
 
 // Mock environment variables
 const originalEnv = process.env;
@@ -38,9 +39,9 @@ describe('createStorageConfig', () => {
     const config = createStorageConfig();
 
     expect(config.type).toBe('memory');
-    expect(config.ttl_default).toBe(3600);
+    expect(config.ttl_default).toBe(LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT);
     expect(config.max_retries).toBe(3);
-    expect(config.timeout_ms).toBe(5000);
+    expect(config.timeout_ms).toBe(LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS);
     expect(config.fallback_enabled).toBe(true);
     expect(Object.isFrozen(config)).toBe(true);
   });
@@ -73,16 +74,16 @@ describe('createStorageConfig', () => {
   });
 
   test('respects custom environment configuration', () => {
-    process.env.KV_TTL_DEFAULT = '7200';
+    process.env.KV_TTL_DEFAULT = LOGGER_TEST_DATA.STORAGE_TTL_EXTENDED.toString();
     process.env.KV_MAX_RETRIES = '5';
-    process.env.KV_TIMEOUT_MS = '10000';
+    process.env.KV_TIMEOUT_MS = LOGGER_TEST_DATA.STORAGE_TIMEOUT_EXTENDED.toString();
     process.env.KV_FALLBACK_ENABLED = 'false';
 
     const config = createStorageConfig();
 
-    expect(config.ttl_default).toBe(7200);
+    expect(config.ttl_default).toBe(LOGGER_TEST_DATA.STORAGE_TTL_EXTENDED);
     expect(config.max_retries).toBe(5);
-    expect(config.timeout_ms).toBe(10000);
+    expect(config.timeout_ms).toBe(LOGGER_TEST_DATA.STORAGE_TIMEOUT_EXTENDED);
     expect(config.fallback_enabled).toBe(false);
   });
 });
@@ -91,9 +92,9 @@ describe('validateStorageConfig', () => {
   test('validates correct memory storage config', () => {
     const config: StorageConfig = {
       type: 'memory',
-      ttl_default: 3600,
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
       max_retries: 3,
-      timeout_ms: 5000,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
       fallback_enabled: true,
     };
 
@@ -104,9 +105,9 @@ describe('validateStorageConfig', () => {
     const config: StorageConfig = {
       type: 'redis',
       connection_string: 'redis://localhost:6379',
-      ttl_default: 3600,
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
       max_retries: 3,
-      timeout_ms: 5000,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
       fallback_enabled: true,
     };
 
@@ -121,9 +122,9 @@ describe('validateStorageConfig', () => {
   test('rejects config with invalid type', () => {
     const config = {
       type: 'invalid',
-      ttl_default: 3600,
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
       max_retries: 3,
-      timeout_ms: 5000,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
       fallback_enabled: true,
     };
 
@@ -133,9 +134,9 @@ describe('validateStorageConfig', () => {
   test('rejects Redis config without connection string', () => {
     const config: StorageConfig = {
       type: 'redis',
-      ttl_default: 3600,
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
       max_retries: 3,
-      timeout_ms: 5000,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
       fallback_enabled: true,
     };
 
@@ -164,7 +165,7 @@ describe('MemoryStorage', () => {
       type: 'memory',
       ttl_default: 10, // 10 seconds for testing
       max_retries: 3,
-      timeout_ms: 5000,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
       fallback_enabled: true,
     };
     storage = new MemoryStorage(config);
@@ -190,7 +191,7 @@ describe('MemoryStorage', () => {
     expect(value).toBe('ttl-value');
 
     // Wait for expiration
-    await new Promise((resolve) => setTimeout(resolve, 1100));
+    await new Promise((resolve) => setTimeout(resolve, LOGGER_TEST_DATA.ASYNC_DELAY_LONG));
 
     value = await storage.get('ttl-key');
     expect(value).toBeNull();
@@ -256,9 +257,9 @@ describe('createKVStorage', () => {
   test('creates memory storage with custom config', () => {
     const customConfig: StorageConfig = {
       type: 'memory',
-      ttl_default: 7200,
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_EXTENDED,
       max_retries: 5,
-      timeout_ms: 10000,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_EXTENDED,
       fallback_enabled: false,
     };
 
@@ -288,9 +289,9 @@ describe('checkStorageHealth', () => {
   beforeEach(() => {
     const config: StorageConfig = {
       type: 'memory',
-      ttl_default: 3600,
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
       max_retries: 3,
-      timeout_ms: 5000,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
       fallback_enabled: true,
     };
     storage = new MemoryStorage(config);
@@ -380,20 +381,20 @@ describe('Error Handling and Resilience', () => {
   test('memory storage handles concurrent operations', async () => {
     const config: StorageConfig = {
       type: 'memory',
-      ttl_default: 3600,
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
       max_retries: 3,
-      timeout_ms: 5000,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
       fallback_enabled: true,
     };
     const storage = new MemoryStorage(config);
 
     // Perform multiple concurrent operations
-    const operations = Array.from({ length: 100 }, (_, i) => storage.set(`key-${i}`, `value-${i}`));
+    const operations = Array.from({ length: LOGGER_TEST_DATA.CONCURRENT_OPERATIONS_COUNT }, (_, i) => storage.set(`key-${i}`, `value-${i}`));
 
     await Promise.all(operations);
 
     // Verify all values are stored correctly
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < LOGGER_TEST_DATA.CONCURRENT_OPERATIONS_COUNT; i++) {
       const value = await storage.get(`key-${i}`);
       expect(value).toBe(`value-${i}`);
     }
@@ -402,9 +403,9 @@ describe('Error Handling and Resilience', () => {
   test('memory storage handles edge cases', async () => {
     const config: StorageConfig = {
       type: 'memory',
-      ttl_default: 3600,
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
       max_retries: 3,
-      timeout_ms: 5000,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
       fallback_enabled: true,
     };
     const storage = new MemoryStorage(config);
@@ -419,7 +420,7 @@ describe('Error Handling and Resilience', () => {
     expect(await storage.get('special')).toBe(specialValue);
 
     // Test large value
-    const largeValue = 'x'.repeat(10000);
+    const largeValue = 'x'.repeat(LOGGER_TEST_DATA.LARGE_VALUE_SIZE);
     await storage.set('large', largeValue);
     expect(await storage.get('large')).toBe(largeValue);
   });

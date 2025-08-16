@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { LOGGER_TEST_DATA } from '../../constants/test-constants';
 
 describe('Logger Context Basic', () => {
   beforeEach(() => {
@@ -47,10 +48,10 @@ describe('Logger Context Basic', () => {
         
         // Test logging methods
         loggerContextManager.logUserAction(mockLogger, 'login', { device: 'mobile' });
-        loggerContextManager.logSystemEvent(mockLogger, 'startup', { duration: 1500 });
+        loggerContextManager.logSystemEvent(mockLogger, 'startup', { duration: LOGGER_TEST_DATA.KV_STORAGE_TTL * 1.5 });
         loggerContextManager.logSecurityEvent(mockLogger, 'unauthorized', { ip: '192.168.1.1' });
         loggerContextManager.logErrorEvent(mockLogger, new Error('Test error'), { context: 'test' });
-        loggerContextManager.logPerformanceMetric(mockLogger, 'api_response', 250, 'ms');
+        loggerContextManager.logPerformanceMetric(mockLogger, 'api_response', LOGGER_TEST_DATA.KV_STORAGE_TTL / 4, 'ms');
 
         // Test trace context
         loggerContextManager.setTraceContext('trace-123', 'span-456');
@@ -267,10 +268,10 @@ describe('Logger Context Basic', () => {
 
       expect(() => {
         logUserAction(config, mockLogger, 'user-login', { device: 'mobile' });
-        logSystemEvent(config, mockLogger, 'system-startup', { duration: 1200 });
+        logSystemEvent(config, mockLogger, 'system-startup', { duration: LOGGER_TEST_DATA.KV_STORAGE_TTL * 1.2 });
         logSecurityEvent(config, mockLogger, 'security-breach', { severity: 'high' });
         logErrorEvent(config, mockLogger, new Error('Test error'), { context: 'unit-test' });
-        logPerformanceMetric(config, mockLogger, 'test-metric', 150, 'ms');
+        logPerformanceMetric(config, mockLogger, 'test-metric', LOGGER_TEST_DATA.KV_STORAGE_TTL / 6.67, 'ms');
       }).not.toThrow();
     });
 
@@ -323,10 +324,10 @@ describe('Logger Context Basic', () => {
 
       expect(() => {
         // Test with default unit (should be 'ms')
-        logPerformanceMetric(config, mockLogger, 'api-response', 250);
+        logPerformanceMetric(config, mockLogger, 'api-response', LOGGER_TEST_DATA.KV_STORAGE_TTL / 4);
         
         // Test with custom unit
-        logPerformanceMetric(config, mockLogger, 'memory-usage', 128, 'MB');
+        logPerformanceMetric(config, mockLogger, 'memory-usage', LOGGER_TEST_DATA.KV_STORAGE_TTL / 7.8125, 'MB');
       }).not.toThrow();
     });
   });

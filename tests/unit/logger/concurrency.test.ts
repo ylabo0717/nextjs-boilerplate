@@ -7,11 +7,12 @@ import { describe, test, expect, beforeEach } from 'vitest';
 import { generateRequestId } from '@/lib/logger/utils';
 import { sanitizeControlCharacters, limitObjectSize } from '@/lib/logger/sanitizer';
 import { createLoggerContextConfig, runWithLoggerContext } from '@/lib/logger/context';
+import { LOGGER_TEST_DATA } from '../../constants/test-constants';
 
 describe('並行処理とRequestID重複検証', () => {
   test('100並列リクエストでrequestIDの重複がないことを検証', async () => {
     const requestIds = new Set<string>();
-    const concurrentRequests = 100;
+    const concurrentRequests = LOGGER_TEST_DATA.CONCURRENT_REQUESTS_STANDARD;
 
     // 100個の並列リクエストIDを生成
     const promises = Array.from({ length: concurrentRequests }, async () => {
@@ -37,10 +38,10 @@ describe('並行処理とRequestID重複検証', () => {
 
   test('1000並列リクエストでrequestIDの重複がないことを検証', async () => {
     const requestIds = new Set<string>();
-    const concurrentRequests = 1000;
+    const concurrentRequests = LOGGER_TEST_DATA.CONCURRENT_REQUESTS_HIGH;
 
     // バッチ処理で負荷を分散
-    const batchSize = 100;
+    const batchSize = LOGGER_TEST_DATA.BATCH_SIZE;
     const batches = Math.ceil(concurrentRequests / batchSize);
 
     for (let batch = 0; batch < batches; batch++) {
@@ -64,7 +65,7 @@ describe('並行処理とRequestID重複検証', () => {
 
   test('高頻度生成でのrequestID衝突確率を検証', () => {
     const requestIds = new Set<string>();
-    const iterationCount = 10000;
+    const iterationCount = LOGGER_TEST_DATA.STRESS_TEST_ITERATIONS;
 
     // 同期的に高頻度でIDを生成
     for (let i = 0; i < iterationCount; i++) {
@@ -188,17 +189,17 @@ describe('コンテキスト並行処理テスト', () => {
 describe('大容量データ処理のFuzzテスト', () => {
   test('1MB超の文字列データを安全に処理', () => {
     // 1MBを超える大きな文字列を生成（制御文字を含む）
-    const baseString = 'A'.repeat(1000) + '\x00\x01\x02' + 'B'.repeat(1000);
-    const largeString = baseString.repeat(600); // 約1.2MB (2003 * 600 = 1,201,800 bytes)
+    const baseString = 'A'.repeat(LOGGER_TEST_DATA.STRING_REPEAT_COUNT) + '\x00\x01\x02' + 'B'.repeat(LOGGER_TEST_DATA.STRING_REPEAT_COUNT);
+    const largeString = baseString.repeat(LOGGER_TEST_DATA.LARGE_STRING_MULTIPLIER); // 約1.2MB
 
-    expect(largeString.length).toBeGreaterThan(1024 * 1024); // 1MB以上
+    expect(largeString.length).toBeGreaterThan(LOGGER_TEST_DATA.MEMORY_THRESHOLD_1MB); // 1MB以上
 
     const startTime = Date.now();
     const result = sanitizeControlCharacters(largeString);
     const duration = Date.now() - startTime;
 
     // パフォーマンス検証（5秒以内で完了）
-    expect(duration).toBeLessThan(5000);
+    expect(duration).toBeLessThan(LOGGER_TEST_DATA.PERFORMANCE_TIMEOUT_5S);
 
     // 結果の検証
     expect(typeof result).toBe('string');
@@ -232,7 +233,7 @@ describe('大容量データ処理のFuzzテスト', () => {
     const duration = Date.now() - startTime;
 
     // パフォーマンス検証（1秒以内で完了）
-    expect(duration).toBeLessThan(1000);
+    expect(duration).toBeLessThan(LOGGER_TEST_DATA.PERFORMANCE_TIMEOUT_1S);
 
     // 制限が適用されていることを確認
     expect(result).toBeDefined();
@@ -241,7 +242,7 @@ describe('大容量データ処理のFuzzテスト', () => {
 
   test('大量配列の処理とメモリ効率性', () => {
     // 大量のデータを含む配列を生成
-    const largeArray = Array.from({ length: 10000 }, (_, i) => ({
+    const largeArray = Array.from({ length: LOGGER_TEST_DATA.STRESS_TEST_ITERATIONS }, (_, i) => ({
       id: i,
       data: `item${i}`,
       dangerous: `content\x00${i % 10}`, // 実際の制御文字
@@ -257,7 +258,7 @@ describe('大容量データ処理のFuzzテスト', () => {
     const duration = Date.now() - startTime;
 
     // パフォーマンス検証（3秒以内で完了）
-    expect(duration).toBeLessThan(3000);
+    expect(duration).toBeLessThan(LOGGER_TEST_DATA.PERFORMANCE_TIMEOUT_3S);
 
     // 結果の検証
     expect(Array.isArray(result)).toBe(true);
@@ -267,7 +268,7 @@ describe('大容量データ処理のFuzzテスト', () => {
     const sampleResult = result as any[];
     // 制御文字がエスケープされていることを確認 - 実際の形式をチェック
     const firstElement = sampleResult[0].dangerous;
-    const hundredthElement = sampleResult[100].nested.dangerous;
+    const hundredthElement = sampleResult[LOGGER_TEST_DATA.CONCURRENT_REQUESTS_STANDARD].nested.dangerous;
 
     // 制御文字 \x00 がエスケープされているかチェック（\u0000 または \\u0000 形式）
     expect(firstElement).toMatch(/\\u0000|\\\\u0000/);
@@ -341,8 +342,8 @@ describe('無効データと破損データの堅牢性テスト', () => {
       Number.MIN_SAFE_INTEGER,
       Number.MAX_VALUE,
       Number.MIN_VALUE,
-      '9'.repeat(1000000), // 100万桁の数字文字列
-      'x'.repeat(100000) + '\x00' + 'y'.repeat(100000), // 大きな文字列と制御文字
+      '9'.repeat(LOGGER_TEST_DATA.VERY_LARGE_STRING_SIZE), // 100万桁の数字文字列
+      'x'.repeat(LOGGER_TEST_DATA.LARGE_STRING_SIZE) + '\x00' + 'y'.repeat(LOGGER_TEST_DATA.LARGE_STRING_SIZE), // 大きな文字列と制御文字
     ];
 
     extremeValues.forEach((value) => {

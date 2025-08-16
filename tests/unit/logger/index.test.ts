@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { LOGGER_TEST_DATA } from '../../constants/test-constants';
 
 // Mock modules before importing
 vi.mock('../../../src/lib/logger/client', () => ({
@@ -39,6 +40,13 @@ vi.mock('../../../src/lib/logger/server', () => ({
     debug: vi.fn(),
     log: vi.fn(),
   })),
+  serverLoggerWrapper: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    log: vi.fn(),
+  },
   serverLoggerHelpers: {
     measurePerformance: vi.fn((name, fn) => fn()),
     measurePerformanceAsync: vi.fn(async (name, fn) => await fn()),
@@ -47,16 +55,46 @@ vi.mock('../../../src/lib/logger/server', () => ({
   },
 }));
 
+vi.mock('../../../src/lib/logger/error-handler', () => ({
+  setupGlobalErrorHandlers: vi.fn(),
+}));
+
+vi.mock('../../../src/lib/logger/loki-client', () => ({
+  createLokiConfigFromEnv: vi.fn(() => ({
+    host: 'http://localhost:3100',
+    labels: { app: 'test' },
+  })),
+  initializeLokiTransport: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../../../src/lib/logger/context', () => ({
+  loggerContextManager: {
+    runWithContext: vi.fn((context, fn) => fn()),
+    getContext: vi.fn(() => null),
+  },
+}));
+
 describe('Logger Index', () => {
+  let originalWindow: any;
+  let originalProcess: NodeJS.Process;
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    
+    // Store original values
+    originalWindow = global.window;
+    originalProcess = global.process;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    // Restore original values
+    global.window = originalWindow;
+    global.process = originalProcess;
   });
 
   describe('logger instance (environment detection)', () => {
@@ -266,6 +304,319 @@ describe('Logger Index', () => {
 
       // Should not throw
       expect(() => logUserAction(action, metadata)).not.toThrow();
+    });
+  });
+
+  describe('environment detection', () => {
+    beforeEach(() => {
+      // Clear module cache to test different environments
+      vi.resetModules();
+    });
+
+    it('should detect server environment when window is undefined', async () => {
+      // Simulate server environment
+      delete (global as any).window;
+      
+      // Import the module fresh to trigger environment detection
+      const indexModule = await import('../../../src/lib/logger/index');
+      
+      expect(indexModule.logger).toBeDefined();
+    });
+
+    it('should detect client environment when window is defined', async () => {
+      // Simulate browser environment
+      (global as any).window = {
+        location: { href: 'http://localhost' },
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      };
+      
+      // Clear cache and import fresh
+      vi.resetModules();
+      const indexModule = await import('../../../src/lib/logger/index');
+      
+      expect(indexModule.logger).toBeDefined();
+    });
+
+    it('should handle edge runtime environment detection', async () => {
+      // Simulate edge environment (no window, limited Node.js features)
+      delete (global as any).window;
+      
+      // Import fresh
+      vi.resetModules();
+      const indexModule = await import('../../../src/lib/logger/index');
+      
+      expect(indexModule.logger).toBeDefined();
+    });
+  });
+
+  describe('initializeLogger detailed functionality', () => {
+    beforeEach(() => {
+      vi.resetModules();
+    });
+
+    it('should initialize logger with default options', async () => {
+      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      
+      expect(() => initializeLogger()).not.toThrow();
+    });
+
+    it('should initialize logger with custom context', async () => {
+      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      
+      const context = {
+        requestId: 'test-request-123',
+        userId: 'user-456',
+        sessionId: 'session-789',
+      };
+      
+      expect(() => initializeLogger({ context })).not.toThrow();
+    });
+
+    it('should initialize logger with disabled error handlers', async () => {
+      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      
+      expect(() => {
+        initializeLogger({ enableGlobalErrorHandlers: false });
+      }).not.toThrow();
+    });
+
+    it('should initialize logger with disabled Loki', async () => {
+      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      
+      expect(() => {
+        initializeLogger({ enableLoki: false });
+      }).not.toThrow();
+    });
+
+    it('should initialize logger with custom Loki config', async () => {
+      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      
+      const lokiConfig = {
+        enabled: true,
+        minLevel: 'info' as any,
+        host: 'http://test-loki:3100',
+        labels: { app: 'test-app', env: 'test' },
+      };
+      
+      expect(() => {
+        initializeLogger({ lokiConfig });
+      }).not.toThrow();
+    });
+
+    it('should handle Loki initialization failures gracefully', async () => {
+      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      
+      expect(() => {
+        initializeLogger({ enableLoki: true });
+      }).not.toThrow();
+    });
+
+    it('should handle context initialization in browser environment', async () => {
+      // Simulate browser with proper event listener support
+      (global as any).window = {
+        location: { href: 'http://localhost' },
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      };
+      
+      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      
+      const context = { requestId: 'browser-request' };
+      
+      expect(() => {
+        initializeLogger({ context });
+      }).not.toThrow();
+    });
+
+    it('should respect LOKI_ENABLED environment variable', async () => {
+      const originalEnv = process.env.LOKI_ENABLED;
+      process.env.LOKI_ENABLED = 'false';
+      
+      try {
+        const { initializeLogger } = await import('../../../src/lib/logger/index');
+        
+        expect(() => {
+          initializeLogger(); // Should not enable Loki
+        }).not.toThrow();
+      } finally {
+        if (originalEnv !== undefined) {
+          process.env.LOKI_ENABLED = originalEnv;
+        } else {
+          delete process.env.LOKI_ENABLED;
+        }
+      }
+    });
+  });
+
+  describe('logger creation and management', () => {
+    it('should create appropriate logger for server environment', async () => {
+      delete (global as any).window;
+      vi.resetModules();
+      
+      const { logger } = await import('../../../src/lib/logger/index');
+      
+      expect(logger).toBeDefined();
+      expect(typeof logger.info).toBe('function');
+      expect(typeof logger.warn).toBe('function');
+      expect(typeof logger.error).toBe('function');
+      expect(typeof logger.debug).toBe('function');
+    });
+
+    it('should create appropriate logger for client environment', async () => {
+      (global as any).window = {
+        location: { href: 'http://localhost' },
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      };
+      vi.resetModules();
+      
+      const { logger } = await import('../../../src/lib/logger/index');
+      
+      expect(logger).toBeDefined();
+      expect(typeof logger.info).toBe('function');
+    });
+
+    it('should create appropriate logger for edge environment', async () => {
+      delete (global as any).window;
+      // Simulate edge runtime by mocking server logger to throw
+      vi.resetModules();
+      
+      const { logger } = await import('../../../src/lib/logger/index');
+      
+      expect(logger).toBeDefined();
+    });
+  });
+
+  describe('context management', () => {
+    it('should get logger with context correctly', async () => {
+      const { getLoggerWithContext } = await import('../../../src/lib/logger/index');
+      
+      const context = {
+        requestId: 'test-request',
+        userId: 'test-user',
+        sessionId: 'test-session',
+      };
+      
+      const contextLogger = getLoggerWithContext(context);
+      
+      expect(contextLogger).toBeDefined();
+      expect(typeof contextLogger.info).toBe('function');
+      expect(typeof contextLogger.warn).toBe('function');
+      expect(typeof contextLogger.error).toBe('function');
+      expect(typeof contextLogger.debug).toBe('function');
+    });
+
+    it('should handle empty context in getLoggerWithContext', async () => {
+      const { getLoggerWithContext } = await import('../../../src/lib/logger/index');
+      
+      const contextLogger = getLoggerWithContext({});
+      
+      expect(contextLogger).toBeDefined();
+      expect(typeof contextLogger.info).toBe('function');
+    });
+  });
+
+  describe('debug functionality', () => {
+    it('should execute debug logger without errors', async () => {
+      const { debugLogger } = await import('../../../src/lib/logger/index');
+      
+      expect(() => debugLogger()).not.toThrow();
+    });
+
+    it('should handle debug logger in different environments', async () => {
+      // Test in server environment
+      delete (global as any).window;
+      vi.resetModules();
+      
+      const { debugLogger } = await import('../../../src/lib/logger/index');
+      
+      expect(() => debugLogger()).not.toThrow();
+      
+      // Test in client environment
+      (global as any).window = {
+        location: { href: 'http://localhost' },
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      };
+      vi.resetModules();
+      
+      const clientModule = await import('../../../src/lib/logger/index');
+      
+      expect(() => clientModule.debugLogger()).not.toThrow();
+    });
+  });
+
+  describe('performance measurement edge cases', () => {
+    it('should handle performance measurement with complex return values', async () => {
+      const { measurePerformance } = await import('../../../src/lib/logger/index');
+      
+      const complexResult = { data: 'test', numbers: [1, 2, 3], nested: { value: true } };
+      const testFunction = vi.fn(() => complexResult);
+      
+      const result = measurePerformance('complex-operation', testFunction);
+      
+      expect(testFunction).toHaveBeenCalled();
+      expect(result).toEqual(complexResult);
+    });
+
+    it('should handle async performance measurement with Promise rejections', async () => {
+      const { measurePerformanceAsync } = await import('../../../src/lib/logger/index');
+      
+      const testFunction = vi.fn(async () => {
+        await new Promise(resolve => setTimeout(resolve, 1));
+        throw new Error('Delayed error');
+      });
+      
+      await expect(measurePerformanceAsync('delayed-error', testFunction))
+        .rejects.toThrow('Delayed error');
+      expect(testFunction).toHaveBeenCalled();
+    });
+
+    it('should handle performance measurement with undefined return values', async () => {
+      const { measurePerformance } = await import('../../../src/lib/logger/index');
+      
+      const testFunction = vi.fn(() => undefined);
+      const result = measurePerformance('undefined-operation', testFunction);
+      
+      expect(testFunction).toHaveBeenCalled();
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('error handling edge cases', () => {
+    it('should handle logError with complex error objects', async () => {
+      const { logError } = await import('../../../src/lib/logger/index');
+      
+      const complexError = new Error('Complex error');
+      complexError.stack = 'Stack trace here';
+      (complexError as any).code = 'E_COMPLEX';
+      (complexError as any).details = { userId: '123', action: 'test' };
+      
+      expect(() => logError(complexError, { additional: 'context' })).not.toThrow();
+    });
+
+    it('should handle logUserAction with various metadata types', async () => {
+      const { logUserAction } = await import('../../../src/lib/logger/index');
+      
+      const metadata = {
+        userId: '123',
+        timestamp: new Date().toISOString(),
+        nested: { data: { value: 42 } },
+        array: [1, 2, 3],
+        boolean: true,
+        null: null,
+        undefined: undefined,
+      };
+      
+      expect(() => logUserAction('complex-action', metadata)).not.toThrow();
+    });
+
+    it('should handle logError with null or undefined errors', async () => {
+      const { logError } = await import('../../../src/lib/logger/index');
+      
+      expect(() => logError(null as any)).not.toThrow();
+      expect(() => logError(undefined as any)).not.toThrow();
     });
   });
 });

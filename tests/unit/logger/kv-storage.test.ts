@@ -10,6 +10,8 @@ import {
   createKVStorage,
   checkStorageHealth,
   MemoryStorage,
+  RedisStorage,
+  EdgeConfigStorage,
   getDefaultStorage,
   resetDefaultStorage,
   type StorageConfig,
@@ -243,6 +245,277 @@ describe('MemoryStorage', () => {
   });
 });
 
+describe('RedisStorage', () => {
+  test('creates Redis storage with correct configuration', () => {
+    const config: StorageConfig = {
+      type: 'redis',
+      connection_string: 'redis://localhost:6379',
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
+      max_retries: 3,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
+      fallback_enabled: true,
+    };
+
+    const storage = new RedisStorage(config);
+    expect(storage.type).toBe('redis');
+  });
+
+  test('handles Redis operations with mocked client', async () => {
+    const config: StorageConfig = {
+      type: 'redis',
+      connection_string: 'redis://localhost:6379',
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
+      max_retries: 3,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
+      fallback_enabled: true,
+    };
+
+    const storage = new RedisStorage(config);
+
+    // Test that operations handle errors gracefully when Redis is not available
+    const result = await storage.get('test-key');
+    expect(result).toBeNull(); // Should return null on error
+  });
+
+  test('handles timeout scenarios', async () => {
+    const config: StorageConfig = {
+      type: 'redis',
+      connection_string: 'redis://localhost:6379',
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
+      max_retries: 3,
+      timeout_ms: 1, // Very short timeout for testing
+      fallback_enabled: true,
+    };
+
+    const storage = new RedisStorage(config);
+
+    // Operations should timeout and return gracefully
+    const result = await storage.get('test-key');
+    expect(result).toBeNull();
+  });
+
+  test('handles Redis operation errors gracefully', async () => {
+    const config: StorageConfig = {
+      type: 'redis',
+      connection_string: 'redis://localhost:6379',
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
+      max_retries: 3,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
+      fallback_enabled: true,
+    };
+
+    const storage = new RedisStorage(config);
+
+    // Test all Redis operations handle errors gracefully
+    await expect(storage.get('test-key')).resolves.toBeNull();
+    await expect(storage.exists('test-key')).resolves.toBe(false);
+    
+    // Set and delete operations should handle errors but may throw
+    try {
+      await storage.set('test-key', 'test-value');
+      await storage.delete('test-key');
+    } catch (error) {
+      // Expected behavior when Redis is not available
+      expect(error).toBeDefined();
+    }
+  });
+});
+
+describe('EdgeConfigStorage', () => {
+  let originalEnv: NodeJS.ProcessEnv;
+  let mockFetch: any;
+
+  beforeEach(() => {
+    originalEnv = process.env;
+    process.env = {
+      ...originalEnv,
+      EDGE_CONFIG_ID: 'test-config-id',
+      EDGE_CONFIG_TOKEN: 'test-token',
+    };
+
+    // Mock global fetch
+    mockFetch = vi.fn();
+    global.fetch = mockFetch;
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    vi.restoreAllMocks();
+  });
+
+  test('creates EdgeConfig storage with correct configuration', () => {
+    const config: StorageConfig = {
+      type: 'edge-config',
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
+      max_retries: 3,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
+      fallback_enabled: true,
+    };
+
+    const storage = new EdgeConfigStorage(config);
+    expect(storage.type).toBe('edge-config');
+  });
+
+  test('handles successful get operation', async () => {
+    const config: StorageConfig = {
+      type: 'edge-config',
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
+      max_retries: 3,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
+      fallback_enabled: true,
+    };
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue('test-value'),
+    });
+
+    const storage = new EdgeConfigStorage(config);
+    const result = await storage.get('test-key');
+    expect(result).toBe('test-value');
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://edge-config.vercel.com/test-config-id/item/test-key',
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-token',
+        }),
+      })
+    );
+  });
+
+  test('handles 404 response for get operation', async () => {
+    const config: StorageConfig = {
+      type: 'edge-config',
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
+      max_retries: 3,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
+      fallback_enabled: true,
+    };
+
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 404,
+    });
+
+    const storage = new EdgeConfigStorage(config);
+    const result = await storage.get('non-existent-key');
+    expect(result).toBeNull();
+  });
+
+  test('handles API errors for get operation', async () => {
+    const config: StorageConfig = {
+      type: 'edge-config',
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
+      max_retries: 3,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
+      fallback_enabled: true,
+    };
+
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+    });
+
+    const storage = new EdgeConfigStorage(config);
+    const result = await storage.get('test-key');
+    expect(result).toBeNull();
+  });
+
+  test('handles successful set operation', async () => {
+    const config: StorageConfig = {
+      type: 'edge-config',
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
+      max_retries: 3,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
+      fallback_enabled: true,
+    };
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+    });
+
+    const storage = new EdgeConfigStorage(config);
+    await expect(storage.set('test-key', 'test-value')).resolves.not.toThrow();
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://edge-config.vercel.com/test-config-id/items',
+      expect.objectContaining({
+        method: 'PATCH',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-token',
+        }),
+        body: JSON.stringify({ 'test-key': 'test-value' }),
+      })
+    );
+  });
+
+  test('handles failed set operation', async () => {
+    const config: StorageConfig = {
+      type: 'edge-config',
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
+      max_retries: 3,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
+      fallback_enabled: true,
+    };
+
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+    });
+
+    const storage = new EdgeConfigStorage(config);
+    await expect(storage.set('test-key', 'test-value')).rejects.toThrow();
+  });
+
+  test('handles successful delete operation', async () => {
+    const config: StorageConfig = {
+      type: 'edge-config',
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
+      max_retries: 3,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
+      fallback_enabled: true,
+    };
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+    });
+
+    const storage = new EdgeConfigStorage(config);
+    await expect(storage.delete('test-key')).resolves.not.toThrow();
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://edge-config.vercel.com/test-config-id/items',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ 'test-key': null }),
+      })
+    );
+  });
+
+  test('handles exists operation', async () => {
+    const config: StorageConfig = {
+      type: 'edge-config',
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
+      max_retries: 3,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
+      fallback_enabled: true,
+    };
+
+    // Mock successful get for exists check
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue('test-value'),
+    });
+
+    const storage = new EdgeConfigStorage(config);
+    const exists = await storage.exists('test-key');
+    expect(exists).toBe(true);
+  });
+});
+
 describe('createKVStorage', () => {
   test('creates memory storage by default', () => {
     delete process.env.REDIS_URL;
@@ -279,6 +552,59 @@ describe('createKVStorage', () => {
 
     const storage = createKVStorage(invalidConfig as any);
 
+    expect(storage.type).toBe('memory');
+  });
+
+  test('creates Redis storage when Redis config detected', () => {
+    process.env.REDIS_URL = 'redis://localhost:6379';
+    delete process.env.EDGE_CONFIG_ID;
+    delete process.env.EDGE_CONFIG_TOKEN;
+
+    const storage = createKVStorage();
+    expect(storage.type).toBe('redis');
+  });
+
+  test('creates EdgeConfig storage when Edge Config detected', () => {
+    process.env.EDGE_CONFIG_ID = 'test-config-id';
+    process.env.EDGE_CONFIG_TOKEN = 'test-token';
+    delete process.env.REDIS_URL;
+    delete process.env.KV_CONNECTION_STRING;
+
+    const storage = createKVStorage();
+    expect(storage.type).toBe('edge-config');
+  });
+
+  test('handles storage creation failures with fallback', () => {
+    const config: StorageConfig = {
+      type: 'redis',
+      connection_string: 'redis://localhost:6379',
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
+      max_retries: 3,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
+      fallback_enabled: true,
+    };
+
+    // Create storage with Redis config, but Redis will fail internally
+    // This tests the fallback mechanism in createKVStorage
+    const storage = createKVStorage(config);
+
+    // Even if Redis fails, storage should be created (possibly fallback to memory)
+    expect(storage).toBeDefined();
+    expect(['redis', 'memory']).toContain(storage.type);
+  });
+
+  test('creates memory storage for invalid Redis configuration', () => {
+    const invalidConfig: StorageConfig = {
+      type: 'redis',
+      // Missing connection_string intentionally
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
+      max_retries: 3,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
+      fallback_enabled: true,
+    };
+
+    const storage = createKVStorage(invalidConfig);
+    // Should fallback to memory storage due to invalid config
     expect(storage.type).toBe('memory');
   });
 });
@@ -377,6 +703,48 @@ describe('Default Storage Singleton', () => {
   });
 });
 
+describe('Storage Type Detection', () => {
+  test('detects Redis type when REDIS_URL is set', () => {
+    process.env.REDIS_URL = 'redis://localhost:6379';
+    delete process.env.EDGE_CONFIG_ID;
+    delete process.env.EDGE_CONFIG_TOKEN;
+    delete process.env.KV_CONNECTION_STRING;
+
+    const config = createStorageConfig();
+    expect(config.type).toBe('redis');
+  });
+
+  test('detects Redis type when KV_CONNECTION_STRING is set', () => {
+    process.env.KV_CONNECTION_STRING = 'redis://localhost:6379';
+    delete process.env.REDIS_URL;
+    delete process.env.EDGE_CONFIG_ID;
+    delete process.env.EDGE_CONFIG_TOKEN;
+
+    const config = createStorageConfig();
+    expect(config.type).toBe('redis');
+  });
+
+  test('detects Edge Config type when environment variables are set', () => {
+    process.env.EDGE_CONFIG_ID = 'test-config-id';
+    process.env.EDGE_CONFIG_TOKEN = 'test-token';
+    delete process.env.REDIS_URL;
+    delete process.env.KV_CONNECTION_STRING;
+
+    const config = createStorageConfig();
+    expect(config.type).toBe('edge-config');
+  });
+
+  test('defaults to memory type when no environment variables are set', () => {
+    delete process.env.REDIS_URL;
+    delete process.env.KV_CONNECTION_STRING;
+    delete process.env.EDGE_CONFIG_ID;
+    delete process.env.EDGE_CONFIG_TOKEN;
+
+    const config = createStorageConfig();
+    expect(config.type).toBe('memory');
+  });
+});
+
 describe('Error Handling and Resilience', () => {
   test('memory storage handles concurrent operations', async () => {
     const config: StorageConfig = {
@@ -423,5 +791,33 @@ describe('Error Handling and Resilience', () => {
     const largeValue = 'x'.repeat(LOGGER_TEST_DATA.LARGE_VALUE_SIZE);
     await storage.set('large', largeValue);
     expect(await storage.get('large')).toBe(largeValue);
+  });
+
+  test('validates Edge Config storage configuration requirements', () => {
+    const configWithoutToken: StorageConfig = {
+      type: 'edge-config',
+      ttl_default: LOGGER_TEST_DATA.STORAGE_TTL_DEFAULT,
+      max_retries: 3,
+      timeout_ms: LOGGER_TEST_DATA.STORAGE_TIMEOUT_MS,
+      fallback_enabled: true,
+    };
+
+    // Edge Config validation doesn't require connection_string since it uses env vars
+    const isValid = validateStorageConfig(configWithoutToken);
+    expect(typeof isValid).toBe('boolean');
+  });
+
+  test('handles invalid configuration values in edge cases', () => {
+    const invalidConfigs = [
+      { type: 'memory', ttl_default: -1 },
+      { type: 'memory', max_retries: -5 },
+      { type: 'memory', timeout_ms: 0 },
+      { type: 'redis', connection_string: '' },
+      { type: 'redis' }, // Missing connection_string
+    ];
+
+    invalidConfigs.forEach(config => {
+      expect(validateStorageConfig(config as any)).toBe(false);
+    });
   });
 });

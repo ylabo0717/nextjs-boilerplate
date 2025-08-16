@@ -55,3 +55,11 @@ Improve the quality of the test suite while incrementally increasing code covera
 
 - When 100% coverage is not possible, document untested code paths and provide alternative assurance (e.g., contract or integration tests).
 - Enforce thresholds via Vitest coverage settings and CI quality gates as appropriate.
+
+### Local Coverage Command
+
+Run the following command to generate coverage locally:
+
+```bash
+pnpm test:coverage
+```

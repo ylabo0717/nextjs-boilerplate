@@ -5,7 +5,7 @@
 
 import type { NextRequest, NextResponse } from 'next/server';
 
-// hashIPはcreateRequestContext内で動的にインポートされるため、ここでは不要
+import { hashIPWithDefault } from './crypto';
 import { incrementLogCounter, incrementErrorCounter, recordRequestDuration } from './metrics';
 import { sanitizeLogEntry, limitObjectSize } from './sanitizer';
 import { generateRequestId, serializeError } from './utils';
@@ -121,14 +121,12 @@ export function logForEdgeRuntime(
  */
 export function createRequestContext(request: NextRequest): LoggerContext {
   const requestId = generateRequestId();
-  // Next.js 15ではrequest.ipが利用可能、存在しない場合は'unknown'を使用
+  // Next.js 15でrequest.ipが利用可能、存在しない場合は'unknown'を使用
   // 型安全にipプロパティをチェック
   const ip = 'ip' in request ? (request as { ip?: string }).ip || 'unknown' : 'unknown';
 
   // 純粋関数形式でIPハッシュ化を実行
   // デフォルト設定を使用（後方互換性エイリアス）
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { hashIPWithDefault } = require('./crypto') as typeof import('./crypto');
   const hashedIP = hashIPWithDefault(ip);
 
   return {

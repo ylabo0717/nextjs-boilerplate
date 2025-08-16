@@ -133,6 +133,91 @@ describe('Rate Limiting Operations', () => {
     expect(result.tokens_remaining).toBe(0);
     expect(result.reason).toBe('tokens');
   });
+
+  test('checkRateLimit handles endpoint-specific limits', async () => {
+    const configWithEndpointLimits = createRateLimiterConfig({
+      max_tokens: 100,
+      refill_rate: 10,
+      endpoint_limits: {
+        '/api/premium': { bucket_size: 200, refill_rate: 20 },
+        '/api/basic': { bucket_size: 50, refill_rate: 5 },
+      },
+    });
+
+    // Test premium endpoint gets higher limits
+    const premiumResult = await checkRateLimit(
+      configWithEndpointLimits,
+      'test-client-endpoint',
+      '/api/premium',
+      'info'
+    );
+    expect(premiumResult.allowed).toBe(true);
+
+    // Test basic endpoint gets lower limits
+    const basicResult = await checkRateLimit(
+      configWithEndpointLimits,
+      'test-client-endpoint',
+      '/api/basic',
+      'info'
+    );
+    expect(basicResult.allowed).toBe(true);
+
+    // Test endpoint not in limits uses default config
+    const defaultResult = await checkRateLimit(
+      configWithEndpointLimits,
+      'test-client-endpoint',
+      '/api/default',
+      'info'
+    );
+    expect(defaultResult.allowed).toBe(true);
+  });
+
+  test('checkRateLimit handles token exhaustion correctly', async () => {
+    const limitedConfig = createRateLimiterConfig({
+      max_tokens: 1, // Only 1 token
+      refill_rate: 0, // No refill
+    });
+
+    const clientId = 'token-exhaustion-client';
+    const endpoint = '/api/limited';
+
+    // First request should succeed
+    const firstResult = await checkRateLimit(limitedConfig, clientId, endpoint, 'info');
+    expect(firstResult.allowed).toBe(true);
+    expect(firstResult.tokens_remaining).toBe(0);
+
+    // Second request should fail
+    const secondResult = await checkRateLimit(limitedConfig, clientId, endpoint, 'info');
+    expect(secondResult.allowed).toBe(false);
+    expect(secondResult.tokens_remaining).toBe(0);
+    expect(secondResult.reason).toBe('tokens');
+    expect(secondResult.retry_after).toBe(60);
+  });
+
+  test('checkRateLimit gracefully handles storage errors', async () => {
+    // Mock storage to throw error
+    const mockStorage = {
+      get: vi.fn().mockRejectedValue(new Error('Storage error')),
+      set: vi.fn().mockRejectedValue(new Error('Storage error')),
+      delete: vi.fn().mockRejectedValue(new Error('Storage error')),
+    };
+
+    // Replace the storage implementation temporarily
+    vi.doMock('@/lib/logger/kv-storage', () => ({
+      getDefaultStorage: () => mockStorage,
+    }));
+
+    // Re-import after mocking
+    const { checkRateLimit: checkRateLimitWithMockedStorage } = await import('@/lib/logger/rate-limiter');
+
+    const result = await checkRateLimitWithMockedStorage(config, 'error-client', '/api/test', 'info');
+
+    // Should fail open when storage errors occur
+    expect(result.allowed).toBe(true);
+    expect(result.tokens_remaining).toBeGreaterThanOrEqual(config.max_tokens - 1);
+
+    vi.doUnmock('@/lib/logger/kv-storage');
+  });
 });
 
 describe('Error Frequency Analysis', () => {
@@ -421,13 +506,7 @@ describe('Edge Cases', () => {
   });
 
   test('handles adaptive sampling threshold scenarios', () => {
-    const config = createRateLimiterConfig({
-      adaptive_sampling: true,
-      error_threshold: 10, // Lower threshold for testing
-    });
-
     const currentTime = Date.now();
-    const recentTime = 5 * 60 * 1000; // 5 minutes in milliseconds
 
     // Create state just below threshold with recent errors
     const belowThresholdState = {
@@ -458,7 +537,7 @@ describe('Edge Cases', () => {
     const fiveMinutesAgo = currentTime - (5 * 60 * 1000);
     const tenMinutesAgo = currentTime - (10 * 60 * 1000);
 
-    const state = {
+    const stateWithTimestamps = {
       ...createInitialState(),
       error_timestamps: Object.freeze([
         tenMinutesAgo,  // Should be included if within analysis window
@@ -468,7 +547,7 @@ describe('Edge Cases', () => {
       ]),
     };
 
-    const analysis = analyzeErrorFrequency(state, currentTime);
+    const analysis = analyzeErrorFrequency(stateWithTimestamps, currentTime);
 
     // All errors within the analysis window should be counted
     expect(analysis.total_errors).toBeGreaterThanOrEqual(2);

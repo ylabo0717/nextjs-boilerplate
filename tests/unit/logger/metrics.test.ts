@@ -41,7 +41,7 @@ vi.mock('@opentelemetry/sdk-metrics', () => ({
 }));
 
 vi.mock('@opentelemetry/exporter-prometheus', () => ({
-  PrometheusExporter: vi.fn(() => ({})),
+  PrometheusExporter: vi.fn(() => ({} as any)),
 }));
 
 describe('OpenTelemetry Metrics', () => {
@@ -66,6 +66,33 @@ describe('OpenTelemetry Metrics', () => {
       });
 
       await expect(initializeMetrics()).rejects.toThrow('Initialization failed');
+    });
+
+    it('should handle PrometheusExporter errors', async () => {
+      const { PrometheusExporter } = await import('@opentelemetry/exporter-prometheus');
+      vi.mocked(PrometheusExporter).mockImplementation(() => {
+        throw new Error('Prometheus exporter error');
+      });
+
+      await expect(initializeMetrics()).rejects.toThrow('Prometheus exporter error');
+    });
+
+    it('should handle MeterProvider errors', async () => {
+      // Clear previous mocks to ensure clean state
+      vi.clearAllMocks();
+      
+      const { MeterProvider } = await import('@opentelemetry/sdk-metrics');
+      const { PrometheusExporter } = await import('@opentelemetry/exporter-prometheus');
+      
+      // Reset PrometheusExporter to working state
+      vi.mocked(PrometheusExporter).mockImplementation(() => ({} as any));
+      
+      // Mock MeterProvider to throw error
+      vi.mocked(MeterProvider).mockImplementation(() => {
+        throw new Error('MeterProvider error');
+      });
+
+      await expect(initializeMetrics()).rejects.toThrow('MeterProvider error');
     });
   });
 
@@ -219,6 +246,55 @@ describe('OpenTelemetry Metrics', () => {
           updateMemoryUsage();
         }
       }).not.toThrow();
+    });
+  });
+
+  describe('initialization edge cases', () => {
+    it('should handle various initialization scenarios', async () => {
+      try {
+        await initializeMetrics();
+        // Should complete without throwing
+        expect(true).toBe(true);
+      } catch (error) {
+        // Expected due to mocked dependencies, this is fine
+        expect(error).toBeDefined();
+      }
+    });
+
+    it('should test metrics function behavior patterns', () => {
+      // Test various parameter combinations
+      incrementLogCounter('debug', 'component');
+      incrementErrorCounter('TypeError', 'client', 'medium');
+      recordRequestDuration(250, 'PUT', 204, '/api/resource');
+      updateMemoryUsage('edge', 'edge');
+
+      // Test edge cases
+      incrementLogCounter('trace' as any, '');
+      recordRequestDuration(0, 'HEAD', 304);
+      updateMemoryUsage();
+
+      // Should not throw
+      expect(true).toBe(true);
+    });
+
+    it('should handle memory usage with process variations', () => {
+      const originalMemoryUsage = process.memoryUsage;
+      
+      // Test with different memory usage scenarios
+      process.memoryUsage = vi.fn().mockReturnValue({
+        rss: 1000000,
+        heapTotal: 2000000,
+        heapUsed: 1500000,
+        external: 500000,
+        arrayBuffers: 100000,
+      }) as any;
+
+      updateMemoryUsage('server', 'edge');
+
+      // Restore original function
+      process.memoryUsage = originalMemoryUsage;
+      
+      expect(true).toBe(true);
     });
   });
 

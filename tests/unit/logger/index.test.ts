@@ -361,6 +361,34 @@ describe('Logger Index', () => {
       expect(() => initializeLogger()).not.toThrow();
     });
 
+    it('should handle Loki initialization errors and log warnings', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      
+      // Mock initializeLokiTransport to throw an error
+      vi.doMock('../../../src/lib/logger/loki-client', () => ({
+        createLokiConfigFromEnv: vi.fn(() => ({
+          host: 'http://localhost:3100',
+          labels: { app: 'test' },
+        })),
+        initializeLokiTransport: vi.fn().mockRejectedValue(new Error('Loki initialization failed')),
+      }));
+
+      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      
+      initializeLogger({ enableLoki: true });
+      
+      // Wait for the promise to be rejected and handled
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'Failed to initialize Loki transport:',
+        expect.any(Error)
+      );
+
+      consoleWarnSpy.mockRestore();
+      vi.doUnmock('../../../src/lib/logger/loki-client');
+    });
+
     it('should initialize logger with custom context', async () => {
       const { initializeLogger } = await import('../../../src/lib/logger/index');
       

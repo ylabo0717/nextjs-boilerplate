@@ -12,6 +12,7 @@ Improve the quality of the test suite while incrementally increasing code covera
 ## Definition of Done (DoD)
 
 - Phase 1: Achieve global test coverage ≥ 80%. All tests must pass locally and in CI. Do not skip tests.
+- Per-metric thresholds: Statements ≥ 80%, Branches ≥ 80%, Functions ≥ 80%, Lines ≥ 80%.
 - Phase 2: Increase coverage toward 100% where feasible. For unreachable or defensive branches, document the rationale and record them as exceptions.
 - Avoid duplication with existing tests; consolidate or refactor redundant cases.
 - Cover critical paths: utilities, logging, error handling, boundary values, and failure flows.

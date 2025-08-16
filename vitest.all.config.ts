@@ -8,7 +8,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
-    globalSetup: ['./tests/setup/vitest-global-setup.ts'], // Enable for integration tests
+    // 統合テストも含むため、常にglobalSetupを適用
+    globalSetup: ['./tests/setup/vitest-global-setup.ts'],
     css: true,
     globals: true,
     passWithNoTests: true,

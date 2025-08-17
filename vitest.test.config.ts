@@ -1,9 +1,10 @@
 import { fileURLToPath } from 'node:url';
+
+import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  // Reactプラグインなしでも正常動作（軽量化のため）
-  plugins: [],
+  plugins: [react()],
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],

@@ -8,8 +8,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { logger } from '@/lib/logger';
 
-// 環境変数でのスキップチェック
-const shouldSkip = process.env.SKIP_LOKI_TESTS === 'true';
+// このファイルは実際のLoki接続を行わないため、SKIP_LOKI_TESTSの影響を受けず常に実行
+const shouldSkip = false;
 
 // 早期スキップ
 if (shouldSkip) {

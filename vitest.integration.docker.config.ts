@@ -22,11 +22,6 @@ export default defineConfig({
       '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
       '**/tests/e2e/**',
       '**/tests/unit/**',
-      // Docker環境ではTestcontainersが必要なテストを除外
-      // 注意: Docker-in-Docker環境の制約により、この除外設定は期待通り動作しません
-      '**/tests/integration/logger/loki-testcontainers.integration.test.ts',
-      '**/tests/integration/logger/loki-basic.integration.test.ts',
-      '**/tests/integration/logger/documentation-loki-validation.integration.test.ts',
     ],
     alias: {
       '@': fileURLToPath(new URL('./src/', import.meta.url)),

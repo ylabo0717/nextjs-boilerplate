@@ -34,7 +34,9 @@ describe('Grafana Authentication Configuration', () => {
       expect(dockerComposeContent).not.toContain(':-changeme123!}');
 
       // 環境変数が必須化されていることを確認（より安全なアプローチ）
-      expect(dockerComposeContent).toContain(':?GRAFANA_ADMIN_PASSWORD environment variable is required for security');
+      expect(dockerComposeContent).toContain(
+        ':?GRAFANA_ADMIN_PASSWORD environment variable is required for security'
+      );
     });
   });
 
@@ -105,8 +107,10 @@ describe('Grafana Authentication Configuration', () => {
       const dockerComposeContent = readFileSync(dockerComposePath, 'utf-8');
 
       // 必須環境変数の設定が含まれていることを確認
-      expect(dockerComposeContent).toContain(':?GRAFANA_ADMIN_PASSWORD environment variable is required for security');
-      
+      expect(dockerComposeContent).toContain(
+        ':?GRAFANA_ADMIN_PASSWORD environment variable is required for security'
+      );
+
       // 環境変数が未設定の場合はundefinedとなることを確認
       expect(process.env.GRAFANA_ADMIN_PASSWORD).toBeUndefined();
     });

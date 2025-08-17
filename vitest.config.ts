@@ -8,9 +8,14 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
+    // globalSetup removed for unit tests - they should use mocks only
     css: true,
     globals: true,
     passWithNoTests: true,
+    include: [
+      'tests/unit/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+      'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+    ],
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
@@ -18,6 +23,7 @@ export default defineConfig({
       '**/.{idea,git,cache,output,temp}/**',
       '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
       '**/tests/e2e/**', // Exclude Playwright E2E tests
+      '**/tests/integration/**', // Exclude integration tests from unit runs
     ],
     alias: {
       '@': fileURLToPath(new URL('./src/', import.meta.url)),

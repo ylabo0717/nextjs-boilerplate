@@ -375,3 +375,393 @@ export const VIEWPORT_SIZES = {
    */
   MOBILE: { width: 375, height: 667 },
 } as const;
+
+/**
+ * Logger test data configuration
+ *
+ * @public
+ */
+export const LOGGER_TEST_DATA = {
+  /**
+   * Large object array size for performance testing
+   *
+   * @remarks
+   * Unit: count
+   */
+  LARGE_OBJECT_ARRAY_SIZE: 1000,
+
+  /**
+   * Deep object nesting level for testing sanitization depth
+   *
+   * @remarks
+   * Unit: count
+   */
+  DEEP_OBJECT_NESTING_LEVEL: 20,
+
+  /**
+   * Performance loop iterations for timing tests
+   *
+   * @remarks
+   * Unit: count
+   */
+  PERFORMANCE_LOOP_ITERATIONS: 100,
+
+  /**
+   * Expected sum result for performance calculation verification
+   *
+   * @remarks
+   * Unit: numeric result (sum of 0-99)
+   */
+  PERFORMANCE_EXPECTED_SUM: 4950,
+
+  /**
+   * Object size limit for sanitization testing
+   *
+   * @remarks
+   * Unit: depth limit
+   */
+  OBJECT_SIZE_DEPTH_LIMIT: 15,
+
+  /**
+   * Object size property limit for sanitization testing
+   *
+   * @remarks
+   * Unit: property count
+   */
+  OBJECT_SIZE_PROPERTY_LIMIT: 50,
+
+  /**
+   * KV storage TTL for testing expiration
+   *
+   * @remarks
+   * Unit: milliseconds
+   */
+  KV_STORAGE_TTL: 1000,
+
+  /**
+   * Short delay for async testing operations
+   *
+   * @remarks
+   * Unit: milliseconds
+   */
+  ASYNC_DELAY_SHORT: 1,
+
+  /**
+   * Medium delay for TTL and timing tests
+   *
+   * @remarks
+   * Unit: milliseconds
+   */
+  ASYNC_DELAY_MEDIUM: 10,
+
+  /**
+   * Long delay for TTL expiration tests
+   *
+   * @remarks
+   * Unit: milliseconds
+   */
+  ASYNC_DELAY_LONG: 1100,
+
+  /**
+   * Default TTL for storage configuration tests
+   *
+   * @remarks
+   * Unit: seconds
+   */
+  STORAGE_TTL_DEFAULT: 3600,
+
+  /**
+   * Extended TTL for storage configuration tests
+   *
+   * @remarks
+   * Unit: seconds
+   */
+  STORAGE_TTL_EXTENDED: 7200,
+
+  /**
+   * Storage timeout for configuration tests
+   *
+   * @remarks
+   * Unit: milliseconds
+   */
+  STORAGE_TIMEOUT_MS: 5000,
+
+  /**
+   * Extended storage timeout for configuration tests
+   *
+   * @remarks
+   * Unit: milliseconds
+   */
+  STORAGE_TIMEOUT_EXTENDED: 10000,
+
+  /**
+   * Concurrent operations count for storage stress tests
+   *
+   * @remarks
+   * Unit: count
+   */
+  CONCURRENT_OPERATIONS_COUNT: 100,
+
+  /**
+   * Large value size for storage tests
+   *
+   * @remarks
+   * Unit: character count
+   */
+  LARGE_VALUE_SIZE: 10000,
+
+  /**
+   * Concurrent requests count for stress testing
+   *
+   * @remarks
+   * Unit: count
+   */
+  CONCURRENT_REQUESTS_STANDARD: 100,
+
+  /**
+   * High concurrency requests count for stress testing
+   *
+   * @remarks
+   * Unit: count
+   */
+  CONCURRENT_REQUESTS_HIGH: 1000,
+
+  /**
+   * Batch size for batch processing tests
+   *
+   * @remarks
+   * Unit: count
+   */
+  BATCH_SIZE: 100,
+
+  /**
+   * Iteration count for performance stress tests
+   *
+   * @remarks
+   * Unit: count
+   */
+  STRESS_TEST_ITERATIONS: 10000,
+
+  /**
+   * String repetition count for large string tests
+   *
+   * @remarks
+   * Unit: count
+   */
+  STRING_REPEAT_COUNT: 1000,
+
+  /**
+   * Large string multiplier for memory tests
+   *
+   * @remarks
+   * Unit: count
+   */
+  LARGE_STRING_MULTIPLIER: 600,
+
+  /**
+   * Memory size threshold (1MB)
+   *
+   * @remarks
+   * Unit: bytes
+   */
+  MEMORY_THRESHOLD_1MB: 1024 * 1024,
+
+  /**
+   * Performance timeout threshold
+   *
+   * @remarks
+   * Unit: milliseconds
+   */
+  PERFORMANCE_TIMEOUT_5S: 5000,
+
+  /**
+   * Performance timeout threshold (1 second)
+   *
+   * @remarks
+   * Unit: milliseconds
+   */
+  PERFORMANCE_TIMEOUT_1S: 1000,
+
+  /**
+   * Performance timeout threshold (3 seconds)
+   *
+   * @remarks
+   * Unit: milliseconds
+   */
+  PERFORMANCE_TIMEOUT_3S: 3000,
+
+  /**
+   * Performance timeout threshold (100ms)
+   *
+   * @remarks
+   * Unit: milliseconds
+   */
+  PERFORMANCE_TIMEOUT_100MS: 100,
+
+  /**
+   * Very large string size (1 million characters)
+   *
+   * @remarks
+   * Unit: character count
+   */
+  VERY_LARGE_STRING_SIZE: 1000000,
+
+  /**
+   * Large string size (100k characters)
+   *
+   * @remarks
+   * Unit: character count
+   */
+  LARGE_STRING_SIZE: 100000,
+
+  /**
+   * String length limit (2000 characters)
+   *
+   * @remarks
+   * Unit: character count
+   */
+  STRING_LENGTH_LIMIT: 2000,
+
+  /**
+   * Expected truncated string length
+   *
+   * @remarks
+   * Unit: character count
+   */
+  TRUNCATED_STRING_LENGTH: 1015,
+
+  /**
+   * Object property count limit (150)
+   *
+   * @remarks
+   * Unit: count
+   */
+  OBJECT_PROPERTY_LIMIT: 150,
+
+  /**
+   * Object property count limit + 1 (for truncation marker)
+   *
+   * @remarks
+   * Unit: count
+   */
+  OBJECT_PROPERTY_LIMIT_PLUS_ONE: 101,
+
+  /**
+   * Edge context test depth
+   *
+   * @remarks
+   * Unit: count
+   */
+  EDGE_CONTEXT_DEPTH: 100,
+
+  /**
+   * Test timeout threshold (150ms)
+   *
+   * @remarks
+   * Unit: milliseconds
+   */
+  TEST_TIMEOUT_150MS: 150,
+
+  /**
+   * Test timeout threshold (200ms)
+   *
+   * @remarks
+   * Unit: milliseconds
+   */
+  TEST_TIMEOUT_200MS: 200,
+
+  /**
+   * Test timeout threshold (300ms)
+   *
+   * @remarks
+   * Unit: milliseconds
+   */
+  TEST_TIMEOUT_300MS: 300,
+} as const;
+
+/**
+ * Rate limiter test configuration
+ *
+ * @public
+ */
+export const RATE_LIMITER_TEST = {
+  /**
+   * Sampling rate for 50% sampling tests
+   *
+   * @remarks
+   * Unit: rate (0.0 - 1.0)
+   */
+  SAMPLING_RATE_50_PERCENT: 0.5,
+
+  /**
+   * Sampling rate for 30% sampling tests
+   *
+   * @remarks
+   * Unit: rate (0.0 - 1.0)
+   */
+  SAMPLING_RATE_30_PERCENT: 0.3,
+
+  /**
+   * Random function return value for testing (30%)
+   *
+   * @remarks
+   * Unit: rate (0.0 - 1.0)
+   */
+  RANDOM_VALUE_30_PERCENT: 0.3,
+
+  /**
+   * Random function return value for testing (70%)
+   *
+   * @remarks
+   * Unit: rate (0.0 - 1.0)
+   */
+  RANDOM_VALUE_70_PERCENT: 0.7,
+
+  /**
+   * Random function return value for testing (20%)
+   *
+   * @remarks
+   * Unit: rate (0.0 - 1.0)
+   */
+  RANDOM_VALUE_20_PERCENT: 0.2,
+
+  /**
+   * Random function return value for testing (25%)
+   *
+   * @remarks
+   * Unit: rate (0.0 - 1.0)
+   */
+  RANDOM_VALUE_25_PERCENT: 0.25,
+
+  /**
+   * Low error threshold for testing adaptive sampling
+   *
+   * @remarks
+   * Unit: errors per minute
+   */
+  LOW_ERROR_THRESHOLD: 5,
+
+  /**
+   * High error count for testing adaptive sampling
+   *
+   * @remarks
+   * Unit: count
+   */
+  HIGH_ERROR_COUNT: 60,
+
+  /**
+   * Loop iterations for randomness testing
+   *
+   * @remarks
+   * Unit: count
+   */
+  RANDOMNESS_TEST_ITERATIONS: 100,
+
+  /**
+   * Loop iterations for deterministic testing
+   *
+   * @remarks
+   * Unit: count
+   */
+  DETERMINISTIC_TEST_ITERATIONS: 10,
+} as const;

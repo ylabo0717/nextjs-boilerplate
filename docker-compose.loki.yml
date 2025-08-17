@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - '3100:3100'
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./docker/loki/loki-config.yaml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    networks:
+      - loki-network
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - '3000:3000'
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD environment variable is required for security}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./docker/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - loki-network
+    depends_on:
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:3000/api/health || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  loki-data: {}
+  grafana-data: {}
+
+networks:
+  loki-network:
+    driver: bridge

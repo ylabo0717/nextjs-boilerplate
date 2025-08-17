@@ -1,40 +1,78 @@
 #!/bin/sh
 
-echo "🔍 Running pre-push checks..."
+# Colors for better readability
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-# Secret scan
-echo "📝 Checking for secrets..."
-gitleaks detect --config .gitleaks.toml --log-level=error
+# Function to print colored output
+print_step() {
+  echo "${BLUE}[STEP $1/3]${NC} $2"
+}
+
+print_success() {
+  echo "  ${GREEN}✅ $1${NC}"
+}
+
+print_error() {
+  echo "  ${RED}❌ $1${NC}"
+}
+
+print_hint() {
+  echo "  ${YELLOW}💡 $1${NC}"
+}
+
+echo "🔍 Running pre-push validation checks..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Step 1: Secret scan
+print_step "1" "Scanning for secrets and sensitive data..."
+gitleaks detect --config .gitleaks.toml --log-level=error --no-banner 2>/dev/null
 
 if [ $? -ne 0 ]; then
-  echo "❌ Secrets detected! Push aborted."
-  echo "💡 Run 'gitleaks detect --verbose' for details"
+  print_error "Secrets or sensitive data detected!"
+  print_hint "Run 'gitleaks detect --verbose' for detailed information"
+  print_hint "Review and remove any exposed secrets before pushing"
+  echo ""
+  echo "${RED}❌ Push aborted due to security violations${NC}"
   exit 1
 fi
 
-echo "✅ No secrets detected"
+print_success "No secrets detected"
 
-# ESLint with strict TSDoc validation
-echo "📚 Running ESLint with strict documentation checks..."
-pnpm lint:pre-push
+# Step 2: ESLint with strict TSDoc validation
+print_step "2" "Running ESLint with strict documentation checks..."
+pnpm lint:pre-push >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
-  echo "❌ ESLint validation failed! Push aborted."
-  echo "💡 Fix ESLint errors and add TSDoc comments to all exported items"
-  echo "💡 Run 'pnpm lint:pre-push' locally to see errors"
+  print_error "ESLint validation failed!"
+  print_hint "Run 'pnpm lint:pre-push' to see detailed errors"
+  print_hint "Ensure all exported items have TSDoc comments"
+  print_hint "Fix all ESLint errors and warnings"
+  echo ""
+  echo "${RED}❌ Push aborted due to code quality issues${NC}"
   exit 1
 fi
 
-echo "✅ ESLint validation passed"
+print_success "ESLint validation passed"
 
-# TypeDoc validation
-echo "📖 Validating documentation completeness..."
-pnpm docs:check
+# Step 3: TypeDoc validation
+print_step "3" "Validating documentation completeness..."
+pnpm docs:check >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
-  echo "❌ Documentation build failed! Push aborted."
-  echo "💡 Run 'pnpm docs' to see detailed errors"
+  print_error "Documentation validation failed!"
+  print_hint "Run 'pnpm docs:check' to see missing documentation"
+  print_hint "Add TSDoc comments to all exported items"
+  print_hint "Run 'pnpm docs' to build and review documentation"
+  echo ""
+  echo "${RED}❌ Push aborted due to incomplete documentation${NC}"
   exit 1
 fi
 
-echo "✅ Documentation validation passed"
+print_success "Documentation validation passed"
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "${GREEN}🎉 All pre-push checks passed! Ready to push.${NC}"

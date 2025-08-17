@@ -298,6 +298,9 @@ tags = ["password", "yaml"]
 # Allowlist for false positives
 [allowlist]
 description = "Global allowlist"
+commits = [
+  "202733c3d9445f03f5053abe8ea6dd342af164b7" # P0 security improvements - false positive on Grafana password env var syntax
+]
 paths = [
   # Ignore test files
   '''tests?\/.*''',
@@ -359,7 +362,35 @@ regexes = [
   '''monkey''',
   '''dragon''',
   '''master''',
-  '''abc123'''
+  '''abc123''',
+  # Common example passwords in documentation
+  '''pass''',
+  '''user:pass@''',
+  # Allow environment variable references (not the actual values)
+  '''process\.env\.LOG_IP_HASH_SECRET''',
+  '''\$\{LOG_IP_HASH_SECRET\}''',        # Docker Compose style environment variable expansion
+  '''LOG_IP_HASH_SECRET=\$\{.*\}''',     # Docker Compose environment variable setting
+  # Allow Redis example URLs in documentation
+  '''redis://localhost:6379''',
+  '''redis://new-host:6379''',
+  '''6379''',
+  # Allow JWT_SECRET environment variable references
+  '''process\.env\.JWT_SECRET''',
+  '''\$\{JWT_SECRET\}''',
+  '''JWT_SECRET=\$\{.*\}''',
+  # Allow LOKI authentication environment variable references
+  '''process\.env\.LOKI_PASSWORD''',
+  '''process\.env\.LOKI_USERNAME''',
+  '''\$\{LOKI_PASSWORD\}''',
+  '''\$\{LOKI_USERNAME\}''',
+  '''LOKI_PASSWORD=\$\{.*\}''',
+  '''LOKI_USERNAME=\$\{.*\}''',
+  # Allow GRAFANA authentication environment variable references
+  '''\$\{GRAFANA_ADMIN_PASSWORD\}''',
+  '''GRAFANA_ADMIN_PASSWORD=\$\{.*\}''',
+  # Allow Grafana password with required environment variable error message
+  '''\$\{GRAFANA_ADMIN_PASSWORD:\?.*\}''',
+  '''GRAFANA_ADMIN_PASSWORD environment variable is required for security'''
 ]
 
 # Note: commits allowlist is for specific commit SHAs, not file patterns

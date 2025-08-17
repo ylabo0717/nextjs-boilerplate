@@ -65,7 +65,13 @@
       "Bash(pnpm changeset:add:*)",
       "mcp__context7__resolve-library-id",
       "mcp__context7__get-library-docs",
-      "WebFetch(domain:tailwindcss.com)"
+      "WebFetch(domain:tailwindcss.com)",
+      "mcp__serena__think_about_task_adherence",
+      "mcp__ide__getDiagnostics",
+      "Bash(.husky/pre-push:*)",
+      "WebFetch(domain:grafana.com)",
+      "mcp__serena__read_memory",
+      "Bash(npx vitest run:*)"
     ],
     "deny": [
       "Bash(sudo *)",

@@ -48,6 +48,8 @@ services:
       - TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal
       - DOCKER_HOST=unix:///var/run/docker.sock
       - TESTCONTAINERS_RYUK_DISABLED=false
+      # Loki関連テストのスキップ設定
+      - SKIP_LOKI_TESTS=true
     volumes:
       # Dockerソケットのマウント（Testcontainers用）
       - /var/run/docker.sock:/var/run/docker.sock

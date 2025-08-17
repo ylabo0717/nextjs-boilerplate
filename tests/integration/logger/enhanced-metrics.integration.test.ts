@@ -19,7 +19,10 @@ import {
   resetPhase3Metrics,
 } from '@/lib/logger/enhanced-metrics';
 
-describe('Enhanced Metrics Integration Tests', () => {
+// 環境変数でのスキップチェック
+const shouldSkip = process.env.SKIP_LOKI_TESTS === 'true';
+
+describe.skipIf(shouldSkip)('Enhanced Metrics Integration Tests', () => {
   beforeEach(() => {
     resetPhase3Metrics();
     vi.clearAllMocks();

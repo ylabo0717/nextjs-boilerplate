@@ -303,7 +303,7 @@ describe('shouldSample Function', () => {
 
     // エラー頻度を高くするため、過去のエラータイムスタンプを追加（60個で確実に発動）
     const errorTimestamps = Array.from(
-      { length: RATE_LIMITER_TEST.HIGH_ERROR_COUNT }, 
+      { length: RATE_LIMITER_TEST.HIGH_ERROR_COUNT },
       (_, i) => currentTime - i * 1000
     );
     const stateWithErrors: RateLimiterState = {

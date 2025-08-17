@@ -214,7 +214,7 @@ describe('Server Logger Basic', () => {
       const originalRuntime = process.env.NEXT_RUNTIME;
 
       // Set development environment but clear NEXT_RUNTIME
-      Object.defineProperty(process.env, 'NODE_ENV', { value: 'development', writable: true });
+      (process.env as any).NODE_ENV = 'development';
       delete process.env.NEXT_RUNTIME;
 
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -233,7 +233,7 @@ describe('Server Logger Basic', () => {
         }).not.toThrow();
       } finally {
         // Restore environment
-        Object.defineProperty(process.env, 'NODE_ENV', { value: originalEnv, writable: true });
+        (process.env as any).NODE_ENV = originalEnv;
         if (originalRuntime !== undefined) {
           process.env.NEXT_RUNTIME = originalRuntime;
         }
@@ -341,7 +341,7 @@ describe('Server Logger Basic', () => {
     it('should handle production environment setup', async () => {
       const originalEnv = process.env.NODE_ENV;
 
-      Object.defineProperty(process.env, 'NODE_ENV', { value: 'production', writable: true });
+      (process.env as any).NODE_ENV = 'production';
 
       try {
         vi.resetModules();
@@ -352,7 +352,7 @@ describe('Server Logger Basic', () => {
           serverLogger.info('Production environment test');
         }).not.toThrow();
       } finally {
-        Object.defineProperty(process.env, 'NODE_ENV', { value: originalEnv, writable: true });
+        (process.env as any).NODE_ENV = originalEnv;
       }
     });
 

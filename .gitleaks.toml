@@ -298,6 +298,9 @@ tags = ["password", "yaml"]
 # Allowlist for false positives
 [allowlist]
 description = "Global allowlist"
+commits = [
+  "202733c3d9445f03f5053abe8ea6dd342af164b7" # P0 security improvements - false positive on Grafana password env var syntax
+]
 paths = [
   # Ignore test files
   '''tests?\/.*''',
@@ -384,7 +387,10 @@ regexes = [
   '''LOKI_USERNAME=\$\{.*\}''',
   # Allow GRAFANA authentication environment variable references
   '''\$\{GRAFANA_ADMIN_PASSWORD\}''',
-  '''GRAFANA_ADMIN_PASSWORD=\$\{.*\}'''
+  '''GRAFANA_ADMIN_PASSWORD=\$\{.*\}''',
+  # Allow Grafana password with required environment variable error message
+  '''\$\{GRAFANA_ADMIN_PASSWORD:\?.*\}''',
+  '''GRAFANA_ADMIN_PASSWORD environment variable is required for security'''
 ]
 
 # Note: commits allowlist is for specific commit SHAs, not file patterns

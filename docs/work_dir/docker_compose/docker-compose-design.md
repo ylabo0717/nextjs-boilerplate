@@ -1,345 +1,433 @@
 # Docker Compose設計ドキュメント
 
-## 1. 現状分析
+## 1. 設計背景と課題認識
 
-### 1.1 既存のDocker設定
+### 1.1 現状の課題
 
-**現在の状況**：
+本プロジェクトは現在、ネイティブNode.js環境での開発・テスト・デプロイが行われているが、以下の課題が存在する：
 
-- Lokiログシステム用の`docker-compose.loki.yml`が存在
-- サービス構成：Loki + Grafana
-- 監視・ログ可視化環境として運用中
+**開発環境の課題**：
 
-**既存ファイル**：
+- 環境差異による「ローカルでは動く」問題の発生リスク
+- 新規開発者のセットアップ時間とトラブル
+- 依存関係の管理とバージョン不整合
 
-```
-docker-compose.loki.yml          # Loki + Grafana構成
-docker/
-├── loki/
-│   └── loki-config.yaml        # Loki設定
-└── grafana/
-    ├── datasources.yml         # データソース設定
-    ├── dashboards.yml          # ダッシュボード設定
-    └── dashboards/
-        └── nextjs-app-logging.json
-```
+**テスト環境の課題**：
 
-### 1.2 プロジェクト技術スタック
+- CI/CD環境とローカル環境の差異
+- テスト実行環境の再現性不足
+- 並列テスト実行時のリソース競合
 
-**メインアプリケーション**：
+**デプロイ・運用の課題**：
 
-- Next.js 15.4.6 (App Router)
-- TypeScript (strict mode)
+- 本番環境での環境差異リスク
+- スケーリング時の複雑性
+- 監視・ログ管理の分散
+
+### 1.2 既存資産の評価
+
+**保持すべき価値のある資産**：
+
+1. **Lokiログシステム**（`docker-compose.loki.yml`）
+   - 既に稼働中の監視・ログ可視化環境
+   - Grafanaダッシュボードによる可視化
+   - 開発チームの運用ノウハウ蓄積
+
+2. **包括的テストスイート**
+   - Unit Tests（Vitest）
+   - Integration Tests（Vitest + Testcontainers）
+   - E2E Tests（Playwright）
+   - 高いテストカバレッジと品質保証
+
+3. **開発フロー**
+   - ホットリロード・デバッグ環境
+   - 型チェック・リンティング・フォーマット
+   - Git hooks による品質管理
+
+**技術スタック**：
+
+- Next.js 15.4.6 (App Router) + TypeScript
 - Tailwind CSS 4.0
-- pnpm（パッケージマネージャー）
+- pnpm パッケージマネージャー
+- ESLint + Prettier + Husky
 
-**テスト環境**：
+## 2. 設計哲学と基本方針
 
-- Vitest (Unit/Integration)
-- Playwright (E2E)
-- Testcontainers (Loki統合テスト用)
+### 2.1 設計哲学
 
-**品質管理**：
+**「漸進的コンテナ化」**
+既存の価値を破壊することなく、段階的にコンテナ化の利益を享受する。革命ではなく進化のアプローチを取る。
 
-- ESLint + Prettier
-- TypeScript type checking
-- Husky (pre-commit hooks)
-- Lighthouse (パフォーマンス)
+**「開発者体験ファースト」**
+コンテナ化により開発効率が低下してはならない。むしろ開発体験を向上させる手段としてDockerを活用する。
 
-## 2. Docker Compose全体設計
+**「テスト互換性の絶対保証」**
+既存のテストスイートは100%の互換性を保つ。品質保証プロセスに一切の断絶を起こさない。
 
-### 2.1 設計原則
+### 2.2 設計原則
 
-1. **環境分離**: 開発・テスト・本番用の明確な設定分離
-2. **スケーラビリティ**: サービス単位での独立したスケーリング
-3. **セキュリティ**: 環境変数によるシークレット管理
-4. **保守性**: 設定の再利用性とモジュール化
-5. **テスト対応**: 既存テストスイートとの完全互換性
-
-### 2.2 提案するファイル構成
+#### 原則1: 段階的移行（Gradual Migration）
 
 ```
-# メインCompose設定
-docker-compose.yml              # 開発環境用ベース設定
-docker-compose.override.yml     # 開発環境オーバーライド
-docker-compose.test.yml         # テスト環境設定
-docker-compose.prod.yml         # 本番環境設定
-
-# 既存（保持）
-docker-compose.loki.yml         # Loki専用環境（保持）
-
-# Docker設定
-docker/
-├── app/
-│   ├── Dockerfile              # Next.jsアプリ用
-│   ├── Dockerfile.dev          # 開発用（ホットリロード対応）
-│   └── .dockerignore
-├── nginx/
-│   ├── Dockerfile
-│   ├── nginx.conf
-│   └── sites/
-│       ├── default.dev.conf
-│       ├── default.test.conf
-│       └── default.prod.conf
-├── postgres/                   # データベース（必要に応じて）
-│   ├── init.sql
-│   └── postgresql.conf
-├── redis/                      # キャッシュ（必要に応じて）
-│   └── redis.conf
-├── loki/                       # 既存（保持）
-│   └── loki-config.yaml
-└── grafana/                    # 既存（保持）
-    ├── datasources.yml
-    ├── dashboards.yml
-    └── dashboards/
+現在のワークフロー → ハイブリッド運用 → 完全コンテナ化
 ```
 
-### 2.3 サービス構成
+- 既存環境とDocker環境の並行運用期間を設ける
+- 各フェーズで十分な検証を行う
+- ロールバック可能性を常に保持
 
-#### 開発環境サービス
+#### 原則2: 環境等価性（Environment Parity）
 
-1. **app** - Next.jsアプリケーション（開発モード）
-2. **nginx** - リバースプロキシ（オプション）
-3. **postgres** - データベース（必要に応じて）
-4. **redis** - キャッシュ・セッション（必要に応じて）
+```
+開発環境 ≈ テスト環境 ≈ 本番環境
+```
 
-#### テスト環境追加サービス
+- 12-Factor Appの「Dev/Prod Parity」原則に従う
+- 環境差異によるバグを根本的に排除
+- 設定の外部化とシークレット管理
 
-5. **app-test** - テスト用アプリケーション
-6. **playwright** - E2Eテスト実行環境
+#### 原則3: 単一責任とサービス分離
+
+```
+アプリケーション | データベース | キャッシュ | 監視
+      ↓              ↓           ↓       ↓
+   app container | postgres | redis | loki+grafana
+```
+
+- 各サービスは独立してスケール可能
+- 障害の局所化とデバッグの容易性
+- 依存関係の明示化
+
+#### 原則4: 設定の階層化と再利用性
+
+```
+base config → environment override → runtime config
+```
+
+- DRY原則に基づく設定の共通化
+- 環境固有の設定のみをオーバーライド
+- 設定変更の影響範囲の最小化
+
+## 3. アーキテクチャ設計
+
+### 3.1 全体アーキテクチャ
+
+```mermaid
+graph TB
+    subgraph "開発環境"
+        Dev[開発者マシン]
+        DevApp[app:dev]
+        DevDB[(postgres:dev)]
+        DevRedis[(redis:dev)]
+    end
+
+    subgraph "テスト環境"
+        CI[CI/CD Pipeline]
+        TestApp[app:test]
+        TestDB[(postgres:test)]
+        Playwright[playwright]
+    end
+
+    subgraph "本番環境"
+        LB[Load Balancer]
+        ProdApp1[app:prod-1]
+        ProdApp2[app:prod-2]
+        ProdDB[(postgres:prod)]
+        ProdRedis[(redis:prod)]
+    end
+
+    subgraph "監視環境（既存保持）"
+        Loki[Loki]
+        Grafana[Grafana]
+    end
+
+    Dev --> DevApp
+    DevApp --> DevDB
+    DevApp --> DevRedis
+
+    CI --> TestApp
+    CI --> Playwright
+    TestApp --> TestDB
+
+    LB --> ProdApp1
+    LB --> ProdApp2
+    ProdApp1 --> ProdDB
+    ProdApp2 --> ProdDB
+    ProdApp1 --> ProdRedis
+    ProdApp2 --> ProdRedis
+
+    DevApp -.-> Loki
+    TestApp -.-> Loki
+    ProdApp1 -.-> Loki
+    ProdApp2 -.-> Loki
+    Loki --> Grafana
+```
+
+### 3.2 サービス設計方針
+
+#### アプリケーションサービス（app）
+
+**責務**: Next.jsアプリケーションの実行
+**設計判断**:
+
+- Multi-stage buildによる環境別最適化
+- 開発時のホットリロード保持
+- 本番時のセキュリティ強化
+
+#### データ永続化サービス
+
+**責務**: アプリケーションデータの永続化
+**設計判断**:
+
+- PostgreSQL採用（スケーラビリティとACID特性）
+- 環境別データベース分離
+- バックアップ・復旧戦略の組み込み
+
+#### キャッシュサービス
+
+**責務**: セッション・キャッシュデータの高速アクセス
+**設計判断**:
+
+- Redis採用（パフォーマンスと柔軟性）
+- 揮発性データの適切な管理
+- クラスタリング対応
 
 #### 監視・ログサービス（既存保持）
 
-7. **loki** - ログ集約
-8. **grafana** - 監視ダッシュボード
+**責務**: システム監視とログ管理
+**設計判断**:
 
-## 3. 環境別設定戦略
+- 既存Loki環境の完全保持
+- 新システムとの統合アプローチ
+- ダッシュボード・アラートの継続運用
 
-### 3.1 開発環境 (`docker-compose.yml` + `docker-compose.override.yml`)
+### 3.3 ネットワーク設計
 
-**特徴**：
+```mermaid
+graph LR
+    subgraph "フロントエンドネットワーク"
+        Nginx[Nginx]
+        App[Next.js App]
+    end
 
-- ホットリロード対応
-- デバッグポート開放
-- ローカルファイルマウント
-- 高速な起動・リビルド
+    subgraph "バックエンドネットワーク（内部専用）"
+        DB[(PostgreSQL)]
+        Redis[(Redis)]
+    end
 
-**主要設定**：
+    subgraph "監視ネットワーク"
+        Loki[Loki]
+        Grafana[Grafana]
+    end
 
-```yaml
-services:
-  app:
-    build:
-      context: .
-      dockerfile: docker/app/Dockerfile.dev
-    ports:
-      - '3000:3000' # Next.js dev server
-      - '9229:9229' # Node.js debug port
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.next
-    environment:
-      - NODE_ENV=development
-    command: pnpm dev
+    Internet --> Nginx
+    Nginx --> App
+    App --> DB
+    App --> Redis
+    App -.-> Loki
+    Loki --> Grafana
 ```
 
-### 3.2 テスト環境 (`docker-compose.test.yml`)
+**ネットワーク分離の設計判断**:
 
-**特徴**：
+- **フロントエンド**: 外部アクセス可能
+- **バックエンド**: 内部通信のみ（`internal: true`）
+- **監視**: 独立ネットワークで運用継続
 
-- CI/CD最適化
-- テストデータベース
+## 4. 環境戦略と設定管理
+
+### 4.1 環境分離戦略
+
+#### 開発環境の設計思想
+
+**目標**: 開発効率の最大化と学習コストの最小化
+
+**特徴的な設計判断**:
+
+- ホットリロードの完全保持
+- デバッグポート開放（9229）
+- ボリュームマウントによる即座の反映
+- 開発用データベース・Redisの軽量化
+
+#### テスト環境の設計思想
+
+**目標**: CI/CDパイプラインとの完全統合
+
+**特徴的な設計判断**:
+
+- 既存Testcontainers戦略の保持
+- Playwright公式イメージ活用
 - 並列テスト実行対応
-- 既存テストとの互換性
+- テストデータの分離と管理
 
-**主要設定**：
+#### 本番環境の設計思想
 
-```yaml
-services:
-  app-test:
-    build:
-      context: .
-      dockerfile: docker/app/Dockerfile
-      target: test
-    environment:
-      - NODE_ENV=test
-      - CI=true
-    command: pnpm test
+**目標**: 可用性・セキュリティ・パフォーマンスの最適化
 
-  playwright:
-    image: mcr.microsoft.com/playwright:v1.x.x
-    volumes:
-      - .:/work
-    working_dir: /work
-    command: pnpm test:e2e
+**特徴的な設計判断**:
+
+- Multi-replica対応
+- Docker Secretsによるシークレット管理
+- ヘルスチェックと自動復旧
+- リソース制限と監視
+
+### 4.2 設定継承モデル
+
+```
+基盤設定（docker-compose.yml）
+    ↓ 継承
+環境別オーバーライド
+    ↓ 実行時
+実際の動作環境
 ```
 
-### 3.3 本番環境 (`docker-compose.prod.yml`)
+**設計の利点**:
 
-**特徴**：
+- 設定の重複排除（DRY原則）
+- 環境差異の明示化
+- 変更影響の局所化
+- メンテナンス性の向上
 
-- 最適化されたビルド
-- セキュリティ強化
-- ヘルスチェック
-- ログ設定
+## 5. 品質保証戦略
 
-**主要設定**：
+### 5.1 テスト互換性保証
 
-```yaml
-services:
-  app:
-    build:
-      context: .
-      dockerfile: docker/app/Dockerfile
-      target: production
-    restart: unless-stopped
-    environment:
-      - NODE_ENV=production
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
-      interval: 30s
-      timeout: 10s
-      retries: 3
+**基本方針**: 既存テストスイートの100%動作保証
+
+**具体的保証内容**:
+
+1. **Unit Tests**: Vitestの完全動作
+2. **Integration Tests**: Testcontainers環境の保持
+3. **E2E Tests**: Playwright環境の最適化
+4. **Loki Tests**: 既存統合テストの継続
+
+**実現アプローチ**:
+
+- 段階的移行による互換性検証
+- 既存テスト環境とDocker環境の並行運用
+- パフォーマンス劣化の監視と最適化
+
+### 5.2 品質ゲート
+
+```mermaid
+graph LR
+    Code[コード変更] --> Build[Docker Build]
+    Build --> UnitTest[Unit Tests]
+    UnitTest --> IntegTest[Integration Tests]
+    IntegTest --> E2ETest[E2E Tests]
+    E2ETest --> Security[セキュリティスキャン]
+    Security --> Deploy[デプロイ許可]
 ```
 
-## 4. 既存テスト互換性
+**各ゲートの基準**:
 
-### 4.1 Unit Tests
+- Build: 5分以内での完了
+- Tests: 既存実行時間の150%以内
+- Security: 既知脆弱性ゼロ
+- Performance: レスポンス時間維持
 
-- **現状**: Vitest使用
-- **Docker化**: テストランナーコンテナ化
-- **実行方法**: `docker compose -f docker-compose.test.yml run app-test pnpm test:unit`
+## 6. セキュリティ設計
 
-### 4.2 Integration Tests
+### 6.1 多層防御アプローチ
 
-- **現状**: Vitest + Testcontainers (Loki)
-- **Docker化**: 既存Testcontainers設定保持
-- **実行方法**: `docker compose -f docker-compose.test.yml run app-test pnpm test:integration`
+**ネットワークレベル**:
 
-### 4.3 E2E Tests
+- 内部ネットワークの分離
+- 最小権限の原則適用
+- ファイアウォールルール
 
-- **現状**: Playwright
-- **Docker化**: Playwright公式イメージ使用
-- **実行方法**: `docker compose -f docker-compose.test.yml run playwright pnpm test:e2e`
+**アプリケーションレベル**:
 
-### 4.4 Loki統合テスト
+- 非rootユーザーでの実行
+- 読み取り専用ファイルシステム
+- セキュリティヘッダー設定
 
-- **現状**: `docker-compose.loki.yml`使用
-- **保持**: 既存設定を完全保持
-- **統合**: 必要に応じてメインCompose設定から参照
+**データレベル**:
 
-## 5. セキュリティ考慮事項
+- 暗号化通信（TLS）
+- シークレット外部管理
+- 定期的なパスワードローテーション
 
-### 5.1 環境変数管理
+### 6.2 シークレット管理戦略
 
-```bash
-# 各環境用の.env設定
-.env                    # 開発環境デフォルト
-.env.test              # テスト環境
-.env.prod              # 本番環境（secretsで管理）
-.env.example           # テンプレート
+```
+開発環境: .env ファイル（リポジトリ管理）
+    ↓
+テスト環境: CI/CD変数（プラットフォーム管理）
+    ↓
+本番環境: Docker Secrets（ランタイム管理）
 ```
 
-### 5.2 シークレット管理
+**段階的セキュリティ強化**:
 
-- 開発: `.env`ファイル
-- テスト: CI/CD環境変数
-- 本番: Docker Secrets または外部シークレット管理
+- 環境に応じた適切なセキュリティレベル
+- 開発効率とセキュリティのバランス
+- 監査証跡の確保
 
-### 5.3 ネットワーク分離
+## 7. パフォーマンス設計
 
-```yaml
-networks:
-  frontend:
-    driver: bridge
-  backend:
-    driver: bridge
-    internal: true # 外部アクセス禁止
-  monitoring:
-    driver: bridge
+### 7.1 ビルド最適化戦略
+
+**Multi-stage Build**:
+
+```
+base → dependencies → development
+           ↓
+      test → production
 ```
 
-## 6. パフォーマンス最適化
+**最適化ポイント**:
 
-### 6.1 ビルド最適化
+- レイヤーキャッシュの最大活用
+- 不要ファイルの除外（.dockerignore）
+- 依存関係インストールの分離
 
-- Multi-stage builds
-- Layer caching
-- .dockerignore最適化
+### 7.2 実行時最適化
 
-### 6.2 開発体験最適化
+**リソース配分**:
 
-- Bind mounts for hot reload
-- Named volumes for node_modules
-- Health checks for dependency management
+- 開発環境: 応答性重視
+- テスト環境: 並列性重視
+- 本番環境: 安定性重視
 
-## 7. 移行計画
+**ボリューム戦略**:
 
-### 7.1 Phase 1: 基盤構築
+- Named volumeによるデータ永続化
+- Bind mountによる開発効率
+- tmpfsによる一時データ高速化
 
-1. Dockerfiles作成
-2. ベースcompose.yml作成
-3. 開発環境での動作確認
+## 8. 運用・保守性設計
 
-### 7.2 Phase 2: テスト統合
+### 8.1 監視・ログ戦略
 
-1. テスト環境用compose設定
-2. 既存テストの動作確認
-3. CI/CD統合
+**既存Loki環境の活用**:
 
-### 7.3 Phase 3: 本番対応
+- 運用ノウハウの継続活用
+- ダッシュボード・アラートの保持
+- ログフォーマットの標準化
 
-1. 本番用compose設定
-2. セキュリティ強化
-3. 監視・ログ統合
+**新規監視要素**:
 
-## 8. 成功指標
+- コンテナヘルスチェック
+- リソース使用量監視
+- サービス間通信監視
 
-### 8.1 技術指標
+### 8.2 バックアップ・災害復旧
 
-- [ ] 全てのUnit Tests パス
-- [ ] 全てのIntegration Tests パス
-- [ ] 全てのE2E Tests パス
-- [ ] 既存のLoki統合テスト パス
-- [ ] ビルド時間 < 5分
-- [ ] 開発環境起動時間 < 30秒
+**データ保護**:
 
-### 8.2 開発体験指標
+- データベースの定期バックアップ
+- 設定ファイルのバージョン管理
+- 秘密情報の安全な保管
 
-- [ ] ホットリロード動作
-- [ ] デバッグ機能利用可能
-- [ ] ログ可視化機能維持
-- [ ] 既存開発フロー保持
+**復旧戦略**:
 
-### 8.3 運用指標
-
-- [ ] 本番環境での安定動作
-- [ ] 監視・アラート機能
-- [ ] バックアップ・復旧手順
-- [ ] スケーリング対応
-
-## 9. リスク評価と対策
-
-### 9.1 高リスク
-
-- **既存テスト互換性**: 段階的移行、並行運用期間設定
-- **パフォーマンス劣化**: ベンチマーク測定、最適化フェーズ
-
-### 9.2 中リスク
-
-- **開発環境の複雑化**: 簡単な起動スクリプト提供
-- **Dockerファイルサイズ**: Multi-stage builds活用
-
-### 9.3 低リスク
-
-- **学習コスト**: ドキュメント整備、トレーニング実施
+- RTO（Recovery Time Objective）: 15分
+- RPO（Recovery Point Objective）: 1時間
+- 自動復旧メカニズムの組み込み
 
 ---
 
 ## 次のステップ
 
-1. **実装計画ドキュメント作成**: 具体的な実装手順とタイムライン
-2. **Dockerfiles作成**: 各サービス用のDockerfile設計
-3. **Compose設定実装**: 環境別のDocker Compose設定
-4. **テスト実行**: 既存テストスイートでの動作確認
+この設計ドキュメントを基に、具体的な実装計画（implementation-plan.md）と環境別設定詳細（environment-configurations.md）を策定し、段階的な実装を進める。

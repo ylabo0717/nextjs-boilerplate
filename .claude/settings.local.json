@@ -71,7 +71,8 @@
       "Bash(.husky/pre-push:*)",
       "WebFetch(domain:grafana.com)",
       "mcp__serena__read_memory",
-      "Bash(npx vitest run:*)"
+      "Bash(npx vitest run:*)",
+      "Bash(pnpm run:*)"
     ],
     "deny": [
       "Bash(sudo *)",

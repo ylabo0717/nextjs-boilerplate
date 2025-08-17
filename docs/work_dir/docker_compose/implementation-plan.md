@@ -786,14 +786,52 @@ pnpm dev
 - [x] ヘルスチェック統合
 - [x] 実際のコンテナ起動確認
 
-**Phase 3**: テスト環境統合 ✅ **完了**
+**Phase 3**: テスト環境統合 🚧 **進行中**
 
-- [x] **全テストスイートパス**（Unit: 551件100%、E2E: 114件100%、Integration: 177/179件98.9%）
+- [x] **Unit Tests Docker化完了**（551件100%パス）
+- [x] **Integration Tests Docker化完了**（177/179件98.9%パス、Testcontainers制約による2件失敗は許容）
 - [x] **CI/CD統合完了**（docker-tests.ymlパイプライン実装）
-- [x] **Docker化テスト環境構築完了**
 - [x] **便利なコマンド実装**（pnpm docker:test:\* シリーズ）
 - [x] **技術的課題解決**（Node.js v22互換性、React プラグイン統一、設定一貫性）
 - [x] **Developer Experience向上**（使い勝手改善、保守性向上）
+- [ ] **E2E Tests Docker化** ← **現在の課題**
+  - 🔴 アクセシビリティテスト全件失敗
+  - 🔴 Health APIテスト全件失敗
+  - 🔴 Docker環境での接続問題
+
+#### 3.7 Phase 3残課題と次のアクション
+
+**現在の状況** (2025年8月17日 20:15)：
+
+**✅ 成功している部分:**
+
+- Docker化されたUnit Testsの完全動作（551件）
+- Docker化されたIntegration Testsの98.9%動作（177/179件）
+- 便利なコマンド体系の実装
+- Node.js v22互換性問題の解決
+
+**🔴 解決が必要な課題:**
+
+1. **E2E Tests Docker接続問題**
+   - 症状: アクセシビリティテスト、Health APIテスト全件失敗
+   - 原因調査: Docker環境でのブラウザとアプリケーション間の接続問題
+   - 優先度: 高
+
+2. **playwright.docker.config.ts設定最適化**
+   - Docker環境専用のPlaywright設定の見直し
+   - ベースURL、ネットワーク設定の調整
+
+3. **Docker Composeネットワーク設定**
+   - app-serverとplaywrightサービス間の通信確認
+   - ヘルスチェック統合の検証
+
+**次のアクション:**
+
+1. E2E テストの詳細エラーログ分析
+2. Docker環境でのネットワーク接続確認
+3. playwright.docker.config.ts設定修正
+4. 基本的なE2Eテスト（Health API）を先に修正
+5. アクセシビリティテストの段階的修正
 
 **Phase 4**: 本番環境対応
 

@@ -392,6 +392,83 @@ logWithTimerContext(
 
 ---
 
+## 段階的導入ガイド
+
+### Grafana/Loki監視の導入タイミング
+
+本ログシステムは**段階的導入**を前提に設計されています。Grafana/Loki監視は**オプション機能**であり、プロジェクトの成長段階に応じて導入できます。
+
+#### 🚀 開発初期段階（推奨: Grafanaなし）
+
+- コンソールログとファイルログで開発
+- 環境変数: `LOKI_ENABLED=false` または未設定
+- 利点: シンプルな開発環境、軽量
+
+```bash
+# 開発環境設定例
+LOG_LEVEL=debug
+LOG_FORMAT=pretty
+# LOKI_ENABLED は未設定またはfalse
+```
+
+#### 📈 本格運用段階（推奨: Grafana導入）
+
+- ログ量増加、チーム拡大時に導入
+- 環境変数設定のみで有効化可能
+- 利点: 集約監視、ダッシュボード、アラート
+
+```bash
+# 本番環境設定例
+LOG_LEVEL=info
+LOG_FORMAT=json
+LOKI_ENABLED=true
+LOKI_URL=https://loki.your-domain.com
+LOKI_TENANT_ID=your-tenant
+LOKI_API_KEY=your-api-key
+```
+
+### 環境別設定例
+
+| 環境             | Grafana使用 | 設定例                                                     | 用途     |
+| ---------------- | ----------- | ---------------------------------------------------------- | -------- |
+| **開発**         | ❌ なし     | `LOKI_ENABLED=false`                                       | 軽量開発 |
+| **ステージング** | ✅ ローカル | `LOKI_ENABLED=true`<br>`LOKI_URL=http://localhost:3100`    | 機能検証 |
+| **本番**         | ✅ クラウド | `LOKI_ENABLED=true`<br>`LOKI_URL=https://loki.company.com` | 運用監視 |
+
+### 導入手順
+
+1. **Phase 1: 基本ログ**
+   - コンソール/ファイルログのみで開発
+   - ロガーのコア機能を活用
+
+2. **Phase 2: ローカル監視導入**
+
+   ```bash
+   # Grafana + Loki環境の起動
+   docker-compose -f docker-compose.loki.yml up
+   ```
+
+   - ダッシュボード確認: `http://localhost:3000`
+   - 基本的な監視パターンの確立
+
+3. **Phase 3: 本番運用**
+   - クラウドGrafana連携
+   - アラート設定、チーム共有
+
+### 設定の確認方法
+
+```typescript
+// 現在のLoki設定状態を確認
+import { logger } from '@/lib/logger';
+
+logger.info('Loki設定確認', {
+  lokiEnabled: process.env.LOKI_ENABLED !== 'false',
+  lokiUrl: process.env.LOKI_URL || 'http://localhost:3100',
+});
+```
+
+---
+
 ## 設定とカスタマイズ
 
 ### 環境変数一覧

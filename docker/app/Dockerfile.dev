@@ -19,11 +19,12 @@ ARG ALPINE_VERSION=3.20
 # ==============================================================================
 # Development Stage - Optimized for development workflow
 # ==============================================================================
-FROM node:${NODE_VERSION}-alpine${ALPINE_VERSION} AS development
+FROM node:${NODE_VERSION}-alpine${ALPINE_VERSION}
 
-# Enable pnpm
+# Enable pnpm and set non-interactive mode
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
+ENV CI=true
 RUN npm install -g pnpm@latest
 
 # Install essential packages for development
@@ -48,54 +49,22 @@ COPY package.json pnpm-lock.yaml* ./
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
-# Copy source code (this will be volume mounted in development)
+# Copy source code
 COPY . .
 
-# Set development environment variables
-ENV NODE_ENV=development
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV WATCHPACK_POLLING=true
-ENV TURBOPACK_BUILD_DIR=.next
-
-# Change ownership to nextjs user
+# Set ownership
 RUN chown -R nextjs:nodejs /app
 
 # Switch to non-root user
 USER nextjs
 
 # Expose ports
-# 3000 - Next.js development server
-# 9229 - Node.js debugger port for VSCode/IDE integration
 EXPOSE 3000 9229
 
-# Add health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:3000/api/health || exit 1
+# Set environment variables for development
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV WATCHPACK_POLLING=true
 
-# Start development server with Turbopack and debugging enabled
-# Enable polling for file watching in Docker containers
-CMD ["pnpm", "dev", "--port", "3000", "--hostname", "0.0.0.0"]
-
-# ==============================================================================
-# Development with Debug - Alternative stage for debugging
-# ==============================================================================
-FROM development AS development-debug
-
-# Override CMD to enable Node.js inspector for debugging
-CMD ["node", "--inspect=0.0.0.0:9229", "node_modules/.bin/next", "dev", "--port", "3000", "--hostname", "0.0.0.0"]
-
-# ==============================================================================
-# Development Test - For running tests in development environment
-# ==============================================================================
-FROM development AS development-test
-
-# Set test environment
-ENV NODE_ENV=test
-ENV CI=false
-
-# Install additional test dependencies if needed
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
-
-# Override CMD to run tests in watch mode
-CMD ["pnpm", "test", "--watch"]
+# Start development server
+CMD ["pnpm", "dev"]

@@ -74,7 +74,8 @@
       "Bash(npx vitest run:*)",
       "Bash(pnpm run:*)",
       "mcp__serena__list_memories",
-      "Bash(npx playwright test:*)"
+      "Bash(npx playwright test:*)",
+      "Bash(docker compose:*)"
     ],
     "deny": [
       "Bash(sudo *)",

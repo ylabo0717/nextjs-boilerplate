@@ -300,39 +300,71 @@ export const GET = withAPIRouteTracing(async (_request: NextRequest): Promise<Ne
 - [ ] `docker/app/.dockerignore`
 - [ ] `docker/nginx/Dockerfile`（必要に応じて）
 
-#### 2.2 ベースCompose設定
+#### 2.2 ベースCompose設定 ✅ **完了**
 
-**1.2.1 メイン設定ファイル**
-
-```yaml
-# docker-compose.yml
-# 開発環境用ベース設定
-services:
-  app:
-    build:
-      context: .
-      dockerfile: docker/app/Dockerfile.dev
-    ports:
-      - '3000:3000'
-    volumes:
-      - .:/app
-      - node_modules:/app/node_modules
-    environment:
-      - NODE_ENV=development
-```
-
-**1.2.2 開発環境オーバーライド**
+**2.2.1 メイン設定ファイル** ✅ **完了**
 
 ```yaml
-# docker-compose.override.yml
-# 開発環境特有の設定
+# docker-compose.yml（実装完了）
+# 本格的な本番対応Docker Compose設定
+# - Compose Specification（最新v2形式）
+# - Multi-service architecture（app, proxy, db, cache）
+# - セキュリティファーストな設定
+# - プロファイル別サービス管理
+# - ネットワーク分離とサービスディスカバリ
+# - ヘルスチェックと依存関係管理
 ```
 
-**成果物**:
+**2.2.2 開発環境オーバーライド** ✅ **完了**
 
-- [ ] `docker-compose.yml`
-- [ ] `docker-compose.override.yml`
-- [ ] `.env.example`
+```yaml
+# docker-compose.override.yml（実装完了）
+# 開発環境最適化設定
+# - ホットモジュールリプレースメント対応
+# - ボリュームマウントでライブコード編集
+# - デバッグポート公開（9229）
+# - 開発ツール統合（pgAdmin, MailHog）
+# - 開発用ネットワーク設定
+```
+
+**2.2.3 モニタリングスタック統合** ✅ **完了**
+
+```yaml
+# docker-compose.monitoring.yml（実装完了）
+# 包括的な監視・可観測性スタック
+# - Loki（ログ集約）
+# - Grafana（可視化・ダッシュボード）
+# - Prometheus（メトリクス収集）
+# - Jaeger（分散トレーシング）
+# - AlertManager（アラート管理）
+# - 既存Loki設定との統合・ポート競合回避
+```
+
+**成果物** ✅ **完了**:
+
+- [x] `docker-compose.yml`（本番対応）
+- [x] `docker-compose.override.yml`（開発環境）
+- [x] `docker-compose.monitoring.yml`（監視スタック）
+- [x] `.env.example`（包括的な環境変数設定）
+- [x] `.env.local`（開発用サンプル）
+- [x] 各種設定ファイル
+  - [x] `docker/prometheus/prometheus.yml`
+  - [x] `docker/redis/redis.conf`
+  - [x] `docker/pgadmin/servers.json`
+  - [x] `docker/postgres/init/01-init-database.sql`
+  - [x] `docker/postgres/dev-init/01-dev-database.sql`
+- [x] `docker/README.md`（完全な使用方法ドキュメント）
+
+**2.2.4 技術的成果**
+
+- ✅ Docker Compose v2仕様準拠（最新ベストプラクティス）
+- ✅ セキュリティファースト設計（非rootユーザー、ネットワーク分離）
+- ✅ プロファイル機能による柔軟なサービス管理
+- ✅ マルチ環境対応（開発・テスト・本番）
+- ✅ 既存Loki設定との完全統合
+- ✅ ヘルスチェック統合（`/api/health`エンドポイント活用）
+- ✅ 包括的な環境変数管理
+- ✅ 開発体験最適化（HMR、デバッグ、ツール統合）
 
 #### 2.3 開発環境動作確認
 

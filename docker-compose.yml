@@ -1,0 +1,47 @@
+# Docker Compose configuration for Next.js application
+# Simple development environment setup
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile.dev
+    ports:
+      - '3000:3000'
+      - '9229:9229' # Debug port
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - /app/.next # Exclude .next directory from volume mount
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  proxy:
+    build:
+      context: docker/nginx
+      dockerfile: Dockerfile
+    ports:
+      - '8080:80'
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
+      - BACKEND_HOST=app
+      - BACKEND_PORT=3000
+    restart: unless-stopped
+
+volumes:
+  node_modules: {}
+
+networks:
+  default:
+    name: nextjs-app-network

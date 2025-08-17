@@ -1,0 +1,21 @@
+# Development environment overrides
+# This file is automatically loaded by Docker Compose in development
+
+services:
+  app:
+    # Enable development-specific features
+    environment:
+      - DEBUG=*
+      - NODE_OPTIONS=--inspect=0.0.0.0:9229
+    # Additional volume mounts for development
+    volumes:
+      - ./src:/app/src:cached
+      - ./public:/app/public:cached
+      - ./docs:/app/docs:cached
+    # Development command override (optional)
+    # command: ["pnpm", "dev"]
+
+  # Optional: Disable proxy in development if not needed
+  # proxy:
+  #   profiles:
+  #     - production

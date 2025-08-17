@@ -789,49 +789,49 @@ pnpm dev
 **Phase 3**: テスト環境統合 🚧 **進行中**
 
 - [x] **Unit Tests Docker化完了**（551件100%パス）
-- [x] **Integration Tests Docker化完了**（177/179件98.9%パス、Testcontainers制約による2件失敗は許容）
+- [x] **E2E Tests Docker化完了**（114件100%パス）
 - [x] **CI/CD統合完了**（docker-tests.ymlパイプライン実装）
 - [x] **便利なコマンド実装**（pnpm docker:test:\* シリーズ）
 - [x] **技術的課題解決**（Node.js v22互換性、React プラグイン統一、設定一貫性）
 - [x] **Developer Experience向上**（使い勝手改善、保守性向上）
-- [ ] **E2E Tests Docker化** ← **現在の課題**
-  - 🔴 アクセシビリティテスト全件失敗
-  - 🔴 Health APIテスト全件失敗
-  - 🔴 Docker環境での接続問題
+- [x] **E2E接続問題解決**（Playwright Docker image v1.54.2更新により解決）
+- [⚠️] **Integration Tests Docker化**（177/179件98.9%パス）
+  - 2件のLoki関連テストがDocker-in-Docker Testcontainers制約で失敗
+  - 技術的制約による制限（許容範囲での完了を検討中）
 
-#### 3.7 Phase 3残課題と次のアクション
+#### 3.7 Phase 3現在のステータス
 
-**現在の状況** (2025年8月17日 20:15)：
+**📊 テスト結果サマリー** (2025年8月17日最新):
 
-**✅ 成功している部分:**
+| テストタイプ      | 成功/総数 | 成功率 | 状態          |
+| ----------------- | --------- | ------ | ------------- |
+| Unit Tests        | 551/551   | 100%   | ✅ 完了       |
+| Integration Tests | 177/179   | 98.9%  | ⚠️ 部分的完了 |
+| E2E Tests         | 114/114   | 100%   | ✅ 完了       |
+
+**✅ 完了している項目:**
 
 - Docker化されたUnit Testsの完全動作（551件）
-- Docker化されたIntegration Testsの98.9%動作（177/179件）
+- Docker化されたE2E Testsの完全動作（114件）
 - 便利なコマンド体系の実装
 - Node.js v22互換性問題の解決
+- Playwright Docker image バージョン問題の解決
+- E2Eテスト接続問題の完全解決
 
-**🔴 解決が必要な課題:**
+**⚠️ 残課題（Integration Tests）:**
 
-1. **E2E Tests Docker接続問題**
-   - 症状: アクセシビリティテスト、Health APIテスト全件失敗
-   - 原因調査: Docker環境でのブラウザとアプリケーション間の接続問題
-   - 優先度: 高
+1. **Testcontainers制約による2件失敗**
+   - Docker-in-Docker環境でのLoki関連テスト制約
+   - 具体的な失敗テスト: Loki統合テスト2件
+   - 技術的制約: Testcontainers + Docker-in-Docker の限界
 
-2. **playwright.docker.config.ts設定最適化**
-   - Docker環境専用のPlaywright設定の見直し
-   - ベースURL、ネットワーク設定の調整
+**🎯 Phase 3完了への次のステップ:**
 
-3. **Docker Composeネットワーク設定**
-   - app-serverとplaywrightサービス間の通信確認
-   - ヘルスチェック統合の検証
+1. Integration test失敗2件の詳細分析
+2. Testcontainers制約に対する方針決定
+3. 許容可能な制約として受け入れるか、代替手段検討
 
-**次のアクション:**
-
-1. E2E テストの詳細エラーログ分析
-2. Docker環境でのネットワーク接続確認
-3. playwright.docker.config.ts設定修正
-4. 基本的なE2Eテスト（Health API）を先に修正
-5. アクセシビリティテストの段階的修正
+**Phase 3 Status: 🚧 進行中** - Integration tests制約解決待ち
 
 **Phase 4**: 本番環境対応
 

@@ -89,7 +89,7 @@ services:
   # Playwright E2E Tests - Playwrightテスト実行環境
   # ==============================================================================
   playwright:
-    image: mcr.microsoft.com/playwright:v1.47.0-jammy
+    image: mcr.microsoft.com/playwright:v1.54.2-jammy
     environment:
       - CI=true
       - BASE_URL=http://app-server:3000

@@ -6,6 +6,17 @@
  * Provides unified interface for different KV storage backends with graceful fallbacks.
  */
 
+// Type definitions for Redis client (ioredis)
+interface RedisClient {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string, mode?: string, duration?: number): Promise<'OK'>;
+  setex(key: string, seconds: number, value: string): Promise<'OK'>;
+  del(key: string): Promise<number>;
+  exists(key: string): Promise<number>;
+  ping(): Promise<string>;
+  on(event: 'connect' | 'error' | 'close', listener: (...args: unknown[]) => void): this;
+}
+
 // Storage type constants
 const REDIS_TYPE = 'redis' as const;
 const EDGE_CONFIG_TYPE = 'edge-config' as const;
@@ -195,8 +206,8 @@ export class RedisStorage implements KVStorage {
   /** ストレージ設定（不変） */
   private config: StorageConfig;
   /** Redisクライアントインスタンス */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private client: any; // Redis client type
+  /** Redis client instance with proper typing */
+  private client: RedisClient | null = null;
   /** Redis接続状態 */
   private isConnected: boolean = false;
 
@@ -265,7 +276,7 @@ export class RedisStorage implements KVStorage {
   }
 
   /** Redisクライアントを取得・初期化する内部メソッド */
-  private async getClient() {
+  private async getClient(): Promise<RedisClient> {
     if (!this.client || !this.isConnected) {
       try {
         // Dynamic import for Redis (edge runtime compatibility)
@@ -274,16 +285,17 @@ export class RedisStorage implements KVStorage {
           maxRetriesPerRequest: this.config.max_retries,
           connectTimeout: this.config.timeout_ms,
           commandTimeout: this.config.timeout_ms,
-        });
+        }) as RedisClient;
 
         // Connection event listeners
         this.client.on('connect', () => {
           this.isConnected = true;
         });
 
-        this.client.on('error', (error: Error) => {
+        this.client.on('error', (...args: unknown[]) => {
+          const error = args[0] as Error;
           console.error('Redis connection error:', {
-            error: error.message,
+            error: error?.message || 'Unknown error',
             timestamp: new Date().toISOString(),
           });
           this.isConnected = false;

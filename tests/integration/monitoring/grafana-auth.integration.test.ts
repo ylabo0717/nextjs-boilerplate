@@ -17,21 +17,24 @@ describe('Grafana Authentication Configuration', () => {
       // ハードコードされたパスワードが使用されていないことを確認
       expect(dockerComposeContent).not.toContain('GF_SECURITY_ADMIN_PASSWORD=admin');
 
-      // 環境変数での設定が使用されていることを確認
+      // 環境変数が必須化されていることを確認（セキュリティ強化）
       expect(dockerComposeContent).toContain(
-        'GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-changeme123!}'
+        'GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD environment variable is required for security}'
       );
     });
 
-    it('環境変数のデフォルト値が安全に設定されている', () => {
+    it('環境変数が必須化されてセキュリティが強化されている', () => {
       const dockerComposePath = resolve(process.cwd(), 'docker-compose.loki.yml');
       const dockerComposeContent = readFileSync(dockerComposePath, 'utf-8');
 
       // デフォルト値がプレーンな"admin"でないことを確認
       expect(dockerComposeContent).not.toContain(':-admin}');
 
-      // より安全なデフォルト値が設定されていることを確認
-      expect(dockerComposeContent).toContain(':-changeme123!}');
+      // 弱いデフォルト値が削除されていることを確認
+      expect(dockerComposeContent).not.toContain(':-changeme123!}');
+
+      // 環境変数が必須化されていることを確認（より安全なアプローチ）
+      expect(dockerComposeContent).toContain(':?GRAFANA_ADMIN_PASSWORD environment variable is required for security');
     });
   });
 
@@ -77,33 +80,35 @@ describe('Grafana Authentication Configuration', () => {
     });
   });
 
-  describe('環境変数展開ロジックの検証', () => {
+  describe('環境変数必須化ロジックの検証', () => {
     it('環境変数が設定されている場合はその値が使用される', () => {
       // 環境変数展開ロジックのテスト
       const testPassword = 'MySecurePassword123!';
       process.env.GRAFANA_ADMIN_PASSWORD = testPassword;
 
-      // Docker Composeの環境変数展開をシミュレート
-      const dockerComposeVariable = '${GRAFANA_ADMIN_PASSWORD:-changeme123!}';
-      const resolvedValue = process.env.GRAFANA_ADMIN_PASSWORD || 'changeme123!';
+      // Docker Composeの環境変数が設定されている場合の展開をシミュレート
+      const resolvedValue = process.env.GRAFANA_ADMIN_PASSWORD;
 
       expect(resolvedValue).toBe(testPassword);
-      expect(resolvedValue).not.toBe('changeme123!');
       expect(resolvedValue).not.toBe('admin');
 
       // テスト後にクリーンアップ
       delete process.env.GRAFANA_ADMIN_PASSWORD;
     });
 
-    it('環境変数が未設定の場合はデフォルト値が使用される', () => {
+    it('環境変数が未設定の場合はエラーメッセージが表示される設定になっている', () => {
       // 環境変数が未設定の状態を確認
       delete process.env.GRAFANA_ADMIN_PASSWORD;
 
-      // Docker Composeの環境変数展開をシミュレート
-      const resolvedValue = process.env.GRAFANA_ADMIN_PASSWORD || 'changeme123!';
+      // Docker Composeの必須環境変数設定を確認
+      const dockerComposePath = resolve(process.cwd(), 'docker-compose.loki.yml');
+      const dockerComposeContent = readFileSync(dockerComposePath, 'utf-8');
 
-      expect(resolvedValue).toBe('changeme123!');
-      expect(resolvedValue).not.toBe('admin');
+      // 必須環境変数の設定が含まれていることを確認
+      expect(dockerComposeContent).toContain(':?GRAFANA_ADMIN_PASSWORD environment variable is required for security');
+      
+      // 環境変数が未設定の場合はundefinedとなることを確認
+      expect(process.env.GRAFANA_ADMIN_PASSWORD).toBeUndefined();
     });
   });
 });

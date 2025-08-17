@@ -30,6 +30,13 @@ export type IPHashConfig = {
  * @public
  */
 export function createIPHashConfig(): IPHashConfig {
+  // 本番環境では環境変数が必須 - 早期バリデーション
+  if (process.env.NODE_ENV === 'production' && !process.env.LOG_IP_HASH_SECRET) {
+    throw new Error(
+      'LOG_IP_HASH_SECRET environment variable is required in production environment for GDPR compliance'
+    );
+  }
+
   const secret = process.env.LOG_IP_HASH_SECRET || generateSecret();
 
   if (!process.env.LOG_IP_HASH_SECRET) {

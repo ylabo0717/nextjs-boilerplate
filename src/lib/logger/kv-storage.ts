@@ -7,13 +7,90 @@
  */
 
 // Type definitions for Redis client (ioredis)
-interface RedisClient {
+/**
+ * Redis client interface for type-safe operations.
+ * Defines the essential Redis commands used by the storage system.
+ *
+ * @public
+ */
+/**
+ * Redis client interface for type-safe operations.
+ * Defines the essential Redis commands used by the storage system.
+ *
+ * @internal
+ */
+/**
+ * Redis client interface for type-safe operations.
+ * Defines the essential Redis commands used by the storage system.
+ *
+ * @public
+ */
+/**
+ * Redis client interface for type-safe operations.
+ * Defines the essential Redis commands used by the storage system.
+ *
+ * @public
+ */
+export interface RedisClient {
+  /**
+   * Get a value by key from Redis.
+   *
+   * @param key - The key to retrieve
+   * @returns Promise resolving to the value or null if not found
+   */
   get(key: string): Promise<string | null>;
+
+  /**
+   * Set a value in Redis with optional expiration.
+   *
+   * @param key - The key to set
+   * @param value - The value to store
+   * @param mode - Optional mode (e.g., 'EX' for seconds)
+   * @param duration - Optional duration in seconds
+   * @returns Promise resolving to 'OK' on success
+   */
   set(key: string, value: string, mode?: string, duration?: number): Promise<'OK'>;
+
+  /**
+   * Set a value in Redis with expiration in seconds.
+   *
+   * @param key - The key to set
+   * @param seconds - Expiration time in seconds
+   * @param value - The value to store
+   * @returns Promise resolving to 'OK' on success
+   */
   setex(key: string, seconds: number, value: string): Promise<'OK'>;
+
+  /**
+   * Delete a key from Redis.
+   *
+   * @param key - The key to delete
+   * @returns Promise resolving to the number of keys deleted
+   */
   del(key: string): Promise<number>;
+
+  /**
+   * Check if a key exists in Redis.
+   *
+   * @param key - The key to check
+   * @returns Promise resolving to 1 if exists, 0 otherwise
+   */
   exists(key: string): Promise<number>;
+
+  /**
+   * Ping the Redis server to test connectivity.
+   *
+   * @returns Promise resolving to 'PONG'
+   */
   ping(): Promise<string>;
+
+  /**
+   * Register event listeners for Redis client events.
+   *
+   * @param event - The event type to listen for
+   * @param listener - The event handler function
+   * @returns The Redis client instance for chaining
+   */
   on(event: 'connect' | 'error' | 'close', listener: (...args: unknown[]) => void): this;
 }
 

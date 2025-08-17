@@ -33,6 +33,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 # Copy all source files
 COPY . .
 
+# Set proper ownership for nextjs user
+RUN chown -R nextjs:nodejs /app
+
 # Set environment variables
 ENV NODE_ENV=test
 ENV CI=true

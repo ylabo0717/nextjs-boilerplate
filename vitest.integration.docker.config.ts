@@ -1,19 +1,19 @@
 import { fileURLToPath } from 'node:url';
+
+import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  // Reactプラグインなしでも正常動作（軽量化のため）
-  plugins: [],
+  plugins: [react()],
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
+    // globalSetupを無効化（TestcontainersはDocker-in-Docker環境では動作しない）
+    // globalSetup: ['./tests/setup/vitest-global-setup.ts'],
     css: true,
     globals: true,
     passWithNoTests: true,
-    include: [
-      'tests/unit/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-      'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-    ],
+    include: ['tests/integration/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
@@ -21,7 +21,9 @@ export default defineConfig({
       '**/.{idea,git,cache,output,temp}/**',
       '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
       '**/tests/e2e/**',
-      '**/tests/integration/**',
+      '**/tests/unit/**',
+      // Docker環境では現在Testcontainersが必要なテストを除外
+      '**/tests/integration/logger/loki-testcontainers.integration.test.ts',
     ],
     alias: {
       '@': fileURLToPath(new URL('./src/', import.meta.url)),
@@ -63,7 +65,7 @@ export default defineConfig({
         'vitest.setup.*',
       ],
       reporter: ['text', 'html', 'lcov', 'json-summary'],
-      reportsDirectory: './coverage',
+      reportsDirectory: './coverage/integration',
     },
   },
 });

@@ -54,7 +54,7 @@ services:
       # テスト結果とカバレッジレポートの出力
       - ./coverage:/app/coverage
       - ./test-results:/app/test-results
-    command: ['pnpm', 'test:integration']
+    command: ['npx', 'vitest', '--run', '--config', 'vitest.integration.docker.config.ts']
     networks:
       - test-network
     depends_on:
@@ -74,7 +74,8 @@ services:
       - PORT=3000
     ports:
       - '3000:3000'
-    command: ['pnpm', 'start:test']
+    user: root
+    command: ['sh', '-c', 'pnpm build && pnpm start:test']
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
       interval: 10s

@@ -16,13 +16,25 @@
 
 **レビュー結果**: 10項目のブロッカー事項が特定され、実装着手前の解消が必要
 
-**新実装順序**:
+**Phase番号整理済み実装順序**:
 
 ```
-Phase 0: 前提条件整備（NEW） → ブロッカー解消
-Phase 1: 基盤構築（修正版） → 技術制約対応済み
-Phase 2以降: 既存計画を継続
+✅ Phase 0: 前提条件整備 → ブロッカー解消（完了）
+✅ Phase 1: OpenTelemetryメトリクス統合 → 運用基盤強化（完了）
+🔄 Phase 2: Docker基盤構築 → コンテナ化実装
+📋 Phase 3: 高度な機能 → スケーリング・オーケストレーション
+📋 Phase 4: 運用・監視 → 本番運用対応
 ```
+
+**Phase番号変更マッピング**:
+| 旧Phase | 新Phase | フェーズ名 | 状態 |
+|---------|---------|------------|------|
+| Phase 0 | Phase 0 | 前提条件整備 | ✅ 完了 |
+| - | Phase 1 | OpenTelemetryメトリクス統合 | ✅ 完了 |
+| Phase 1 | Phase 2 | Docker基盤構築 | 🔄 次の実装対象 |
+| Phase 2 | Phase 3 | テスト環境統合 | 📋 計画済み |
+| Phase 3 | Phase 4 | 本番環境対応 | 📋 計画済み |
+| Phase 4 | Phase 5 | 最適化・ドキュメント化 | 📋 計画済み |
 
 ## 2. 実装フェーズ
 
@@ -256,25 +268,25 @@ export const GET = withAPIRouteTracing(async (_request: NextRequest): Promise<Ne
 
 ---
 
-### Phase 1: 基盤構築（Week 2-3）
+### Phase 2: Docker基盤構築（Week 2-3）
 
-#### 1.1 Dockerfiles作成
+#### 2.1 Dockerfiles作成
 
-**1.1.1 アプリケーション用Dockerfile**
+**2.1.1 アプリケーション用Dockerfile**
 
 ```dockerfile
 # docker/app/Dockerfile
 # Multi-stage build: base, development, test, production
 ```
 
-**1.1.2 開発用Dockerfile**
+**2.1.2 開発用Dockerfile**
 
 ```dockerfile
 # docker/app/Dockerfile.dev
 # Hot reload対応、デバッグポート開放
 ```
 
-**1.1.3 Nginx用Dockerfile（オプション）**
+**2.1.3 Nginx用Dockerfile（オプション）**
 
 ```dockerfile
 # docker/nginx/Dockerfile
@@ -288,7 +300,7 @@ export const GET = withAPIRouteTracing(async (_request: NextRequest): Promise<Ne
 - [ ] `docker/app/.dockerignore`
 - [ ] `docker/nginx/Dockerfile`（必要に応じて）
 
-#### 1.2 ベースCompose設定
+#### 2.2 ベースCompose設定
 
 **1.2.1 メイン設定ファイル**
 
@@ -322,7 +334,7 @@ services:
 - [ ] `docker-compose.override.yml`
 - [ ] `.env.example`
 
-#### 1.3 開発環境動作確認
+#### 2.3 開発環境動作確認
 
 **1.3.1 基本動作テスト**
 
@@ -347,9 +359,9 @@ curl http://localhost:3000
 - [ ] 動作確認レポート
 - [ ] トラブルシューティングガイド
 
-### Phase 2: テスト環境統合（Week 3-4）
+### Phase 3: テスト環境統合（Week 3-4）
 
-#### 2.1 テスト用Compose設定
+#### 3.1 テスト用Compose設定
 
 **2.1.1 テスト環境設定**
 
@@ -380,7 +392,7 @@ services:
 - [ ] `docker-compose.test.yml`
 - [ ] `.env.test`
 
-#### 2.2 Unit Tests統合
+#### 3.2 Unit Tests統合
 
 **2.2.1 Vitestコンテナ化**
 
@@ -403,7 +415,7 @@ docker compose -f docker-compose.test.yml run --rm app-test pnpm test:coverage
 - [ ] Unit Tests 100%パス
 - [ ] テスト実行時間 < 現在の150%
 
-#### 2.3 Integration Tests統合
+#### 3.3 Integration Tests統合
 
 **2.3.1 既存Testcontainers対応**
 
@@ -431,7 +443,7 @@ services:
 - [ ] Loki統合テスト継続動作
 - [ ] テストデータベース設定
 
-#### 2.4 E2E Tests統合
+#### 3.4 E2E Tests統合
 
 **2.4.1 Playwright環境**
 
@@ -455,7 +467,7 @@ docker compose -f docker-compose.test.yml run --rm playwright pnpm test:e2e:head
 - [ ] テスト実行時間 < 現在の120%
 - [ ] テスト成果物の保存設定
 
-#### 2.5 CI/CD統合
+#### 3.5 CI/CD統合
 
 **2.5.1 GitHub Actions更新**
 
@@ -472,9 +484,9 @@ docker compose -f docker-compose.test.yml run --rm playwright pnpm test:e2e:head
 - [ ] CI/CDパイプライン更新
 - [ ] すべてのテストジョブの成功
 
-### Phase 3: 本番環境対応（Week 5-6）
+### Phase 4: 本番環境対応（Week 5-6）
 
-#### 3.1 本番用Compose設定
+#### 4.1 本番用Compose設定
 
 **3.1.1 本番環境設定**
 
@@ -499,7 +511,7 @@ services:
 - [ ] `.env.prod.example`
 - [ ] ヘルスチェック実装
 
-#### 3.2 セキュリティ強化
+#### 4.2 セキュリティ強化
 
 **3.2.1 シークレット管理**
 
@@ -527,7 +539,7 @@ networks:
 - [ ] ネットワーク分離設定
 - [ ] セキュリティ監査レポート
 
-#### 3.3 監視・ログ統合
+#### 4.3 監視・ログ統合
 
 **3.3.1 既存Loki設定統合**
 
@@ -552,9 +564,9 @@ services:
 - [ ] メトリクス収集設定
 - [ ] アラート設定
 
-### Phase 4: 最適化・ドキュメント化（Week 7）
+### Phase 5: 最適化・ドキュメント化（Week 7）
 
-#### 4.1 パフォーマンス最適化
+#### 5.1 パフォーマンス最適化
 
 **4.1.1 ビルド最適化**
 
@@ -574,7 +586,7 @@ services:
 - [ ] 起動時間 < 30秒
 - [ ] イメージサイズ < 500MB
 
-#### 4.2 開発者ドキュメント
+#### 5.2 開発者ドキュメント
 
 **4.2.1 README更新**
 
@@ -714,25 +726,25 @@ pnpm dev
 - [x] Logger統合（server/client）
 - [x] 包括的テスト実装（46件成功）
 
-**Phase 1**: 開発環境動作
+**Phase 2**: Docker基盤構築
 
 - [ ] Docker Compose up成功
 - [ ] ホットリロード動作
 - [ ] 基本機能確認
 
-**Phase 2**: テスト統合
+**Phase 3**: テスト環境統合
 
 - [ ] 全テストスイートパス
 - [ ] CI/CD統合完了
 - [ ] パフォーマンス基準達成
 
-**Phase 3**: 本番対応
+**Phase 4**: 本番環境対応
 
 - [ ] 本番環境設定完了
 - [ ] セキュリティ要件達成
 - [ ] 監視システム統合
 
-**Phase 4**: 最適化
+**Phase 5**: 最適化・ドキュメント化
 
 - [ ] パフォーマンス目標達成
 - [ ] ドキュメント完成

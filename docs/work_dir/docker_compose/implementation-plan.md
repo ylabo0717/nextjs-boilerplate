@@ -361,7 +361,7 @@ curl http://localhost:8080
 
 #### 3.1 テスト用Compose設定
 
-**2.1.1 テスト環境設定**
+**3.1.1 テスト環境設定**
 
 ```yaml
 # docker-compose.test.yml
@@ -392,7 +392,7 @@ services:
 
 #### 3.2 Unit Tests統合
 
-**2.2.1 Vitestコンテナ化**
+**3.2.1 Vitestコンテナ化**
 
 ```bash
 # Unit tests実行
@@ -402,7 +402,7 @@ docker compose -f docker-compose.test.yml run --rm app-test pnpm test:unit
 docker compose -f docker-compose.test.yml run --rm app-test pnpm test:coverage
 ```
 
-**2.2.2 テスト環境最適化**
+**3.2.2 テスト環境最適化**
 
 - 並列実行設定
 - テストデータ管理
@@ -415,7 +415,7 @@ docker compose -f docker-compose.test.yml run --rm app-test pnpm test:coverage
 
 #### 3.3 Integration Tests統合
 
-**2.3.1 既存Testcontainers対応**
+**3.3.1 既存Testcontainers対応**
 
 ```yaml
 # Loki testcontainer設定保持
@@ -429,7 +429,7 @@ docker compose -f docker-compose.test.yml run --rm app-test pnpm test:coverage
 
 #### 3.4 E2E Tests統合
 
-**2.4.1 Playwright環境**
+**3.4.1 Playwright環境**
 
 ```bash
 # E2E tests実行
@@ -439,7 +439,7 @@ docker compose -f docker-compose.test.yml run --rm playwright pnpm test:e2e
 docker compose -f docker-compose.test.yml run --rm playwright pnpm test:e2e:headed
 ```
 
-**2.4.2 テスト環境準備**
+**3.4.2 テスト環境準備**
 
 - アプリケーション起動待機
 - テストデータセットアップ
@@ -453,7 +453,7 @@ docker compose -f docker-compose.test.yml run --rm playwright pnpm test:e2e:head
 
 #### 3.5 CI/CD統合
 
-**2.5.1 GitHub Actions更新**
+**3.5.1 GitHub Actions更新**
 
 ```yaml
 # .github/workflows/test.yml
@@ -472,7 +472,7 @@ docker compose -f docker-compose.test.yml run --rm playwright pnpm test:e2e:head
 
 #### 4.1 本番用Compose設定
 
-**3.1.1 本番環境設定**
+**4.1.1 本番環境設定**
 
 ```yaml
 # docker-compose.prod.yml
@@ -497,7 +497,7 @@ services:
 
 #### 4.2 セキュリティ強化
 
-**3.2.1 基本セキュリティ設定**
+**4.2.1 基本セキュリティ設定**
 
 ```yaml
 # 非rootユーザー実行
@@ -505,7 +505,7 @@ services:
 # 最小権限の原則
 ```
 
-**3.2.2 ネットワーク設定**
+**4.2.2 ネットワーク設定**
 
 ```yaml
 networks:
@@ -521,14 +521,14 @@ networks:
 
 #### 4.3 監視・ログ統合
 
-**3.3.1 既存Loki設定統合**
+**4.3.1 既存Loki設定統合**
 
 ```yaml
 # docker-compose.prod.yml
 # 既存のdocker-compose.loki.ymlと連携
 ```
 
-**3.3.2 OpenTelemetryメトリクス活用**
+**4.3.2 OpenTelemetryメトリクス活用**
 
 ```yaml
 # 既存のOpenTelemetryメトリクス統合を活用
@@ -546,13 +546,13 @@ networks:
 
 #### 5.1 パフォーマンス最適化
 
-**4.1.1 ビルド最適化**
+**5.1.1 ビルド最適化**
 
 - Docker layer caching
 - Multi-stage build最適化
 - イメージサイズ削減
 
-**4.1.2 起動時間最適化**
+**5.1.2 起動時間最適化**
 
 - 依存関係最適化
 - 並列起動設定
@@ -566,7 +566,7 @@ networks:
 
 #### 5.2 開発者ドキュメント
 
-**4.2.1 README更新**
+**5.2.1 README更新**
 
 ````markdown
 ## Docker Compose使用方法
@@ -586,7 +586,7 @@ docker compose -f docker-compose.test.yml run --rm app-test pnpm test
 
 ````
 
-**4.2.2 トラブルシューティングガイド**
+**5.2.2 トラブルシューティングガイド**
 - よくある問題と解決方法
 - パフォーマンス調整方法
 - デバッグ手順

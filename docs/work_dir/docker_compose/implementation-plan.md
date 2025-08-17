@@ -12,9 +12,116 @@
 - 既存のLoki統合テストが正常動作
 - 開発体験の向上（ホットリロード、デバッグ機能維持）
 
+### 1.3 レビュー対応による実装順序変更
+
+**レビュー結果**: 10項目のブロッカー事項が特定され、実装着手前の解消が必要
+
+**新実装順序**:
+
+```
+Phase 0: 前提条件整備（NEW） → ブロッカー解消
+Phase 1: 基盤構築（修正版） → 技術制約対応済み
+Phase 2以降: 既存計画を継続
+```
+
 ## 2. 実装フェーズ
 
-### Phase 1: 基盤構築（Week 1-2）
+### Phase 0: 前提条件整備（Week 1）
+
+#### 0.1 ブロッカー事項解消
+
+**0.1.1 アプリケーションレベル修正**
+
+```typescript
+// src/app/api/health/route.ts（新規作成）
+import { NextResponse } from 'next/server';
+
+export function GET() {
+  return NextResponse.json({ status: 'ok' }, { status: 200 });
+}
+```
+
+**成果物**:
+
+- [ ] `/api/health`エンドポイント実装
+- [ ] ヘルスチェック動作テスト
+- [ ] 全環境での動作確認
+
+**0.1.2 既存設定修正**
+
+```yaml
+# docker-compose.loki.yml修正
+services:
+  grafana:
+    ports:
+      - '3001:3000' # ポート競合回避
+```
+
+**成果物**:
+
+- [ ] `docker-compose.loki.yml`のGrafanaポート修正
+- [ ] 既存Loki環境の動作確認
+- [ ] ポート競合解消の検証
+
+**0.1.3 Playwright設定統一**
+
+```typescript
+// playwright.config.ts修正
+const BASE = process.env.PLAYWRIGHT_BASE_URL || process.env.BASE_URL || 'http://localhost:3000';
+export default defineConfig({
+  use: { baseURL: BASE },
+  webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER
+    ? undefined
+    : {
+        command: process.env.CI ? 'pnpm start' : 'pnpm dev',
+        url: BASE,
+        reuseExistingServer: !process.env.CI,
+      },
+});
+```
+
+**成果物**:
+
+- [ ] Playwright設定の環境変数統一
+- [ ] webServer二重起動防止ガード
+- [ ] テスト実行の動作確認
+
+#### 0.2 技術制約確認
+
+**0.2.1 Docker Compose制約の方針決定**
+
+**決定事項**:
+
+- `deploy:`セクションを削除し、Compose単体運用に最適化
+- リソース制限は`mem_limit`/`cpus`を使用
+- スケーリングは`docker compose --scale`で実行
+
+**0.2.2 Secrets管理方式の確定**
+
+**Redis設定修正**:
+
+```yaml
+command: ['sh', '-c', 'redis-server --requirepass "$(cat /run/secrets/redis_password)"']
+```
+
+**Postgres healthcheck修正**:
+
+```yaml
+healthcheck:
+  test:
+    [
+      'CMD-SHELL',
+      'pg_isready -U "$(cat /run/secrets/postgres_user)" -d "$(cat /run/secrets/postgres_db)"',
+    ]
+```
+
+**成果物**:
+
+- [ ] Secrets参照方式の技術検証
+- [ ] 環境別Secrets管理戦略の確定
+- [ ] セキュリティ要件の再確認
+
+### Phase 1: 基盤構築（Week 2-3）
 
 #### 1.1 Dockerfiles作成
 

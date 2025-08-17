@@ -196,7 +196,7 @@ services:
       - SKIP_ENV_VALIDATION=true
     volumes:
       - .:/app
-      - node_modules_test:/app/node_modules
+      # node_modules マウントを削除（依存関係破壊防止）
       - test_cache:/app/.next
     command: pnpm test
     networks:
@@ -224,7 +224,8 @@ services:
 
   # E2E Tests実行
   playwright:
-    image: mcr.microsoft.com/playwright:v1.45.1
+    # バージョンを依存関係に合わせて更新
+    image: mcr.microsoft.com/playwright:v1.54.2
     working_dir: /workspace
     volumes:
       - .:/workspace
@@ -232,6 +233,7 @@ services:
     environment:
       - CI=true
       - PLAYWRIGHT_BASE_URL=http://app-e2e:3000
+      - PLAYWRIGHT_SKIP_WEBSERVER=1 # 外部サーバー接続
     command: pnpm test:e2e
     depends_on:
       app-e2e:
@@ -254,7 +256,7 @@ services:
       postgres-test:
         condition: service_healthy
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:3000/api/health']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -363,7 +365,7 @@ services:
     env_file:
       - .env.prod
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:3000/api/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -376,15 +378,10 @@ services:
     networks:
       - frontend
       - backend
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
+    # Note: deploy セクションはSwarm専用のため削除
+    # リソース制限はCompose互換の設定を使用
+    mem_limit: 512m
+    cpus: 0.5
 
   # Nginx（リバースプロキシ・ロードバランサー）
   nginx:
@@ -398,16 +395,15 @@ services:
     depends_on:
       - app
     volumes:
-      - ./docker/nginx/sites/default.prod.conf:/etc/nginx/sites-available/default
+      # 公式イメージの標準パスに変更
+      - ./docker/nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf
       - ./certs:/etc/nginx/certs:ro
       - nginx_logs:/var/log/nginx
     networks:
       - frontend
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: '0.25'
+    # リソース制限をCompose互換形式に変更
+    mem_limit: 128m
+    cpus: 0.25
 
   # 本番用PostgreSQL
   postgres:
@@ -425,25 +421,27 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - postgres_backups:/backups
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U $POSTGRES_USER -d $POSTGRES_DB']
+      # Secrets対応のhealthcheck
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U "$(cat /run/secrets/postgres_user)" -d "$(cat /run/secrets/postgres_db)"',
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
     networks:
       - backend
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.25'
+    # リソース制限をCompose互換形式に変更
+    mem_limit: 256m
+    cpus: 0.25
 
   # 本番用Redis
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --requirepass $REDIS_PASSWORD
-    environment:
-      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+    # Secrets対応のコマンド
+    command: ['sh', '-c', 'redis-server --requirepass "$(cat /run/secrets/redis_password)"']
     secrets:
       - redis_password
     volumes:
@@ -455,11 +453,9 @@ services:
       retries: 5
     networks:
       - backend
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: '0.25'
+    # リソース制限をCompose互換形式に変更
+    mem_limit: 128m
+    cpus: 0.25
 
   # バックアップサービス
   backup:
@@ -587,7 +583,8 @@ services:
       loki:
         condition: service_healthy
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f http://localhost:3000/api/health || exit 1']
+      test:
+        ['CMD-SHELL', 'wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1']
       interval: 10s
       timeout: 5s
       retries: 5

@@ -57,6 +57,11 @@ vi.mock('../../../src/lib/logger/server', () => ({
 
 vi.mock('../../../src/lib/logger/error-handler', () => ({
   setupGlobalErrorHandlers: vi.fn(),
+  errorHandler: {
+    handleUncaughtException: vi.fn(),
+    handleUnhandledRejection: vi.fn(),
+    handle: vi.fn(),
+  },
 }));
 
 vi.mock('../../../src/lib/logger/loki-client', () => ({
@@ -645,6 +650,173 @@ describe('Logger Index', () => {
       
       expect(() => logError(null as any)).not.toThrow();
       expect(() => logError(undefined as any)).not.toThrow();
+    });
+  });
+
+  describe('global error handlers', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('should setup global error handlers for Node.js environment', async () => {
+      // Mock process event listeners
+      const processOnSpy = vi.spyOn(process, 'on').mockImplementation(() => process);
+      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
+        throw new Error('process.exit called');
+      });
+      
+      delete (global as any).window;
+      vi.resetModules();
+      
+      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      
+      initializeLogger({ enableGlobalErrorHandlers: true });
+      
+      expect(processOnSpy).toHaveBeenCalledWith('uncaughtException', expect.any(Function));
+      expect(processOnSpy).toHaveBeenCalledWith('unhandledRejection', expect.any(Function));
+      
+      processOnSpy.mockRestore();
+      processExitSpy.mockRestore();
+    });
+
+    it('should setup global error handlers for browser environment', async () => {
+      const mockAddEventListener = vi.fn();
+      (global as any).window = {
+        location: { pathname: '/test' },
+        addEventListener: mockAddEventListener,
+        removeEventListener: vi.fn(),
+      };
+      (global as any).navigator = {
+        userAgent: 'test-browser',
+      };
+      
+      vi.resetModules();
+      
+      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      
+      initializeLogger({ enableGlobalErrorHandlers: true });
+      
+      expect(mockAddEventListener).toHaveBeenCalledWith('error', expect.any(Function));
+      expect(mockAddEventListener).toHaveBeenCalledWith('unhandledrejection', expect.any(Function));
+    });
+
+    it('should handle uncaught exceptions in Node.js', async () => {
+      const processOnSpy = vi.spyOn(process, 'on').mockImplementation(() => process);
+      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
+        throw new Error('process.exit called');
+      });
+      
+      delete (global as any).window;
+      vi.resetModules();
+      
+      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      
+      initializeLogger({ enableGlobalErrorHandlers: true });
+      
+      // Get the registered handler
+      const uncaughtHandler = processOnSpy.mock.calls.find(call => 
+        call[0] === 'uncaughtException'
+      )?.[1] as Function;
+      
+      expect(uncaughtHandler).toBeDefined();
+      
+      // Test the handler
+      const testError = new Error('Test uncaught exception');
+      expect(() => uncaughtHandler(testError)).toThrow('process.exit called');
+      
+      processOnSpy.mockRestore();
+      processExitSpy.mockRestore();
+    });
+
+    it('should handle unhandled rejections in Node.js', async () => {
+      const processOnSpy = vi.spyOn(process, 'on').mockImplementation(() => process);
+      
+      delete (global as any).window;
+      vi.resetModules();
+      
+      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      
+      initializeLogger({ enableGlobalErrorHandlers: true });
+      
+      // Get the registered handler
+      const rejectionHandler = processOnSpy.mock.calls.find(call => 
+        call[0] === 'unhandledRejection'
+      )?.[1] as Function;
+      
+      expect(rejectionHandler).toBeDefined();
+      
+      // Test the handler
+      const testReason = 'Test unhandled rejection';
+      expect(() => rejectionHandler(testReason)).not.toThrow();
+      
+      processOnSpy.mockRestore();
+    });
+
+    it('should handle browser error events', async () => {
+      const mockAddEventListener = vi.fn();
+      (global as any).window = {
+        location: { pathname: '/test' },
+        addEventListener: mockAddEventListener,
+        removeEventListener: vi.fn(),
+      };
+      (global as any).navigator = {
+        userAgent: 'test-browser',
+      };
+      
+      vi.resetModules();
+      
+      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      
+      initializeLogger({ enableGlobalErrorHandlers: true });
+      
+      // Get the error handler
+      const errorHandler = mockAddEventListener.mock.calls.find(call => 
+        call[0] === 'error'
+      )?.[1] as Function;
+      
+      expect(errorHandler).toBeDefined();
+      
+      // Test the handler
+      const testEvent = {
+        error: new Error('Test browser error'),
+        filename: 'test.js',
+        lineno: 42,
+        colno: 10,
+      };
+      
+      expect(() => errorHandler(testEvent)).not.toThrow();
+    });
+
+    it('should handle browser unhandled rejection events', async () => {
+      const mockAddEventListener = vi.fn();
+      (global as any).window = {
+        location: { pathname: '/test' },
+        addEventListener: mockAddEventListener,
+        removeEventListener: vi.fn(),
+      };
+      (global as any).navigator = {
+        userAgent: 'test-browser',
+      };
+      
+      vi.resetModules();
+      
+      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      
+      initializeLogger({ enableGlobalErrorHandlers: true });
+      
+      // Get the unhandled rejection handler
+      const rejectionHandler = mockAddEventListener.mock.calls.find(call => 
+        call[0] === 'unhandledrejection'
+      )?.[1] as Function;
+      
+      expect(rejectionHandler).toBeDefined();
+      
+      // Test the handler
+      const testEvent = {
+        reason: 'Test browser unhandled rejection',
+      };
+      
+      expect(() => rejectionHandler(testEvent)).not.toThrow();
     });
   });
 });

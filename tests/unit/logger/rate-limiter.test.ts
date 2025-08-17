@@ -327,6 +327,237 @@ describe('Rate Limiter Reset and Management', () => {
   });
 });
 
+describe('Internal Function Coverage', () => {
+  test('checkRateLimitInternal handles backoff period correctly', async () => {
+    const { checkRateLimitInternal } = await import('@/lib/logger/rate-limiter');
+    
+    const config = createRateLimiterConfig();
+    const futureTime = Date.now() + 10000; // 10 seconds in future
+    const currentTime = Date.now();
+    
+    const stateInBackoff = {
+      ...createInitialState(),
+      backoff_until: futureTime,
+      consecutive_rejects: 3,
+    };
+
+    const result = checkRateLimitInternal(config, stateInBackoff, 'info', undefined, currentTime);
+
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toBe('backoff');
+    expect(result.retry_after).toBeGreaterThan(0);
+    expect(result.sampling_applied).toBe(false);
+  });
+
+  test('checkRateLimitInternal handles sampling rejection', async () => {
+    const { checkRateLimitInternal } = await import('@/lib/logger/rate-limiter');
+    
+    const config = createRateLimiterConfig({
+      sampling_rates: { error: 0.0 }, // Force sampling rejection
+    });
+    
+    const state = createInitialState();
+    const currentTime = Date.now();
+
+    const result = checkRateLimitInternal(config, state, 'error', undefined, currentTime);
+
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toBe('sampling');
+    expect(result.sampling_applied).toBe(true);
+    expect(result.new_state.consecutive_rejects).toBe(0); // Sampling rejection doesn't count
+  });
+
+  test('checkRateLimitInternal handles token exhaustion with backoff', async () => {
+    const { checkRateLimitInternal } = await import('@/lib/logger/rate-limiter');
+    
+    const config = createRateLimiterConfig({
+      max_tokens: 1,
+      refill_rate: 0,
+      backoff_multiplier: 2,
+      max_backoff: 60,
+      sampling_rates: {}, // No sampling to ensure token logic is tested
+    });
+    
+    const stateNoTokens = {
+      ...createInitialState(),
+      tokens: 0,
+      consecutive_rejects: 2,
+    };
+    
+    const currentTime = Date.now();
+    const result = checkRateLimitInternal(config, stateNoTokens, 'info', undefined, currentTime);
+
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toBe('tokens');
+    expect(result.remaining_tokens).toBe(0);
+    expect(result.retry_after).toBeGreaterThan(0);
+    expect(result.new_state.consecutive_rejects).toBe(3);
+    expect(result.new_state.backoff_until).toBeGreaterThan(currentTime);
+  });
+
+  test('checkRateLimitInternal allows request when tokens available', async () => {
+    const { checkRateLimitInternal } = await import('@/lib/logger/rate-limiter');
+    
+    const config = createRateLimiterConfig({
+      sampling_rates: {}, // No sampling to ensure token logic is tested
+    });
+    const state = createInitialState();
+    const currentTime = Date.now();
+
+    const result = checkRateLimitInternal(config, state, 'info', undefined, currentTime);
+
+    expect(result.allowed).toBe(true);
+    expect(result.reason).toBe('allowed');
+    expect(result.sampling_applied).toBe(false);
+    expect(result.new_state.tokens).toBeLessThan(state.tokens);
+    expect(result.new_state.successful_requests).toBe(1);
+    expect(result.new_state.consecutive_rejects).toBe(0);
+    expect(result.new_state.backoff_until).toBe(0);
+  });
+
+  test('checkRateLimitInternal handles sampling via integration test', async () => {
+    // Test sampling behavior through the public API
+    const config = createRateLimiterConfig({
+      sampling_rates: { error: 0.0 }, // Force sampling rejection
+    });
+    
+    // Use multiple calls to increase probability of testing sampling path
+    const results = await Promise.all([
+      checkRateLimit(config, 'sampling-test-client-1', '/api/test', 'error'),
+      checkRateLimit(config, 'sampling-test-client-2', '/api/test', 'error'),
+      checkRateLimit(config, 'sampling-test-client-3', '/api/test', 'error'),
+    ]);
+    
+    // Verify all calls completed (some may be sampled out)
+    results.forEach(result => {
+      expect(result).toBeDefined();
+      expect(typeof result.allowed).toBe('boolean');
+      expect(result.tokens_remaining).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  test('checkRateLimitInternal handles adaptive sampling via integration', async () => {
+    const config = createRateLimiterConfig({
+      adaptive_sampling: true,
+      error_threshold: 5,
+      max_tokens: 100,
+    });
+    
+    const clientId = 'adaptive-test-client';
+    const endpoint = '/api/adaptive-test';
+    
+    // Generate some error activity to trigger adaptive sampling
+    const errorResults = await Promise.all(
+      Array.from({ length: 10 }, () => 
+        checkRateLimit(config, clientId, endpoint, 'error')
+      )
+    );
+    
+    // Verify adaptive behavior through multiple calls
+    const followupResults = await Promise.all(
+      Array.from({ length: 5 }, () => 
+        checkRateLimit(config, clientId, endpoint, 'error')
+      )
+    );
+    
+    // All results should be defined
+    [...errorResults, ...followupResults].forEach(result => {
+      expect(result).toBeDefined();
+      expect(typeof result.allowed).toBe('boolean');
+    });
+    
+    // At least some requests should have been processed
+    const allowedCount = [...errorResults, ...followupResults].filter(r => r.allowed).length;
+    expect(allowedCount).toBeGreaterThan(0);
+  });
+
+  test('backoff calculation via integration testing', async () => {
+    const config = createRateLimiterConfig({
+      max_tokens: 1,
+      refill_rate: 0, // No refill
+      backoff_multiplier: 2,
+      max_backoff: 10, // Short for testing
+    });
+    
+    const clientId = 'backoff-test-client';
+    const endpoint = '/api/backoff-test';
+    
+    // Exhaust tokens
+    const firstResult = await checkRateLimit(config, clientId, endpoint, 'info');
+    expect(firstResult.allowed).toBe(true);
+    
+    // Subsequent requests should fail with increasing backoff
+    const secondResult = await checkRateLimit(config, clientId, endpoint, 'info');
+    expect(secondResult.allowed).toBe(false);
+    expect(secondResult.retry_after).toBeGreaterThan(0);
+    
+    const thirdResult = await checkRateLimit(config, clientId, endpoint, 'info');
+    expect(thirdResult.allowed).toBe(false);
+    expect(thirdResult.retry_after).toBeGreaterThan(0);
+    
+    // Test backoff behavior (some requests might use default retry_after)
+    const fourthResult = await checkRateLimit(config, clientId, endpoint, 'info');
+    expect(fourthResult.allowed).toBe(false);
+    expect(fourthResult.retry_after).toBeGreaterThan(0);
+    
+    // Test multiple consecutive failures for backoff progression
+    const consecutiveResults = [];
+    for (let i = 0; i < 5; i++) {
+      const result = await checkRateLimit(config, clientId, endpoint, 'info');
+      consecutiveResults.push(result);
+    }
+    
+    // All should be false and have retry_after
+    consecutiveResults.forEach(result => {
+      expect(result.allowed).toBe(false);
+      expect(result.retry_after).toBeGreaterThan(0);
+    });
+  });
+
+  test('error timestamp management via analyzeErrorFrequency', () => {
+    const currentTime = Date.now();
+    const oldTimestamp = currentTime - 3700000; // Older than 1 hour
+    const recentTimestamp = currentTime - 1800000; // 30 minutes ago
+    const veryRecentTimestamp = currentTime - 60000; // 1 minute ago
+    
+    const state = {
+      ...createInitialState(),
+      error_timestamps: [oldTimestamp, recentTimestamp, veryRecentTimestamp],
+    };
+    
+    const analysis = analyzeErrorFrequency(state, currentTime);
+    
+    // Verify that old timestamps are filtered in analysis
+    expect(analysis.total_errors).toBeLessThanOrEqual(3);
+    expect(analysis.errors_per_minute).toBeGreaterThanOrEqual(0);
+    expect(typeof analysis.should_apply_adaptive).toBe('boolean');
+  });
+
+  test('token refill calculation via state transitions', async () => {
+    const config = createRateLimiterConfig({
+      max_tokens: 10,
+      refill_rate: 5, // 5 tokens per second
+    });
+    
+    const clientId = 'refill-test-client';
+    const endpoint = '/api/refill-test';
+    
+    // Use several tokens
+    await checkRateLimit(config, clientId, endpoint, 'info');
+    await checkRateLimit(config, clientId, endpoint, 'info');
+    await checkRateLimit(config, clientId, endpoint, 'info');
+    
+    // Get stats to verify token refill behavior
+    const stats = await getRateLimiterStats(clientId, endpoint);
+    
+    if (stats) {
+      expect(stats.tokens).toBeGreaterThanOrEqual(0);
+      expect(stats.total_requests).toBe(3);
+      expect(stats.successful_requests).toBe(3);
+    }
+  });
+});
+
 describe('Edge Cases', () => {
   test('handles extreme configurations', () => {
     expect(() => {

@@ -8,6 +8,7 @@ import {
   hashIP,
   validateIPHashSecret,
   defaultIPHashConfig,
+  createTestIPHashConfig,
 } from '../../../src/lib/logger/crypto';
 import type { IPHashConfig } from '../../../src/lib/logger/crypto';
 
@@ -178,6 +179,39 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
 
       consoleSpy.mockRestore();
     });
+
+    it('should handle crypto module failure', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
+      // Invalid config that might cause crypto error
+      const invalidConfig = {
+        secret: null as any,
+      };
+
+      const result = hashIP(invalidConfig, '192.168.1.1');
+
+      // Should handle error gracefully
+      expect(result).toMatch(/^ip_invalid|ip_hash_error$/);
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle extremely large IP input that might cause memory issues', () => {
+      const config = {
+        secret: 'test-secret-32-characters-long!!',
+      };
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Create a pathological IP string that might cause issues
+      const problematicIP = 'a'.repeat(100000) + '.'.repeat(100000);
+      const result = hashIP(config, problematicIP);
+
+      // Should either hash successfully or return error fallback
+      expect(result).toMatch(/^ip_[a-f0-9]{8}|ip_hash_error$/);
+
+      consoleSpy.mockRestore();
+    });
   });
 
   describe('📊 パフォーマンス要件', () => {
@@ -212,6 +246,37 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
 
       const avgTimePerHash = duration / iterations;
       expect(avgTimePerHash).toBeLessThan(0.1); // 0.1ms以内/回
+    });
+  });
+
+  describe('Test Configuration Functions', () => {
+    it('createTestIPHashConfig should work in test environment', () => {
+      // This test is running in test environment
+      expect(process.env.NODE_ENV).toBe('test');
+      
+      const testConfig = createTestIPHashConfig();
+      expect(testConfig).toHaveProperty('secret');
+      expect(testConfig.secret).toBe('test-secret-key-32-chars-long!');
+      
+      // Should work with custom secret
+      const customSecret = 'custom-test-secret-32-chars-long';
+      const customConfig = createTestIPHashConfig(customSecret);
+      expect(customConfig.secret).toBe(customSecret);
+    });
+
+    it('createTestIPHashConfig should throw in non-test environment', () => {
+      // Temporarily change NODE_ENV
+      const originalEnv = process.env.NODE_ENV;
+      Object.defineProperty(process.env, 'NODE_ENV', { value: 'production', writable: true });
+      
+      try {
+        expect(() => {
+          createTestIPHashConfig();
+        }).toThrow('createTestIPHashConfig() can only be called in test environment');
+      } finally {
+        // Restore original environment
+        Object.defineProperty(process.env, 'NODE_ENV', { value: originalEnv, writable: true });
+      }
     });
   });
 

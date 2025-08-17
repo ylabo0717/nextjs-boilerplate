@@ -8,7 +8,6 @@ import { GenericContainer, type StartedTestContainer, Wait } from 'testcontainer
 let lokiContainer: StartedTestContainer | null = null;
 
 export async function setup({ provide }: { provide: (key: string, value: any) => void }) {
-
   console.log('🚀 Starting Loki testcontainer...');
 
   try {

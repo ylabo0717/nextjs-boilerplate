@@ -14,7 +14,6 @@ vi.mock('@/lib/logger/utils', () => ({
   })),
 }));
 
-
 import {
   middlewareLoggerHelpers,
   createRequestContext,
@@ -84,9 +83,9 @@ describe('Middleware Logger - Comprehensive Tests', () => {
         const error = new Error('Handler error');
         const mockHandler = vi.fn().mockRejectedValue(error);
 
-        await expect(
-          middlewareLoggerHelpers.wrapRequest(request, mockHandler)
-        ).rejects.toThrow('Handler error');
+        await expect(middlewareLoggerHelpers.wrapRequest(request, mockHandler)).rejects.toThrow(
+          'Handler error'
+        );
 
         // Verify error logging occurred
         expect(mockConsoleError).toHaveBeenCalled();

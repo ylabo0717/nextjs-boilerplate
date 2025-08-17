@@ -1,6 +1,6 @@
 /**
  * Server Logger Integration Tests
- * 
+ *
  * Tests for server-side logging functionality
  */
 

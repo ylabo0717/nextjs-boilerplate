@@ -41,7 +41,7 @@ vi.mock('@opentelemetry/sdk-metrics', () => ({
 }));
 
 vi.mock('@opentelemetry/exporter-prometheus', () => ({
-  PrometheusExporter: vi.fn(() => ({} as any)),
+  PrometheusExporter: vi.fn(() => ({}) as any),
 }));
 
 describe('OpenTelemetry Metrics', () => {
@@ -80,13 +80,13 @@ describe('OpenTelemetry Metrics', () => {
     it('should handle MeterProvider errors', async () => {
       // Clear previous mocks to ensure clean state
       vi.clearAllMocks();
-      
+
       const { MeterProvider } = await import('@opentelemetry/sdk-metrics');
       const { PrometheusExporter } = await import('@opentelemetry/exporter-prometheus');
-      
+
       // Reset PrometheusExporter to working state
-      vi.mocked(PrometheusExporter).mockImplementation(() => ({} as any));
-      
+      vi.mocked(PrometheusExporter).mockImplementation(() => ({}) as any);
+
       // Mock MeterProvider to throw error
       vi.mocked(MeterProvider).mockImplementation(() => {
         throw new Error('MeterProvider error');
@@ -251,19 +251,19 @@ describe('OpenTelemetry Metrics', () => {
     it('should handle metrics operation edge cases', () => {
       // Test edge cases and coverage paths without complex mocking
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
+
       // These should not throw when metrics are not initialized
       incrementLogCounter('info', 'test-component', 'development');
       incrementErrorCounter('test-error', 'client', 'high');
       recordRequestDuration(100, 'GET', 200, '/api/test');
       updateMemoryUsage('server', 'nodejs');
-      
+
       // Test with some undefined parameters to increase branch coverage
       incrementLogCounter('debug' as any, '');
       recordRequestDuration(0, '', 500);
-      
+
       expect(true).toBe(true); // Just ensure no errors thrown
-      
+
       consoleErrorSpy.mockRestore();
     });
   });
@@ -298,7 +298,7 @@ describe('OpenTelemetry Metrics', () => {
 
     it('should handle memory usage with process variations', () => {
       const originalMemoryUsage = process.memoryUsage;
-      
+
       // Test with different memory usage scenarios
       process.memoryUsage = vi.fn().mockReturnValue({
         rss: 1000000,
@@ -312,7 +312,7 @@ describe('OpenTelemetry Metrics', () => {
 
       // Restore original function
       process.memoryUsage = originalMemoryUsage;
-      
+
       expect(true).toBe(true);
     });
   });
@@ -343,48 +343,48 @@ describe('OpenTelemetry Metrics', () => {
 
     it('should handle missing process.memoryUsage', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       // Reset metrics to clean state
       resetMetrics();
-      
+
       // Mock working metrics without initialization
       const originalMemoryUsage = process.memoryUsage;
-      
+
       // Remove memoryUsage function temporarily
       (process as any).memoryUsage = undefined;
-      
+
       // Should not throw when metrics are not initialized
       expect(() => {
         updateMemoryUsage('server', 'nodejs');
       }).not.toThrow();
-      
+
       // Restore original function
       process.memoryUsage = originalMemoryUsage;
-      
+
       consoleWarnSpy.mockRestore();
     });
 
     it('should handle process memory usage scenarios', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       // Reset metrics to clean state
       resetMetrics();
-      
+
       const originalProcess = global.process;
       const originalMemoryUsage = process.memoryUsage;
-      
+
       // Test with no memoryUsage function
       (process as any).memoryUsage = undefined;
       expect(() => updateMemoryUsage('server', 'nodejs')).not.toThrow();
-      
+
       // Test with no process at all
       (global as any).process = undefined;
       expect(() => updateMemoryUsage('edge', 'edge')).not.toThrow();
-      
+
       // Restore original state
       global.process = originalProcess;
       process.memoryUsage = originalMemoryUsage;
-      
+
       consoleWarnSpy.mockRestore();
     });
   });

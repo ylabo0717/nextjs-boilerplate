@@ -217,12 +217,16 @@ describe('LogSanitizer - ログインジェクション攻撃防止', () => {
     });
 
     it('should limit object key count', () => {
-      const wideObject = Array.from({ length: LOGGER_TEST_DATA.OBJECT_PROPERTY_LIMIT }, (_, i) => [`key${i}`, `value${i}`]).reduce(
-        (acc, [key, value]) => ({ ...acc, [key]: value }),
-        {}
-      );
+      const wideObject = Array.from({ length: LOGGER_TEST_DATA.OBJECT_PROPERTY_LIMIT }, (_, i) => [
+        `key${i}`,
+        `value${i}`,
+      ]).reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
 
-      const result = limitObjectSize(wideObject, 10, LOGGER_TEST_DATA.CONCURRENT_REQUESTS_STANDARD) as any;
+      const result = limitObjectSize(
+        wideObject,
+        10,
+        LOGGER_TEST_DATA.CONCURRENT_REQUESTS_STANDARD
+      ) as any;
 
       const keys = Object.keys(result);
       expect(keys.length).toBeLessThanOrEqual(LOGGER_TEST_DATA.OBJECT_PROPERTY_LIMIT_PLUS_ONE); // 100 + _truncated key
@@ -233,13 +237,19 @@ describe('LogSanitizer - ログインジェクション攻撃防止', () => {
       const longString = 'x'.repeat(LOGGER_TEST_DATA.STRING_LENGTH_LIMIT);
       const result = limitObjectSize(longString);
 
-      expect((result as string).length).toBeLessThanOrEqual(LOGGER_TEST_DATA.TRUNCATED_STRING_LENGTH); // 1000 + "... [TRUNCATED]"
+      expect((result as string).length).toBeLessThanOrEqual(
+        LOGGER_TEST_DATA.TRUNCATED_STRING_LENGTH
+      ); // 1000 + "... [TRUNCATED]"
       expect((result as string).endsWith('... [TRUNCATED]')).toBe(true);
     });
 
     it('should limit array length', () => {
       const longArray = Array.from({ length: LOGGER_TEST_DATA.OBJECT_PROPERTY_LIMIT }, (_, i) => i);
-      const result = limitObjectSize(longArray, 10, LOGGER_TEST_DATA.CONCURRENT_REQUESTS_STANDARD) as any[];
+      const result = limitObjectSize(
+        longArray,
+        10,
+        LOGGER_TEST_DATA.CONCURRENT_REQUESTS_STANDARD
+      ) as any[];
 
       expect(result.length).toBeLessThanOrEqual(LOGGER_TEST_DATA.OBJECT_PROPERTY_LIMIT_PLUS_ONE); // 100 + truncation info
       expect(result[LOGGER_TEST_DATA.CONCURRENT_REQUESTS_STANDARD]).toHaveProperty('_truncated');
@@ -260,7 +270,7 @@ describe('LogSanitizer - ログインジェクション攻撃防止', () => {
       const result = sanitizeControlCharacters(largeObject) as any;
       expect(result).toBeDefined();
       expect(result.data).toBeDefined();
-      
+
       // サニタイザーが正常に動作することを確認
       if (Array.isArray(result.data)) {
         expect(result.data.length).toBe(LOGGER_TEST_DATA.LARGE_OBJECT_ARRAY_SIZE);

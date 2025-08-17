@@ -182,7 +182,7 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
 
     it('should handle crypto module failure', () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
+
       // Invalid config that might cause crypto error
       const invalidConfig = {
         secret: null as any,
@@ -192,7 +192,7 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
 
       // Should handle error gracefully
       expect(result).toMatch(/^ip_invalid|ip_hash_error$/);
-      
+
       consoleSpy.mockRestore();
     });
 
@@ -253,11 +253,11 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
     it('createTestIPHashConfig should work in test environment', () => {
       // This test is running in test environment
       expect(process.env.NODE_ENV).toBe('test');
-      
+
       const testConfig = createTestIPHashConfig();
       expect(testConfig).toHaveProperty('secret');
       expect(testConfig.secret).toBe('test-secret-key-32-chars-long!');
-      
+
       // Should work with custom secret
       const customSecret = 'custom-test-secret-32-chars-long';
       const customConfig = createTestIPHashConfig(customSecret);
@@ -268,7 +268,7 @@ describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
       // Temporarily change NODE_ENV
       const originalEnv = process.env.NODE_ENV;
       Object.defineProperty(process.env, 'NODE_ENV', { value: 'production', writable: true });
-      
+
       try {
         expect(() => {
           createTestIPHashConfig();

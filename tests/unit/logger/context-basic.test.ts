@@ -1,6 +1,6 @@
 /**
  * Logger Context Basic Tests
- * 
+ *
  * Additional tests for context management to improve coverage
  * Focuses on uncovered functionality
  */
@@ -45,13 +45,22 @@ describe('Logger Context Basic', () => {
         // Test contextual logger creation
         const contextualLogger = loggerContextManager.createContextualLogger(mockLogger);
         expect(contextualLogger).toBeDefined();
-        
+
         // Test logging methods
         loggerContextManager.logUserAction(mockLogger, 'login', { device: 'mobile' });
-        loggerContextManager.logSystemEvent(mockLogger, 'startup', { duration: LOGGER_TEST_DATA.KV_STORAGE_TTL * 1.5 });
+        loggerContextManager.logSystemEvent(mockLogger, 'startup', {
+          duration: LOGGER_TEST_DATA.KV_STORAGE_TTL * 1.5,
+        });
         loggerContextManager.logSecurityEvent(mockLogger, 'unauthorized', { ip: '192.168.1.1' });
-        loggerContextManager.logErrorEvent(mockLogger, new Error('Test error'), { context: 'test' });
-        loggerContextManager.logPerformanceMetric(mockLogger, 'api_response', LOGGER_TEST_DATA.KV_STORAGE_TTL / 4, 'ms');
+        loggerContextManager.logErrorEvent(mockLogger, new Error('Test error'), {
+          context: 'test',
+        });
+        loggerContextManager.logPerformanceMetric(
+          mockLogger,
+          'api_response',
+          LOGGER_TEST_DATA.KV_STORAGE_TTL / 4,
+          'ms'
+        );
 
         // Test trace context
         loggerContextManager.setTraceContext('trace-123', 'span-456');
@@ -79,11 +88,11 @@ describe('Logger Context Basic', () => {
       const { loggerContextManager } = await import('../../../src/lib/logger/context');
 
       const testContext = { requestId: 'update-test' };
-      
+
       loggerContextManager.runWithContext(testContext, () => {
         const updates = { userId: 'new-user', action: 'update' };
         const updatedContext = loggerContextManager.updateContext(updates);
-        
+
         // Should handle context updates
         expect(true).toBe(true); // Test passes if no exceptions thrown
       });
@@ -92,11 +101,8 @@ describe('Logger Context Basic', () => {
 
   describe('Compatibility functions', () => {
     it('should provide backwards compatibility', async () => {
-      const {
-        runWithLoggerContextCompat,
-        getLoggerContextCompat,
-        createContextualLoggerCompat,
-      } = await import('../../../src/lib/logger/context');
+      const { runWithLoggerContextCompat, getLoggerContextCompat, createContextualLoggerCompat } =
+        await import('../../../src/lib/logger/context');
 
       const mockLogger = {
         trace: vi.fn(),
@@ -121,11 +127,8 @@ describe('Logger Context Basic', () => {
     });
 
     it('should execute compatibility wrapper functions', async () => {
-      const {
-        runWithLoggerContextCompat,
-        getLoggerContextCompat,
-        createContextualLoggerCompat,
-      } = await import('../../../src/lib/logger/context');
+      const { runWithLoggerContextCompat, getLoggerContextCompat, createContextualLoggerCompat } =
+        await import('../../../src/lib/logger/context');
 
       const testContext = { requestId: 'compat-execution-test' };
       let result;
@@ -159,7 +162,9 @@ describe('Logger Context Basic', () => {
     });
 
     it('should run functions with logger context', async () => {
-      const { runWithLoggerContext, createLoggerContextConfig } = await import('../../../src/lib/logger/context');
+      const { runWithLoggerContext, createLoggerContextConfig } = await import(
+        '../../../src/lib/logger/context'
+      );
 
       const config = createLoggerContextConfig();
       const testContext = { requestId: 'run-test' };
@@ -175,7 +180,9 @@ describe('Logger Context Basic', () => {
     });
 
     it('should get logger context from config', async () => {
-      const { getLoggerContext, createLoggerContextConfig } = await import('../../../src/lib/logger/context');
+      const { getLoggerContext, createLoggerContextConfig } = await import(
+        '../../../src/lib/logger/context'
+      );
 
       const config = createLoggerContextConfig();
 
@@ -189,7 +196,9 @@ describe('Logger Context Basic', () => {
 
   describe('Contextual logger creation', () => {
     it('should create contextual logger with config', async () => {
-      const { createContextualLogger, createLoggerContextConfig } = await import('../../../src/lib/logger/context');
+      const { createContextualLogger, createLoggerContextConfig } = await import(
+        '../../../src/lib/logger/context'
+      );
 
       const config = createLoggerContextConfig();
       const baseLogger = {
@@ -215,7 +224,9 @@ describe('Logger Context Basic', () => {
     });
 
     it('should execute contextual logger methods', async () => {
-      const { createContextualLogger, createLoggerContextConfig } = await import('../../../src/lib/logger/context');
+      const { createContextualLogger, createLoggerContextConfig } = await import(
+        '../../../src/lib/logger/context'
+      );
 
       const config = createLoggerContextConfig();
       const baseLogger = {
@@ -237,7 +248,7 @@ describe('Logger Context Basic', () => {
         contextualLogger.warn('Warn message');
         contextualLogger.error('Error message');
         contextualLogger.fatal('Fatal message');
-        
+
         const isEnabled = contextualLogger.isLevelEnabled('info');
         expect(typeof isEnabled).toBe('boolean');
       }).not.toThrow();
@@ -268,15 +279,25 @@ describe('Logger Context Basic', () => {
 
       expect(() => {
         logUserAction(config, mockLogger, 'user-login', { device: 'mobile' });
-        logSystemEvent(config, mockLogger, 'system-startup', { duration: LOGGER_TEST_DATA.KV_STORAGE_TTL * 1.2 });
+        logSystemEvent(config, mockLogger, 'system-startup', {
+          duration: LOGGER_TEST_DATA.KV_STORAGE_TTL * 1.2,
+        });
         logSecurityEvent(config, mockLogger, 'security-breach', { severity: 'high' });
         logErrorEvent(config, mockLogger, new Error('Test error'), { context: 'unit-test' });
-        logPerformanceMetric(config, mockLogger, 'test-metric', LOGGER_TEST_DATA.KV_STORAGE_TTL / 6.67, 'ms');
+        logPerformanceMetric(
+          config,
+          mockLogger,
+          'test-metric',
+          LOGGER_TEST_DATA.KV_STORAGE_TTL / 6.67,
+          'ms'
+        );
       }).not.toThrow();
     });
 
     it('should handle different error types in logErrorEvent', async () => {
-      const { logErrorEvent, createLoggerContextConfig } = await import('../../../src/lib/logger/context');
+      const { logErrorEvent, createLoggerContextConfig } = await import(
+        '../../../src/lib/logger/context'
+      );
 
       const config = createLoggerContextConfig();
       const mockLogger = {
@@ -292,16 +313,16 @@ describe('Logger Context Basic', () => {
       expect(() => {
         // Test with Error object
         logErrorEvent(config, mockLogger, new Error('Error object'));
-        
+
         // Test with string error
         logErrorEvent(config, mockLogger, 'String error');
-        
+
         // Test with number error
         logErrorEvent(config, mockLogger, 404);
-        
+
         // Test with object error
         logErrorEvent(config, mockLogger, { type: 'custom', message: 'Custom error' });
-        
+
         // Test with null/undefined
         logErrorEvent(config, mockLogger, null);
         logErrorEvent(config, mockLogger, undefined);
@@ -309,7 +330,9 @@ describe('Logger Context Basic', () => {
     });
 
     it('should handle performance metrics with default unit', async () => {
-      const { logPerformanceMetric, createLoggerContextConfig } = await import('../../../src/lib/logger/context');
+      const { logPerformanceMetric, createLoggerContextConfig } = await import(
+        '../../../src/lib/logger/context'
+      );
 
       const config = createLoggerContextConfig();
       const mockLogger = {
@@ -324,17 +347,30 @@ describe('Logger Context Basic', () => {
 
       expect(() => {
         // Test with default unit (should be 'ms')
-        logPerformanceMetric(config, mockLogger, 'api-response', LOGGER_TEST_DATA.KV_STORAGE_TTL / 4);
-        
+        logPerformanceMetric(
+          config,
+          mockLogger,
+          'api-response',
+          LOGGER_TEST_DATA.KV_STORAGE_TTL / 4
+        );
+
         // Test with custom unit
-        logPerformanceMetric(config, mockLogger, 'memory-usage', LOGGER_TEST_DATA.KV_STORAGE_TTL / 7.8125, 'MB');
+        logPerformanceMetric(
+          config,
+          mockLogger,
+          'memory-usage',
+          LOGGER_TEST_DATA.KV_STORAGE_TTL / 7.8125,
+          'MB'
+        );
       }).not.toThrow();
     });
   });
 
   describe('Context manipulation functions', () => {
     it('should handle trace context setting', async () => {
-      const { setTraceContext, createLoggerContextConfig } = await import('../../../src/lib/logger/context');
+      const { setTraceContext, createLoggerContextConfig } = await import(
+        '../../../src/lib/logger/context'
+      );
 
       const config = createLoggerContextConfig();
 
@@ -346,7 +382,9 @@ describe('Logger Context Basic', () => {
     });
 
     it('should handle debug logger context', async () => {
-      const { debugLoggerContext, createLoggerContextConfig } = await import('../../../src/lib/logger/context');
+      const { debugLoggerContext, createLoggerContextConfig } = await import(
+        '../../../src/lib/logger/context'
+      );
 
       const config = createLoggerContextConfig();
       const mockLogger = {
@@ -367,14 +405,16 @@ describe('Logger Context Basic', () => {
     });
 
     it('should handle context updates', async () => {
-      const { updateLoggerContext, createLoggerContextConfig } = await import('../../../src/lib/logger/context');
+      const { updateLoggerContext, createLoggerContextConfig } = await import(
+        '../../../src/lib/logger/context'
+      );
 
       const config = createLoggerContextConfig();
 
       expect(() => {
         const updates = { newField: 'newValue', userId: 'updated-user' };
         const result = updateLoggerContext(config, updates);
-        
+
         // Result may be undefined if no current context exists
         // Function should handle this gracefully
       }).not.toThrow();

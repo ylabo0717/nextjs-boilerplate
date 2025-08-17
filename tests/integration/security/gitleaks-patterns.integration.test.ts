@@ -1,6 +1,6 @@
 /**
  * Gitleaksパターンテスト
- * 
+ *
  * 改善されたシークレットスキャニングパターンが正しく動作することを検証
  */
 
@@ -21,15 +21,15 @@ describe('Gitleaks Secret Scanning Patterns', () => {
       // LOG_IP_HASH_SECRET関連
       expect(gitleaksContent).toContain('\\$\\{LOG_IP_HASH_SECRET\\}');
       expect(gitleaksContent).toContain('LOG_IP_HASH_SECRET=\\$\\{.*\\}');
-      
+
       // JWT_SECRET関連
       expect(gitleaksContent).toContain('\\$\\{JWT_SECRET\\}');
       expect(gitleaksContent).toContain('JWT_SECRET=\\$\\{.*\\}');
-      
+
       // LOKI認証関連
       expect(gitleaksContent).toContain('\\$\\{LOKI_PASSWORD\\}');
       expect(gitleaksContent).toContain('\\$\\{LOKI_USERNAME\\}');
-      
+
       // GRAFANA認証関連
       expect(gitleaksContent).toContain('\\$\\{GRAFANA_ADMIN_PASSWORD\\}');
       expect(gitleaksContent).toContain('GRAFANA_ADMIN_PASSWORD=\\$\\{.*\\}');
@@ -54,9 +54,9 @@ describe('Gitleaks Secret Scanning Patterns', () => {
 
     it('エスケープされた特殊文字を使用している', () => {
       // 正規表現の特殊文字が適切にエスケープされている
-      expect(gitleaksContent).toContain('\\$\\{');  // ${
-      expect(gitleaksContent).toContain('\\}');     // }
-      expect(gitleaksContent).toContain('\\.');     // .
+      expect(gitleaksContent).toContain('\\$\\{'); // ${
+      expect(gitleaksContent).toContain('\\}'); // }
+      expect(gitleaksContent).toContain('\\.'); // .
     });
   });
 
@@ -86,10 +86,10 @@ describe('Gitleaks Secret Scanning Patterns', () => {
       // AWS関連
       expect(gitleaksContent).toContain('id = "aws-access-key"');
       expect(gitleaksContent).toContain('id = "aws-secret-key"');
-      
+
       // GitHub関連
       expect(gitleaksContent).toContain('id = "github-pat"');
-      
+
       // パスワード関連
       expect(gitleaksContent).toContain('id = "generic-password"');
       expect(gitleaksContent).toContain('id = "env-password"');
@@ -107,14 +107,14 @@ describe('Gitleaksパターンのシミュレーションテスト', () => {
       '${JWT_SECRET:-default}',
       'LOG_IP_HASH_SECRET=${SOME_VAR}',
       '${GRAFANA_ADMIN_PASSWORD:-changeme123!}',
-      
+
       // 設定例
       'password123',
       'changeme',
       'example.com',
       'localhost',
       'your_api_key',
-      
+
       // Redis例
       'redis://localhost:6379',
       'redis://new-host:6379',
@@ -134,14 +134,14 @@ describe('Gitleaksパターンのシミュレーションテスト', () => {
       'JWT_SECRET=real-jwt-secret-key',
       'password=supersecret123',
       'api_key=sk-abcd1234567890',
-      
+
       // AWS キー
       'AKIAIOSFODNN7EXAMPLE',
       'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-      
+
       // GitHub トークン
       'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-      
+
       // API キー
       'AIzaSyDaGmWKa4JsXZ-HjGw7_FLYXxxxxxxxx',
     ];

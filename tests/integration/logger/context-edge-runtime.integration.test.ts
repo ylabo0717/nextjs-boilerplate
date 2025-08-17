@@ -1,7 +1,7 @@
 /**
  * Logger Context Integration Tests
- * 
- * Tests logger context functionality 
+ *
+ * Tests logger context functionality
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -41,7 +41,9 @@ describe('Logger Context Integration', () => {
     });
 
     it('should create contextual logger', async () => {
-      const { createContextualLogger, defaultLoggerContextConfig } = await import('../../../src/lib/logger/context');
+      const { createContextualLogger, defaultLoggerContextConfig } = await import(
+        '../../../src/lib/logger/context'
+      );
 
       const baseLogger = {
         trace: vi.fn(),
@@ -61,7 +63,13 @@ describe('Logger Context Integration', () => {
     });
 
     it('should log events without errors', async () => {
-      const { logUserAction, logSystemEvent, logSecurityEvent, logErrorEvent, defaultLoggerContextConfig } = await import('../../../src/lib/logger/context');
+      const {
+        logUserAction,
+        logSystemEvent,
+        logSecurityEvent,
+        logErrorEvent,
+        defaultLoggerContextConfig,
+      } = await import('../../../src/lib/logger/context');
 
       // Should not throw when logging events
       const mockLogger = {
@@ -73,10 +81,18 @@ describe('Logger Context Integration', () => {
         fatal: vi.fn(),
         isLevelEnabled: vi.fn(() => true),
       };
-      expect(() => logUserAction(defaultLoggerContextConfig, mockLogger, 'test-action', { data: 'test' })).not.toThrow();
-      expect(() => logSystemEvent(defaultLoggerContextConfig, mockLogger, 'test-event', { data: 'test' })).not.toThrow();
-      expect(() => logSecurityEvent(defaultLoggerContextConfig, mockLogger, 'test-security', { data: 'test' })).not.toThrow();
-      expect(() => logErrorEvent(defaultLoggerContextConfig, mockLogger, new Error('test'), { data: 'test' })).not.toThrow();
+      expect(() =>
+        logUserAction(defaultLoggerContextConfig, mockLogger, 'test-action', { data: 'test' })
+      ).not.toThrow();
+      expect(() =>
+        logSystemEvent(defaultLoggerContextConfig, mockLogger, 'test-event', { data: 'test' })
+      ).not.toThrow();
+      expect(() =>
+        logSecurityEvent(defaultLoggerContextConfig, mockLogger, 'test-security', { data: 'test' })
+      ).not.toThrow();
+      expect(() =>
+        logErrorEvent(defaultLoggerContextConfig, mockLogger, new Error('test'), { data: 'test' })
+      ).not.toThrow();
     });
 
     it('should create logger context config', async () => {

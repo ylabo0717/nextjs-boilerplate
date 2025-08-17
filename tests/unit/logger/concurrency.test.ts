@@ -189,7 +189,10 @@ describe('コンテキスト並行処理テスト', () => {
 describe('大容量データ処理のFuzzテスト', () => {
   test('1MB超の文字列データを安全に処理', () => {
     // 1MBを超える大きな文字列を生成（制御文字を含む）
-    const baseString = 'A'.repeat(LOGGER_TEST_DATA.STRING_REPEAT_COUNT) + '\x00\x01\x02' + 'B'.repeat(LOGGER_TEST_DATA.STRING_REPEAT_COUNT);
+    const baseString =
+      'A'.repeat(LOGGER_TEST_DATA.STRING_REPEAT_COUNT) +
+      '\x00\x01\x02' +
+      'B'.repeat(LOGGER_TEST_DATA.STRING_REPEAT_COUNT);
     const largeString = baseString.repeat(LOGGER_TEST_DATA.LARGE_STRING_MULTIPLIER); // 約1.2MB
 
     expect(largeString.length).toBeGreaterThan(LOGGER_TEST_DATA.MEMORY_THRESHOLD_1MB); // 1MB以上
@@ -268,7 +271,8 @@ describe('大容量データ処理のFuzzテスト', () => {
     const sampleResult = result as any[];
     // 制御文字がエスケープされていることを確認 - 実際の形式をチェック
     const firstElement = sampleResult[0].dangerous;
-    const hundredthElement = sampleResult[LOGGER_TEST_DATA.CONCURRENT_REQUESTS_STANDARD].nested.dangerous;
+    const hundredthElement =
+      sampleResult[LOGGER_TEST_DATA.CONCURRENT_REQUESTS_STANDARD].nested.dangerous;
 
     // 制御文字 \x00 がエスケープされているかチェック（\u0000 または \\u0000 形式）
     expect(firstElement).toMatch(/\\u0000|\\\\u0000/);
@@ -343,7 +347,9 @@ describe('無効データと破損データの堅牢性テスト', () => {
       Number.MAX_VALUE,
       Number.MIN_VALUE,
       '9'.repeat(LOGGER_TEST_DATA.VERY_LARGE_STRING_SIZE), // 100万桁の数字文字列
-      'x'.repeat(LOGGER_TEST_DATA.LARGE_STRING_SIZE) + '\x00' + 'y'.repeat(LOGGER_TEST_DATA.LARGE_STRING_SIZE), // 大きな文字列と制御文字
+      'x'.repeat(LOGGER_TEST_DATA.LARGE_STRING_SIZE) +
+        '\x00' +
+        'y'.repeat(LOGGER_TEST_DATA.LARGE_STRING_SIZE), // 大きな文字列と制御文字
     ];
 
     extremeValues.forEach((value) => {

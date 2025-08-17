@@ -1,6 +1,6 @@
 /**
  * Grafana認証設定テスト
- * 
+ *
  * Docker Compose設定でのGrafanaパスワード環境変数が正しく設定されることを検証
  */
 
@@ -16,9 +16,11 @@ describe('Grafana Authentication Configuration', () => {
 
       // ハードコードされたパスワードが使用されていないことを確認
       expect(dockerComposeContent).not.toContain('GF_SECURITY_ADMIN_PASSWORD=admin');
-      
+
       // 環境変数での設定が使用されていることを確認
-      expect(dockerComposeContent).toContain('GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-changeme123!}');
+      expect(dockerComposeContent).toContain(
+        'GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-changeme123!}'
+      );
     });
 
     it('環境変数のデフォルト値が安全に設定されている', () => {
@@ -27,7 +29,7 @@ describe('Grafana Authentication Configuration', () => {
 
       // デフォルト値がプレーンな"admin"でないことを確認
       expect(dockerComposeContent).not.toContain(':-admin}');
-      
+
       // より安全なデフォルト値が設定されていることを確認
       expect(dockerComposeContent).toContain(':-changeme123!}');
     });
@@ -53,7 +55,10 @@ describe('Grafana Authentication Configuration', () => {
 
   describe('ドキュメント更新の検証', () => {
     it('設定ガイドにGrafanaセキュリティ設定が含まれている', () => {
-      const configGuidePath = resolve(process.cwd(), 'docs/developer_guide/logging-configuration-guide.md');
+      const configGuidePath = resolve(
+        process.cwd(),
+        'docs/developer_guide/logging-configuration-guide.md'
+      );
       const configGuideContent = readFileSync(configGuidePath, 'utf-8');
 
       expect(configGuideContent).toContain('GRAFANA_ADMIN_PASSWORD');
@@ -61,7 +66,10 @@ describe('Grafana Authentication Configuration', () => {
     });
 
     it('統合ガイドにGrafanaアクセス情報が更新されている', () => {
-      const integrationGuidePath = resolve(process.cwd(), 'docs/work_dir/logging-integration-guide.md');
+      const integrationGuidePath = resolve(
+        process.cwd(),
+        'docs/work_dir/logging-integration-guide.md'
+      );
       const integrationGuideContent = readFileSync(integrationGuidePath, 'utf-8');
 
       expect(integrationGuideContent).not.toContain('Password: `admin`');

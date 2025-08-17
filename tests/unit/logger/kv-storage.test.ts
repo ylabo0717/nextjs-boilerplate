@@ -309,7 +309,7 @@ describe('RedisStorage', () => {
     // Test all Redis operations handle errors gracefully
     await expect(storage.get('test-key')).resolves.toBeNull();
     await expect(storage.exists('test-key')).resolves.toBe(false);
-    
+
     // Set and delete operations should handle errors but may throw
     try {
       await storage.set('test-key', 'test-value');
@@ -757,7 +757,10 @@ describe('Error Handling and Resilience', () => {
     const storage = new MemoryStorage(config);
 
     // Perform multiple concurrent operations
-    const operations = Array.from({ length: LOGGER_TEST_DATA.CONCURRENT_OPERATIONS_COUNT }, (_, i) => storage.set(`key-${i}`, `value-${i}`));
+    const operations = Array.from(
+      { length: LOGGER_TEST_DATA.CONCURRENT_OPERATIONS_COUNT },
+      (_, i) => storage.set(`key-${i}`, `value-${i}`)
+    );
 
     await Promise.all(operations);
 
@@ -816,7 +819,7 @@ describe('Error Handling and Resilience', () => {
       { type: 'redis' }, // Missing connection_string
     ];
 
-    invalidConfigs.forEach(config => {
+    invalidConfigs.forEach((config) => {
       expect(validateStorageConfig(config as any)).toBe(false);
     });
   });

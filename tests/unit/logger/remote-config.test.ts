@@ -1,6 +1,6 @@
 /**
  * Remote Config Unit Tests
- * 
+ *
  * Tests for remote configuration management
  * Focuses on validation and utility functions
  */
@@ -74,7 +74,7 @@ describe('Remote Config', () => {
       const baseConfig = {
         global_level: 'info' as const,
         service_levels: {
-          'service1': 'warn' as const,
+          service1: 'warn' as const,
         },
         rate_limits: {},
         last_updated: new Date().toISOString(),
@@ -85,7 +85,7 @@ describe('Remote Config', () => {
       const overrideConfig = {
         global_level: 'debug' as const,
         service_levels: {
-          'service2': 'error' as const,
+          service2: 'error' as const,
         },
         rate_limits: {},
         last_updated: new Date().toISOString(),
@@ -97,8 +97,8 @@ describe('Remote Config', () => {
 
       expect(merged.global_level).toBe('debug');
       expect(merged.service_levels).toEqual({
-        'service1': 'warn',
-        'service2': 'error',
+        service1: 'warn',
+        service2: 'error',
       });
     });
   });
@@ -144,11 +144,11 @@ describe('Remote Config', () => {
         enabled: true,
         global_level: 'info' as const,
         service_levels: {
-          'service1': 'debug' as const,
-          'service2': 'warn' as const,
+          service1: 'debug' as const,
+          service2: 'warn' as const,
         },
         rate_limits: {
-          'service1': 100,
+          service1: 100,
         },
         version: 1,
         last_updated: '2025-08-15T00:00:00.000Z',

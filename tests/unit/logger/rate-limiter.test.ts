@@ -208,9 +208,16 @@ describe('Rate Limiting Operations', () => {
     }));
 
     // Re-import after mocking
-    const { checkRateLimit: checkRateLimitWithMockedStorage } = await import('@/lib/logger/rate-limiter');
+    const { checkRateLimit: checkRateLimitWithMockedStorage } = await import(
+      '@/lib/logger/rate-limiter'
+    );
 
-    const result = await checkRateLimitWithMockedStorage(config, 'error-client', '/api/test', 'info');
+    const result = await checkRateLimitWithMockedStorage(
+      config,
+      'error-client',
+      '/api/test',
+      'info'
+    );
 
     // Should fail open when storage errors occur
     expect(result.allowed).toBe(true);
@@ -330,11 +337,11 @@ describe('Rate Limiter Reset and Management', () => {
 describe('Internal Function Coverage', () => {
   test('checkRateLimitInternal handles backoff period correctly', async () => {
     const { checkRateLimitInternal } = await import('@/lib/logger/rate-limiter');
-    
+
     const config = createRateLimiterConfig();
     const futureTime = Date.now() + 10000; // 10 seconds in future
     const currentTime = Date.now();
-    
+
     const stateInBackoff = {
       ...createInitialState(),
       backoff_until: futureTime,
@@ -351,11 +358,11 @@ describe('Internal Function Coverage', () => {
 
   test('checkRateLimitInternal handles sampling rejection', async () => {
     const { checkRateLimitInternal } = await import('@/lib/logger/rate-limiter');
-    
+
     const config = createRateLimiterConfig({
       sampling_rates: { error: 0.0 }, // Force sampling rejection
     });
-    
+
     const state = createInitialState();
     const currentTime = Date.now();
 
@@ -369,7 +376,7 @@ describe('Internal Function Coverage', () => {
 
   test('checkRateLimitInternal handles token exhaustion with backoff', async () => {
     const { checkRateLimitInternal } = await import('@/lib/logger/rate-limiter');
-    
+
     const config = createRateLimiterConfig({
       max_tokens: 1,
       refill_rate: 0,
@@ -377,13 +384,13 @@ describe('Internal Function Coverage', () => {
       max_backoff: 60,
       sampling_rates: {}, // No sampling to ensure token logic is tested
     });
-    
+
     const stateNoTokens = {
       ...createInitialState(),
       tokens: 0,
       consecutive_rejects: 2,
     };
-    
+
     const currentTime = Date.now();
     const result = checkRateLimitInternal(config, stateNoTokens, 'info', undefined, currentTime);
 
@@ -397,7 +404,7 @@ describe('Internal Function Coverage', () => {
 
   test('checkRateLimitInternal allows request when tokens available', async () => {
     const { checkRateLimitInternal } = await import('@/lib/logger/rate-limiter');
-    
+
     const config = createRateLimiterConfig({
       sampling_rates: {}, // No sampling to ensure token logic is tested
     });
@@ -420,16 +427,16 @@ describe('Internal Function Coverage', () => {
     const config = createRateLimiterConfig({
       sampling_rates: { error: 0.0 }, // Force sampling rejection
     });
-    
+
     // Use multiple calls to increase probability of testing sampling path
     const results = await Promise.all([
       checkRateLimit(config, 'sampling-test-client-1', '/api/test', 'error'),
       checkRateLimit(config, 'sampling-test-client-2', '/api/test', 'error'),
       checkRateLimit(config, 'sampling-test-client-3', '/api/test', 'error'),
     ]);
-    
+
     // Verify all calls completed (some may be sampled out)
-    results.forEach(result => {
+    results.forEach((result) => {
       expect(result).toBeDefined();
       expect(typeof result.allowed).toBe('boolean');
       expect(result.tokens_remaining).toBeGreaterThanOrEqual(0);
@@ -442,32 +449,28 @@ describe('Internal Function Coverage', () => {
       error_threshold: 5,
       max_tokens: 100,
     });
-    
+
     const clientId = 'adaptive-test-client';
     const endpoint = '/api/adaptive-test';
-    
+
     // Generate some error activity to trigger adaptive sampling
     const errorResults = await Promise.all(
-      Array.from({ length: 10 }, () => 
-        checkRateLimit(config, clientId, endpoint, 'error')
-      )
+      Array.from({ length: 10 }, () => checkRateLimit(config, clientId, endpoint, 'error'))
     );
-    
+
     // Verify adaptive behavior through multiple calls
     const followupResults = await Promise.all(
-      Array.from({ length: 5 }, () => 
-        checkRateLimit(config, clientId, endpoint, 'error')
-      )
+      Array.from({ length: 5 }, () => checkRateLimit(config, clientId, endpoint, 'error'))
     );
-    
+
     // All results should be defined
-    [...errorResults, ...followupResults].forEach(result => {
+    [...errorResults, ...followupResults].forEach((result) => {
       expect(result).toBeDefined();
       expect(typeof result.allowed).toBe('boolean');
     });
-    
+
     // At least some requests should have been processed
-    const allowedCount = [...errorResults, ...followupResults].filter(r => r.allowed).length;
+    const allowedCount = [...errorResults, ...followupResults].filter((r) => r.allowed).length;
     expect(allowedCount).toBeGreaterThan(0);
   });
 
@@ -478,37 +481,37 @@ describe('Internal Function Coverage', () => {
       backoff_multiplier: 2,
       max_backoff: 10, // Short for testing
     });
-    
+
     const clientId = 'backoff-test-client';
     const endpoint = '/api/backoff-test';
-    
+
     // Exhaust tokens
     const firstResult = await checkRateLimit(config, clientId, endpoint, 'info');
     expect(firstResult.allowed).toBe(true);
-    
+
     // Subsequent requests should fail with increasing backoff
     const secondResult = await checkRateLimit(config, clientId, endpoint, 'info');
     expect(secondResult.allowed).toBe(false);
     expect(secondResult.retry_after).toBeGreaterThan(0);
-    
+
     const thirdResult = await checkRateLimit(config, clientId, endpoint, 'info');
     expect(thirdResult.allowed).toBe(false);
     expect(thirdResult.retry_after).toBeGreaterThan(0);
-    
+
     // Test backoff behavior (some requests might use default retry_after)
     const fourthResult = await checkRateLimit(config, clientId, endpoint, 'info');
     expect(fourthResult.allowed).toBe(false);
     expect(fourthResult.retry_after).toBeGreaterThan(0);
-    
+
     // Test multiple consecutive failures for backoff progression
     const consecutiveResults = [];
     for (let i = 0; i < 5; i++) {
       const result = await checkRateLimit(config, clientId, endpoint, 'info');
       consecutiveResults.push(result);
     }
-    
+
     // All should be false and have retry_after
-    consecutiveResults.forEach(result => {
+    consecutiveResults.forEach((result) => {
       expect(result.allowed).toBe(false);
       expect(result.retry_after).toBeGreaterThan(0);
     });
@@ -519,14 +522,14 @@ describe('Internal Function Coverage', () => {
     const oldTimestamp = currentTime - 3700000; // Older than 1 hour
     const recentTimestamp = currentTime - 1800000; // 30 minutes ago
     const veryRecentTimestamp = currentTime - 60000; // 1 minute ago
-    
+
     const state = {
       ...createInitialState(),
       error_timestamps: [oldTimestamp, recentTimestamp, veryRecentTimestamp],
     };
-    
+
     const analysis = analyzeErrorFrequency(state, currentTime);
-    
+
     // Verify that old timestamps are filtered in analysis
     expect(analysis.total_errors).toBeLessThanOrEqual(3);
     expect(analysis.errors_per_minute).toBeGreaterThanOrEqual(0);
@@ -538,18 +541,18 @@ describe('Internal Function Coverage', () => {
       max_tokens: 10,
       refill_rate: 5, // 5 tokens per second
     });
-    
+
     const clientId = 'refill-test-client';
     const endpoint = '/api/refill-test';
-    
+
     // Use several tokens
     await checkRateLimit(config, clientId, endpoint, 'info');
     await checkRateLimit(config, clientId, endpoint, 'info');
     await checkRateLimit(config, clientId, endpoint, 'info');
-    
+
     // Get stats to verify token refill behavior
     const stats = await getRateLimiterStats(clientId, endpoint);
-    
+
     if (stats) {
       expect(stats.tokens).toBeGreaterThanOrEqual(0);
       expect(stats.total_requests).toBe(3);
@@ -598,17 +601,17 @@ describe('Edge Cases', () => {
 
     // All results should be defined
     expect(results).toHaveLength(10);
-    results.forEach(result => {
+    results.forEach((result) => {
       expect(result).toBeDefined();
       expect(typeof result.allowed).toBe('boolean');
     });
-    
-    const allowedCount = results.filter(r => r.allowed).length;
-    const rejectedCount = results.filter(r => !r.allowed).length;
+
+    const allowedCount = results.filter((r) => r.allowed).length;
+    const rejectedCount = results.filter((r) => !r.allowed).length;
 
     // With 5 max tokens, we expect some to be allowed and some rejected
     expect(allowedCount + rejectedCount).toBe(10);
-    
+
     // Should have at least some allowed requests
     expect(allowedCount).toBeGreaterThan(0);
   });
@@ -620,11 +623,11 @@ describe('Edge Cases', () => {
     });
 
     const result = await checkRateLimit(config, 'client-high-refill', '/api/test', 'info');
-    
+
     // Result should be defined and have expected structure
     expect(result).toBeDefined();
     expect(typeof result.allowed).toBe('boolean');
-    
+
     // remaining_tokens might not always be present depending on implementation
     if ('remaining_tokens' in result) {
       expect(typeof result.remaining_tokens).toBe('number');
@@ -653,12 +656,12 @@ describe('Edge Cases', () => {
 
     // Exhaust tokens and trigger backoff
     await checkRateLimit(config, 'client-backoff', '/api/test', 'info');
-    
+
     // Multiple consecutive rejections should increase backoff
     for (let i = 0; i < 5; i++) {
       const result = await checkRateLimit(config, 'client-backoff', '/api/test', 'info');
       expect(result.allowed).toBe(false);
-      
+
       if (result.retry_after) {
         expect(result.retry_after).toBeGreaterThan(0);
       }
@@ -670,8 +673,9 @@ describe('Edge Cases', () => {
     const currentTime = Date.now();
 
     // Create a state with many errors
-    const errorTimestamps = Array.from({ length: 1000 }, (_, i) => 
-      currentTime - (i * 1000) // One error per second over 1000 seconds
+    const errorTimestamps = Array.from(
+      { length: 1000 },
+      (_, i) => currentTime - i * 1000 // One error per second over 1000 seconds
     );
 
     const stateWithErrors = {
@@ -690,26 +694,26 @@ describe('Edge Cases', () => {
   test('handles mixed sampling rate configurations', async () => {
     const config = createRateLimiterConfig({
       sampling_rates: {
-        'error': 0.1,
-        'warn': 0.5,
-        'info': 1.0,
-        'CustomError': 0.05,
+        error: 0.1,
+        warn: 0.5,
+        info: 1.0,
+        CustomError: 0.05,
       },
     });
 
     // Test different log levels and error types
     const state = createInitialState();
-    
+
     // Mock Math.random to control sampling decisions
     const originalRandom = Math.random;
-    
+
     try {
       // Force sampling to occur
       Math.random = () => 0.01;
       const result1 = await checkRateLimit(config, 'client-sampling', '/api/test', 'error');
       expect(result1).toBeDefined();
 
-      // Force sampling to be rejected  
+      // Force sampling to be rejected
       Math.random = () => 0.99;
       const result2 = await checkRateLimit(config, 'client-sampling', '/api/test', 'error');
       expect(result2).toBeDefined();
@@ -742,9 +746,12 @@ describe('Edge Cases', () => {
     // Create state just below threshold with recent errors
     const belowThresholdState = {
       ...createInitialState(),
-      error_timestamps: Object.freeze(Array.from({ length: 9 }, (_, i) => 
-        currentTime - (i * 1000) // Recent errors, 1 second apart
-      )),
+      error_timestamps: Object.freeze(
+        Array.from(
+          { length: 9 },
+          (_, i) => currentTime - i * 1000 // Recent errors, 1 second apart
+        )
+      ),
     };
 
     const analysis1 = analyzeErrorFrequency(belowThresholdState, currentTime);
@@ -753,9 +760,12 @@ describe('Edge Cases', () => {
     // Create state above threshold with recent errors
     const aboveThresholdState = {
       ...createInitialState(),
-      error_timestamps: Object.freeze(Array.from({ length: 50 }, (_, i) => 
-        currentTime - (i * 1000) // Recent errors to ensure they're within the analysis window
-      )),
+      error_timestamps: Object.freeze(
+        Array.from(
+          { length: 50 },
+          (_, i) => currentTime - i * 1000 // Recent errors to ensure they're within the analysis window
+        )
+      ),
     };
 
     const analysis2 = analyzeErrorFrequency(aboveThresholdState, currentTime);
@@ -765,16 +775,16 @@ describe('Edge Cases', () => {
 
   test('handles time-based error cleanup scenarios', () => {
     const currentTime = Date.now();
-    const fiveMinutesAgo = currentTime - (5 * 60 * 1000);
-    const tenMinutesAgo = currentTime - (10 * 60 * 1000);
+    const fiveMinutesAgo = currentTime - 5 * 60 * 1000;
+    const tenMinutesAgo = currentTime - 10 * 60 * 1000;
 
     const stateWithTimestamps = {
       ...createInitialState(),
       error_timestamps: Object.freeze([
-        tenMinutesAgo,  // Should be included if within analysis window
+        tenMinutesAgo, // Should be included if within analysis window
         fiveMinutesAgo, // Should be included
         currentTime - 30000, // Should remain (30 seconds ago)
-        currentTime - 1000,  // Should remain (1 second ago)
+        currentTime - 1000, // Should remain (1 second ago)
       ]),
     };
 

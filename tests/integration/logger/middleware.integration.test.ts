@@ -1,6 +1,6 @@
 /**
  * Logger Middleware Integration Tests
- * 
+ *
  * Tests for middleware functionality
  */
 

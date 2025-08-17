@@ -197,7 +197,7 @@ describe('Edge Runtime Helpers', () => {
   describe('promiseAllWithContext', () => {
     it('should handle edge runtime with context binding', async () => {
       mockDetectRuntimeEnvironment.mockReturnValue('edge');
-      
+
       const mockStorage = {
         run: vi.fn().mockImplementation((context, fn) => fn()),
       };
@@ -257,7 +257,7 @@ describe('Edge Runtime Helpers', () => {
 
     it('should handle edge runtime with context binding', () => {
       mockDetectRuntimeEnvironment.mockReturnValue('edge');
-      
+
       const mockStorage = {
         bind: vi.fn().mockImplementation((fn) => fn),
       };
@@ -298,7 +298,7 @@ describe('Edge Runtime Helpers', () => {
 
     it('should handle edge runtime with context binding', () => {
       mockDetectRuntimeEnvironment.mockReturnValue('edge');
-      
+
       const mockStorage = {
         bind: vi.fn().mockImplementation((fn) => fn),
       };
@@ -335,7 +335,7 @@ describe('Edge Runtime Helpers', () => {
   describe('withEdgeContext', () => {
     it('should handle edge runtime with context binding', async () => {
       mockDetectRuntimeEnvironment.mockReturnValue('edge');
-      
+
       const mockStorage = {
         run: vi.fn().mockImplementation((context, fn) => fn()),
       };
@@ -361,7 +361,7 @@ describe('Edge Runtime Helpers', () => {
 
     it('should handle operation failures', async () => {
       mockDetectRuntimeEnvironment.mockReturnValue('edge');
-      
+
       const mockStorage = {
         run: vi.fn().mockImplementation((context, fn) => fn()),
       };
@@ -376,7 +376,7 @@ describe('Edge Runtime Helpers', () => {
   describe('wrapWithContext', () => {
     it('should handle edge runtime with function wrapping', () => {
       mockDetectRuntimeEnvironment.mockReturnValue('edge');
-      
+
       const mockStorage = {
         bind: vi.fn().mockImplementation((fn) => fn),
       };
@@ -406,7 +406,7 @@ describe('Edge Runtime Helpers', () => {
   describe('Error handling and edge cases', () => {
     it('should handle undefined context gracefully', async () => {
       mockDetectRuntimeEnvironment.mockReturnValue('edge');
-      
+
       const mockStorage = {
         run: vi.fn().mockImplementation((context, fn) => fn()),
       };

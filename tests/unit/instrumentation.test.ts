@@ -1,6 +1,6 @@
 /**
  * Instrumentation Unit Tests
- * 
+ *
  * Tests for Next.js instrumentation register function
  * Focuses on error handling and environment detection
  */
@@ -189,7 +189,7 @@ describe('instrumentation.ts', () => {
 
       const { initializeMetrics } = await import('../../src/lib/logger/metrics');
       const { initializePhase3Metrics } = await import('../../src/lib/logger/enhanced-metrics');
-      
+
       vi.clearAllMocks();
 
       // Import and call register
@@ -203,7 +203,5 @@ describe('instrumentation.ts', () => {
       // Restore environment
       process.env.NEXT_RUNTIME = originalRuntime;
     });
-
   });
-
 });

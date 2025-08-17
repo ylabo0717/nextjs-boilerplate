@@ -25,6 +25,7 @@ import type { SanitizedLogEntry } from './types';
  */
 export function sanitizeControlCharacters(input: unknown): unknown {
   if (typeof input === 'string') {
+    // 制御文字: 0x00-0x1F (C0制御文字), 0x7F-0x9F (DEL + C1制御文字)
     return input.replace(/[\x00-\x1F\x7F-\x9F]/g, (char) => {
       return `\\u${char.charCodeAt(0).toString(16).padStart(4, '0').toUpperCase()}`;
     });

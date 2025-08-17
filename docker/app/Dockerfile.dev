@@ -1,0 +1,101 @@
+# syntax=docker/dockerfile:1
+
+# ==============================================================================
+# Next.js 15.4.6 Development Docker Image
+# 
+# Optimized for development workflow with:
+# - Hot module replacement (HMR)
+# - Fast refresh for React components
+# - Debug port support
+# - Volume mounts for live code changes
+# - TypeScript watch mode
+# - Optimized layer caching
+# ==============================================================================
+
+# Define build arguments
+ARG NODE_VERSION=20.18.0
+ARG ALPINE_VERSION=3.20
+
+# ==============================================================================
+# Development Stage - Optimized for development workflow
+# ==============================================================================
+FROM node:${NODE_VERSION}-alpine${ALPINE_VERSION} AS development
+
+# Enable pnpm
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN npm install -g pnpm@latest
+
+# Install essential packages for development
+RUN apk update && \
+    apk add --no-cache \
+    libc6-compat \
+    curl \
+    git \
+    && rm -rf /var/cache/apk/*
+
+# Set working directory
+WORKDIR /app
+
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Copy package files first for better layer caching
+COPY package.json pnpm-lock.yaml* ./
+
+# Install dependencies with cache mount for faster subsequent builds
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# Copy source code (this will be volume mounted in development)
+COPY . .
+
+# Set development environment variables
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV WATCHPACK_POLLING=true
+ENV TURBOPACK_BUILD_DIR=.next
+
+# Change ownership to nextjs user
+RUN chown -R nextjs:nodejs /app
+
+# Switch to non-root user
+USER nextjs
+
+# Expose ports
+# 3000 - Next.js development server
+# 9229 - Node.js debugger port for VSCode/IDE integration
+EXPOSE 3000 9229
+
+# Add health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3000/api/health || exit 1
+
+# Start development server with Turbopack and debugging enabled
+# Enable polling for file watching in Docker containers
+CMD ["pnpm", "dev", "--port", "3000", "--hostname", "0.0.0.0"]
+
+# ==============================================================================
+# Development with Debug - Alternative stage for debugging
+# ==============================================================================
+FROM development AS development-debug
+
+# Override CMD to enable Node.js inspector for debugging
+CMD ["node", "--inspect=0.0.0.0:9229", "node_modules/.bin/next", "dev", "--port", "3000", "--hostname", "0.0.0.0"]
+
+# ==============================================================================
+# Development Test - For running tests in development environment
+# ==============================================================================
+FROM development AS development-test
+
+# Set test environment
+ENV NODE_ENV=test
+ENV CI=false
+
+# Install additional test dependencies if needed
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# Override CMD to run tests in watch mode
+CMD ["pnpm", "test", "--watch"]

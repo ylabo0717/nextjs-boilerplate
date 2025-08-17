@@ -3,7 +3,7 @@
  * Tests for the KV storage-based rate limiter implementation
  */
 
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import {
   createRateLimiterConfig,
   createInitialState,
@@ -12,9 +12,11 @@ import {
   analyzeErrorFrequency,
   getRateLimiterStats,
   resetRateLimiterState,
+  shouldSample,
   type RateLimiterConfig,
   type RateLimiterState,
 } from '@/lib/logger/rate-limiter';
+import { RATE_LIMITER_TEST } from '../../constants/test-constants';
 
 describe('Rate Limiter Configuration', () => {
   test('createRateLimiterConfig creates valid configuration', () => {
@@ -224,6 +226,110 @@ describe('Rate Limiting Operations', () => {
     expect(result.tokens_remaining).toBeGreaterThanOrEqual(config.max_tokens - 1);
 
     vi.doUnmock('@/lib/logger/kv-storage');
+  });
+});
+
+describe('shouldSample Function', () => {
+  it('should use default Math.random when randomFn is not provided', () => {
+    const config = createRateLimiterConfig({
+      sampling_rates: { info: RATE_LIMITER_TEST.SAMPLING_RATE_50_PERCENT },
+    });
+    const state = createInitialState();
+
+    // テスト複数回実行してランダム性を確認
+    let trueCount = 0;
+    let falseCount = 0;
+
+    for (let i = 0; i < RATE_LIMITER_TEST.RANDOMNESS_TEST_ITERATIONS; i++) {
+      const result = shouldSample(config, state, 'info');
+      if (result.shouldSample) {
+        trueCount++;
+      } else {
+        falseCount++;
+      }
+    }
+
+    // 50%のサンプリング率なので、両方とも0より大きくなるはず
+    expect(trueCount).toBeGreaterThan(0);
+    expect(falseCount).toBeGreaterThan(0);
+  });
+
+  it('should use custom randomFn when provided', () => {
+    let callCount = 0;
+    const mockRandomFn = vi.fn(() => {
+      callCount++;
+      return RATE_LIMITER_TEST.RANDOM_VALUE_30_PERCENT;
+    });
+
+    const config = createRateLimiterConfig({
+      sampling_rates: { info: RATE_LIMITER_TEST.SAMPLING_RATE_50_PERCENT },
+      randomFn: mockRandomFn,
+    });
+    const state = createInitialState();
+
+    const result = shouldSample(config, state, 'info');
+
+    expect(mockRandomFn).toHaveBeenCalledTimes(1);
+    expect(result.shouldSample).toBe(true); // 0.3 < 0.5
+  });
+
+  it('should return false when randomFn returns value above sampling rate', () => {
+    const mockRandomFn = vi.fn(() => RATE_LIMITER_TEST.RANDOM_VALUE_70_PERCENT);
+
+    const config = createRateLimiterConfig({
+      sampling_rates: { info: RATE_LIMITER_TEST.SAMPLING_RATE_50_PERCENT },
+      randomFn: mockRandomFn,
+    });
+    const state = createInitialState();
+
+    const result = shouldSample(config, state, 'info');
+
+    expect(result.shouldSample).toBe(false);
+  });
+
+  it('should use custom randomFn for adaptive sampling', () => {
+    const mockRandomFn = vi.fn(() => RATE_LIMITER_TEST.RANDOM_VALUE_20_PERCENT);
+
+    const config = createRateLimiterConfig({
+      adaptive_sampling: true,
+      sampling_rates: { error: 0.8 },
+      error_threshold: RATE_LIMITER_TEST.LOW_ERROR_THRESHOLD,
+      randomFn: mockRandomFn,
+    });
+
+    // エラーを多く発生させて適応的サンプリングを発動
+    const state = createInitialState();
+    const currentTime = Date.now();
+
+    // エラー頻度を高くするため、過去のエラータイムスタンプを追加（60個で確実に発動）
+    const errorTimestamps = Array.from(
+      { length: RATE_LIMITER_TEST.HIGH_ERROR_COUNT }, 
+      (_, i) => currentTime - i * 1000
+    );
+    const stateWithErrors: RateLimiterState = {
+      ...state,
+      error_timestamps: errorTimestamps,
+    };
+
+    const result = shouldSample(config, stateWithErrors, 'error', undefined, currentTime);
+
+    expect(mockRandomFn).toHaveBeenCalled();
+    expect(result.shouldSample).toBe(true); // 0.2は適応的レートより小さいはず
+    expect(result.adaptiveRate).toBeDefined();
+  });
+
+  it('should work deterministically with constant randomFn', () => {
+    const config = createRateLimiterConfig({
+      sampling_rates: { debug: RATE_LIMITER_TEST.SAMPLING_RATE_30_PERCENT },
+      randomFn: () => RATE_LIMITER_TEST.RANDOM_VALUE_25_PERCENT,
+    });
+    const state = createInitialState();
+
+    // 複数回実行しても同じ結果になることを確認
+    for (let i = 0; i < RATE_LIMITER_TEST.DETERMINISTIC_TEST_ITERATIONS; i++) {
+      const result = shouldSample(config, state, 'debug');
+      expect(result.shouldSample).toBe(true); // 0.25 < 0.3
+    }
   });
 });
 

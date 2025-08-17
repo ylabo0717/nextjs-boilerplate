@@ -42,6 +42,8 @@ export interface RateLimiterConfig {
   readonly enable_exponential_backoff?: boolean;
   /** エンドポイント別制限設定 */
   readonly endpoint_limits?: Record<string, { bucket_size?: number; refill_rate?: number }>;
+  /** テスト用のカスタム乱数生成関数 */
+  readonly randomFn?: () => number;
 }
 
 /**
@@ -147,6 +149,8 @@ export interface RateLimiterConfigOptions {
   readonly error_threshold?: number;
   /** エンドポイント別制限設定 */
   readonly endpoint_limits?: Record<string, { bucket_size?: number; refill_rate?: number }>;
+  /** テスト用のカスタム乱数生成関数 */
+  readonly randomFn?: () => number;
 }
 
 /**
@@ -208,6 +212,7 @@ export function createRateLimiterConfig(options?: RateLimiterConfigOptions): Rat
     error_threshold:
       options?.error_threshold || parseInt(process.env.LOG_RATE_LIMIT_ERROR_THRESHOLD || '100', 10), // errors per minute
     endpoint_limits: options?.endpoint_limits ? Object.freeze(options.endpoint_limits) : undefined,
+    randomFn: options?.randomFn,
   }) as RateLimiterConfig;
 }
 
@@ -459,7 +464,7 @@ export function analyzeErrorFrequency(
 /**
  * Apply sampling rate based on log level and error type (pure function)
  */
-function shouldSample(
+export function shouldSample(
   config: RateLimiterConfig,
   state: RateLimiterState,
   logLevel: LogLevel,
@@ -479,6 +484,9 @@ function shouldSample(
     baseSamplingRate = ratesMap.get(logLevel) ?? 1.0;
   }
 
+  // Use custom random function if provided, otherwise use Math.random()
+  const randomFn = config.randomFn || Math.random;
+
   // Apply adaptive sampling if enabled
   if (config.adaptive_sampling && (logLevel === 'error' || logLevel === 'warn')) {
     const analysis = analyzeErrorFrequency(state, currentTime);
@@ -486,14 +494,14 @@ function shouldSample(
     if (analysis.should_apply_adaptive) {
       const adaptiveRate = Math.min(baseSamplingRate, analysis.recommended_sampling_rate);
       return {
-        shouldSample: Math.random() < adaptiveRate,
+        shouldSample: randomFn() < adaptiveRate,
         adaptiveRate,
       };
     }
   }
 
   return {
-    shouldSample: Math.random() < baseSamplingRate,
+    shouldSample: randomFn() < baseSamplingRate,
   };
 }
 

@@ -678,3 +678,90 @@ export const LOGGER_TEST_DATA = {
    */
   TEST_TIMEOUT_300MS: 300,
 } as const;
+
+/**
+ * Rate limiter test configuration
+ *
+ * @public
+ */
+export const RATE_LIMITER_TEST = {
+  /**
+   * Sampling rate for 50% sampling tests
+   *
+   * @remarks
+   * Unit: rate (0.0 - 1.0)
+   */
+  SAMPLING_RATE_50_PERCENT: 0.5,
+
+  /**
+   * Sampling rate for 30% sampling tests
+   *
+   * @remarks
+   * Unit: rate (0.0 - 1.0)
+   */
+  SAMPLING_RATE_30_PERCENT: 0.3,
+
+  /**
+   * Random function return value for testing (30%)
+   *
+   * @remarks
+   * Unit: rate (0.0 - 1.0)
+   */
+  RANDOM_VALUE_30_PERCENT: 0.3,
+
+  /**
+   * Random function return value for testing (70%)
+   *
+   * @remarks
+   * Unit: rate (0.0 - 1.0)
+   */
+  RANDOM_VALUE_70_PERCENT: 0.7,
+
+  /**
+   * Random function return value for testing (20%)
+   *
+   * @remarks
+   * Unit: rate (0.0 - 1.0)
+   */
+  RANDOM_VALUE_20_PERCENT: 0.2,
+
+  /**
+   * Random function return value for testing (25%)
+   *
+   * @remarks
+   * Unit: rate (0.0 - 1.0)
+   */
+  RANDOM_VALUE_25_PERCENT: 0.25,
+
+  /**
+   * Low error threshold for testing adaptive sampling
+   *
+   * @remarks
+   * Unit: errors per minute
+   */
+  LOW_ERROR_THRESHOLD: 5,
+
+  /**
+   * High error count for testing adaptive sampling
+   *
+   * @remarks
+   * Unit: count
+   */
+  HIGH_ERROR_COUNT: 60,
+
+  /**
+   * Loop iterations for randomness testing
+   *
+   * @remarks
+   * Unit: count
+   */
+  RANDOMNESS_TEST_ITERATIONS: 100,
+
+  /**
+   * Loop iterations for deterministic testing
+   *
+   * @remarks
+   * Unit: count
+   */
+  DETERMINISTIC_TEST_ITERATIONS: 10,
+} as const;

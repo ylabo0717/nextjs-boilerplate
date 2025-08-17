@@ -106,14 +106,24 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 CMD ["node", "server.js"]
 
 # ==============================================================================
-# Stage 5: Test - Test environment for CI/CD
+# Stage 5: Test Dependencies - Install test dependencies efficiently
+# ==============================================================================
+FROM base AS test-deps
+
+# Copy package files for dependency installation
+COPY package.json pnpm-lock.yaml* ./
+
+# Install all dependencies including dev dependencies for testing
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# ==============================================================================
+# Stage 6: Test - Test environment for CI/CD
 # ==============================================================================
 FROM base AS test
 
-# Install all dependencies including dev dependencies
-COPY package.json pnpm-lock.yaml* ./
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+# Copy dependencies from test-deps stage
+COPY --from=test-deps /app/node_modules ./node_modules
 
 # Copy source code
 COPY . .
@@ -121,12 +131,16 @@ COPY . .
 # Set test environment
 ENV NODE_ENV=test
 ENV CI=true
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Switch to non-root user for security
+USER nextjs
 
 # Run tests
 CMD ["pnpm", "test"]
 
 # ==============================================================================
-# Stage 6: Development - Development environment with hot reload
+# Stage 7: Development - Development environment with hot reload
 # ==============================================================================
 FROM base AS development
 

@@ -1,0 +1,283 @@
+name: Docker Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'docker/**'
+      - 'docker-compose.test.yml'
+      - 'tests/**'
+      - 'src/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/docker-tests.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'docker/**'
+      - 'docker-compose.test.yml'
+      - 'tests/**'
+      - 'src/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/docker-tests.yml'
+
+env:
+  NODE_VERSION: '20.x'
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Docker環境でのUnit Tests
+  docker-unit-tests:
+    name: Docker Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Setup test environment
+        run: |
+          cp .env.test .env.local
+          echo "DOCKER_HOST=unix:///var/run/docker.sock" >> .env.local
+
+      - name: Build test image
+        run: |
+          docker compose -f docker-compose.test.yml build app-test
+
+      - name: Run Unit Tests in Docker
+        run: |
+          docker compose -f docker-compose.test.yml run --rm app-test pnpm test:unit
+
+      - name: Clean up containers
+        if: always()
+        run: |
+          docker compose -f docker-compose.test.yml down -v
+
+  # Docker環境でのIntegration Tests
+  docker-integration-tests:
+    name: Docker Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Setup test environment
+        run: |
+          cp .env.test .env.local
+          echo "DOCKER_HOST=unix:///var/run/docker.sock" >> .env.local
+          echo "TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal" >> .env.local
+
+      - name: Build integration test image
+        run: |
+          docker compose -f docker-compose.test.yml build app-integration
+
+      - name: Run Integration Tests in Docker
+        run: |
+          docker compose -f docker-compose.test.yml run --rm app-integration
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-integration-test-results
+          path: test-results/
+          retention-days: 7
+
+      - name: Clean up containers
+        if: always()
+        run: |
+          docker compose -f docker-compose.test.yml down -v
+
+  # Docker環境でのE2E Tests
+  docker-e2e-tests:
+    name: Docker E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        browser: [chromium, firefox]
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Setup test environment
+        run: |
+          cp .env.test .env.local
+          echo "BASE_URL=http://app-server:3000" >> .env.local
+          echo "PLAYWRIGHT_SKIP_WEBSERVER=true" >> .env.local
+
+      - name: Build app server image
+        run: |
+          docker compose -f docker-compose.test.yml build app-server
+
+      - name: Start app server
+        run: |
+          docker compose -f docker-compose.test.yml up app-server -d
+
+      - name: Wait for app server to be ready
+        run: |
+          echo "Waiting for app server to start..."
+          timeout 120s bash -c 'until docker compose -f docker-compose.test.yml exec -T app-server curl -f http://localhost:3000/api/health; do sleep 2; done'
+
+      - name: Run Playwright E2E Tests in Docker
+        run: |
+          docker compose -f docker-compose.test.yml run --rm \
+            -e PLAYWRIGHT_PROJECT=${{ matrix.browser }} \
+            playwright npx playwright test --project=${{ matrix.browser }} --config=playwright.docker.config.ts
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-playwright-report-${{ matrix.browser }}
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload test videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-playwright-videos-${{ matrix.browser }}
+          path: test-results/
+          retention-days: 7
+
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          echo "=== App Server Logs ==="
+          docker compose -f docker-compose.test.yml logs app-server
+
+      - name: Clean up containers
+        if: always()
+        run: |
+          docker compose -f docker-compose.test.yml down -v
+
+  # 全テストスイート実行（統合確認）
+  docker-all-tests:
+    name: Docker All Tests Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs: [docker-unit-tests, docker-integration-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Setup test environment
+        run: |
+          cp .env.test .env.local
+          echo "DOCKER_HOST=unix:///var/run/docker.sock" >> .env.local
+          echo "TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal" >> .env.local
+
+      - name: Build all test images
+        run: |
+          docker compose -f docker-compose.test.yml build
+
+      - name: Run complete test suite in Docker
+        run: |
+          # App serverを起動
+          docker compose -f docker-compose.test.yml up app-server -d
+
+          # App serverの準備完了を待機
+          timeout 120s bash -c 'until docker compose -f docker-compose.test.yml exec -T app-server curl -f http://localhost:3000/api/health; do sleep 2; done'
+
+          # 全テストスイート実行
+          docker compose -f docker-compose.test.yml run --rm all-tests
+
+      - name: Generate comprehensive test report
+        if: always()
+        run: |
+          echo "# Docker Test Suite Summary" > docker-test-summary.md
+          echo "" >> docker-test-summary.md
+          echo "## Test Execution Results" >> docker-test-summary.md
+          echo "" >> docker-test-summary.md
+
+          # コンテナ状態確認
+          echo "### Container Status" >> docker-test-summary.md
+          echo '```' >> docker-test-summary.md
+          docker compose -f docker-compose.test.yml ps >> docker-test-summary.md
+          echo '```' >> docker-test-summary.md
+          echo "" >> docker-test-summary.md
+
+          # ログ出力
+          echo "### Service Logs" >> docker-test-summary.md
+          echo '```' >> docker-test-summary.md
+          docker compose -f docker-compose.test.yml logs --tail=50 >> docker-test-summary.md
+          echo '```' >> docker-test-summary.md
+
+      - name: Upload comprehensive test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-all-tests-results
+          path: |
+            test-results/
+            coverage/
+            playwright-report/
+            docker-test-summary.md
+          retention-days: 7
+
+      - name: Clean up all containers
+        if: always()
+        run: |
+          docker compose -f docker-compose.test.yml down -v
+          docker system prune -f
+
+  # Docker環境の品質ゲート
+  docker-quality-gate:
+    name: Docker Quality Gate
+    runs-on: ubuntu-latest
+    needs: [docker-unit-tests, docker-integration-tests, docker-e2e-tests]
+    if: always()
+    steps:
+      - name: Check Docker test results
+        run: |
+          echo "Checking Docker test results..."
+
+          if [ "${{ needs.docker-unit-tests.result }}" != "success" ]; then
+            echo "❌ Docker Unit Tests failed"
+            exit 1
+          fi
+
+          if [ "${{ needs.docker-integration-tests.result }}" != "success" ]; then
+            echo "❌ Docker Integration Tests failed"
+            exit 1
+          fi
+
+          if [ "${{ needs.docker-e2e-tests.result }}" != "success" ]; then
+            echo "❌ Docker E2E Tests failed"
+            exit 1
+          fi
+
+          echo "✅ All Docker tests passed successfully"
+          echo "🐳 Docker-based CI/CD pipeline is working correctly"
+
+      - name: Post success notification
+        if: success()
+        run: |
+          echo "Phase 3: Docker Test Environment Integration - ✅ COMPLETED"
+          echo "- Unit Tests in Docker: ✅"
+          echo "- Integration Tests in Docker: ✅"
+          echo "- E2E Tests in Docker: ✅"
+          echo "- Testcontainers integration: ✅"
+          echo "- CI/CD Docker integration: ✅"

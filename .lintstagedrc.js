@@ -16,4 +16,7 @@ module.exports = {
 
   // TypeScript type checking (run on all TS files when any TS file changes)
   '**/*.{ts,tsx}': () => 'pnpm typecheck',
+
+  // Format check - prevent commits with formatting issues
+  '**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts,css,scss,json,md,yml,yaml}': () => 'pnpm format:check',
 };

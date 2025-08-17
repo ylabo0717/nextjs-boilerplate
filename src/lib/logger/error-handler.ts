@@ -870,11 +870,16 @@ export function handleUncaughtException(
  *
  * @public
  */
-export const defaultErrorHandlerConfig = (() => {
-  // serverLogger をデフォルトとして使用（循環インポートを避けるため遅延評価）
+export const defaultErrorHandlerConfig = createDefaultErrorHandlerConfig();
+
+/**
+ * 純粋関数ファクトリーパターンでデフォルトエラーハンドラー設定を作成
+ * 循環インポートを避けるため遅延評価を実装
+ */
+function createDefaultErrorHandlerConfig(): () => ErrorHandlerConfig {
   let _config: ErrorHandlerConfig | null = null;
 
-  return () => {
+  return (): ErrorHandlerConfig => {
     if (!_config) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -889,7 +894,7 @@ export const defaultErrorHandlerConfig = (() => {
     }
     return _config;
   };
-})();
+}
 
 /**
  * デフォルトエラーハンドラー（後方互換性）

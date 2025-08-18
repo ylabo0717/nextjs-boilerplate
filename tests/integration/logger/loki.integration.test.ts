@@ -9,6 +9,7 @@
  */
 
 import { describe, test, expect, beforeAll, beforeEach, afterEach, vi, inject } from 'vitest';
+import { server } from '../mocks/server';
 import { runWithLoggerContext, defaultLoggerContextConfig } from '@/lib/logger/context';
 import { LokiClient, LokiTransport } from '@/lib/logger/loki-transport';
 import { generateRequestId } from '@/lib/logger/utils';
@@ -49,6 +50,9 @@ if (shouldSkip) {
     let lokiUrl: string;
 
     beforeAll(async () => {
+      // MSWサーバーを無効化（実際のLokiコンテナーを使用するため）
+      server.close();
+
       // 環境情報表示
       logTestEnvironmentInfo();
 
@@ -81,6 +85,11 @@ if (shouldSkip) {
 
     afterEach(() => {
       vi.useRealTimers();
+    });
+
+    afterAll(() => {
+      // MSWサーバーを再起動（他のテストに影響しないように）
+      server.listen();
     });
 
     describe('Basic Connectivity', () => {

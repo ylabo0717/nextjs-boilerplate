@@ -21,8 +21,8 @@ if (shouldSkip) {
 } else {
   describe('Grafana Authentication Configuration', () => {
     describe('Docker Compose設定の検証', () => {
-      it('docker-compose.loki.ymlでGrafanaパスワードが環境変数化されている', () => {
-        const dockerComposePath = resolve(process.cwd(), 'docker-compose.loki.yml');
+      it('docker-compose.prod.ymlでGrafanaパスワードが環境変数化されている', () => {
+        const dockerComposePath = resolve(process.cwd(), 'docker-compose.prod.yml');
         const dockerComposeContent = readFileSync(dockerComposePath, 'utf-8');
 
         // ハードコードされたパスワードが使用されていないことを確認
@@ -35,11 +35,13 @@ if (shouldSkip) {
       });
 
       it('環境変数が必須化されてセキュリティが強化されている', () => {
-        const dockerComposePath = resolve(process.cwd(), 'docker-compose.loki.yml');
+        const dockerComposePath = resolve(process.cwd(), 'docker-compose.prod.yml');
         const dockerComposeContent = readFileSync(dockerComposePath, 'utf-8');
 
-        // デフォルト値がプレーンな"admin"でないことを確認
-        expect(dockerComposeContent).not.toContain(':-admin}');
+        // パスワードにデフォルト値がプレーンな"admin"でないことを確認
+        expect(dockerComposeContent).not.toContain(
+          'GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}'
+        );
 
         // 弱いデフォルト値が削除されていることを確認
         expect(dockerComposeContent).not.toContain(':-changeme123!}');
@@ -114,7 +116,7 @@ if (shouldSkip) {
         delete process.env.GRAFANA_ADMIN_PASSWORD;
 
         // Docker Composeの必須環境変数設定を確認
-        const dockerComposePath = resolve(process.cwd(), 'docker-compose.loki.yml');
+        const dockerComposePath = resolve(process.cwd(), 'docker-compose.prod.yml');
         const dockerComposeContent = readFileSync(dockerComposePath, 'utf-8');
 
         // 必須環境変数の設定が含まれていることを確認

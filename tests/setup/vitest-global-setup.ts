@@ -11,11 +11,16 @@ export async function setup({ provide }: { provide: (key: string, value: any) =>
   console.log('🚀 Starting Loki testcontainer...');
 
   try {
-    // Lokiコンテナを起動
-    lokiContainer = await new GenericContainer('grafana/loki:latest')
+    // Lokiコンテナを起動（安定版を使用）
+    lokiContainer = await new GenericContainer('grafana/loki:3.5.0')
       .withExposedPorts(3100)
       .withCommand(['-config.file=/etc/loki/local-config.yaml'])
-      .withWaitStrategy(Wait.forHttp('/ready', 3100).forStatusCode(200).withStartupTimeout(30_000))
+      .withWaitStrategy(
+        Wait.forAll([
+          Wait.forListeningPorts(), // ポートがリスニング状態になるまで待機
+          Wait.forHttp('/ready', 3100).forStatusCode(200).withStartupTimeout(60_000), // 60秒に延長
+        ])
+      )
       .withLogConsumer((stream) => {
         stream.on('data', (line) => console.log(`[Loki] ${line}`));
         stream.on('err', (line) => console.error(`[Loki Error] ${line}`));
@@ -26,6 +31,22 @@ export async function setup({ provide }: { provide: (key: string, value: any) =>
     const lokiUrl = `http://${lokiContainer.getHost()}:${lokiContainer.getMappedPort(3100)}`;
 
     console.log(`✅ Loki testcontainer started at: ${lokiUrl}`);
+
+    // 追加の健全性チェック
+    console.log('🔍 Performing additional health check...');
+    try {
+      const healthResponse = await fetch(`${lokiUrl}/ready`, {
+        signal: AbortSignal.timeout(10000), // 10秒でタイムアウト
+      });
+      if (healthResponse.ok) {
+        console.log('✅ Loki health check passed');
+      } else {
+        console.warn(`⚠️ Loki health check returned status: ${healthResponse.status}`);
+      }
+    } catch (healthError) {
+      console.warn('⚠️ Manual health check failed, but container started:', healthError);
+      // コンテナは起動済みなので、エラーを投げずに続行
+    }
 
     // Vitestのprovide機能でテストにLoki URLを提供
     provide('lokiUrl', lokiUrl);

@@ -86,10 +86,99 @@ pnpm format       # Format code with Prettier
 pnpm format:check # Check code formatting
 pnpm typecheck    # Run TypeScript type checking
 
+# Testing
+pnpm test              # Run all tests (unit + integration + e2e)
+pnpm test:unit         # Unit tests with Vitest
+pnpm test:integration  # Integration tests with Vitest
+pnpm test:coverage     # Generate test coverage report
+pnpm test:e2e          # End-to-end tests with Playwright
+
+# Docker Commands
+pnpm docker:test           # Run all Docker tests
+pnpm docker:test:unit      # Unit tests in Docker
+pnpm docker:test:integration # Integration tests in Docker
+pnpm docker:test:e2e       # E2E tests in Docker
+pnpm docker:prod           # Start production environment
+pnpm docker:prod:build     # Build production images
+pnpm docker:prod:down      # Stop production environment
+
 # Git Hooks (automatic)
 # Pre-commit: ESLint, Prettier, TypeScript checks
 # Commit-msg: Conventional commit validation
 ```
+
+## 🐳 Docker Support
+
+This project includes comprehensive Docker support for development, testing, and production environments.
+
+### Development Environment
+
+Start the development environment with hot reload:
+
+```bash
+docker compose up
+```
+
+Access the application at [http://localhost:3000](http://localhost:3000).
+
+### Testing Environment
+
+Run all tests in Docker containers:
+
+```bash
+# All test types
+pnpm docker:test
+
+# Individual test types
+pnpm docker:test:unit        # Unit tests (551 tests)
+pnpm docker:test:integration # Integration tests (177/179 tests)
+pnpm docker:test:e2e         # E2E tests (114 tests)
+
+# Clean up test containers
+pnpm docker:test:clean
+```
+
+### Production Environment
+
+Start the production environment with monitoring:
+
+```bash
+# Using pnpm script (recommended)
+pnpm docker:prod
+
+# Or using Docker Compose directly
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+```
+
+**Access Points:**
+
+- **Application**: [http://localhost:8080](http://localhost:8080)
+- **Grafana Dashboard**: [http://localhost:3001](http://localhost:3001) (admin/password)
+- **Loki Logs**: [http://localhost:3100](http://localhost:3100)
+- **Health Check**: [http://localhost:8080/api/health](http://localhost:8080/api/health)
+- **Metrics**: [http://localhost:8080/api/metrics](http://localhost:8080/api/metrics)
+
+### Environment Files
+
+Create appropriate environment files for your deployment:
+
+```bash
+# Development (optional, has defaults)
+cp .env.example .env.local
+
+# Production (required)
+cp .env.prod.example .env.prod
+# Edit .env.prod with your production values
+```
+
+### Docker Architecture
+
+- **Multi-stage builds** for optimized image sizes
+- **Security-first design** with non-root users
+- **Health checks** for all services
+- **Resource limits** for production stability
+- **Logging integration** with Loki and Grafana
+- **OpenTelemetry metrics** support
 
 ## 📁 Project Structure
 

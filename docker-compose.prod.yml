@@ -19,8 +19,9 @@ services:
       dockerfile: docker/app/Dockerfile
       target: production
       args:
-        - NODE_VERSION=20.18.0
-        - ALPINE_VERSION=3.20
+        - NODE_VERSION=22.13.0
+        - ALPINE_VERSION=3.21
+        - PNPM_VERSION=10.3.0
     restart: unless-stopped
     environment:
       - NODE_ENV=production
@@ -113,10 +114,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 15s
     restart: unless-stopped
     # Resource limits
     mem_limit: 512m
     cpus: 0.25
+    # Parallel startup - no dependency on app
 
   # ==============================================================================
   # Promtail - ログ転送エージェント
@@ -139,6 +142,13 @@ services:
     # Resource limits
     mem_limit: 128m
     cpus: 0.1
+    # Optimized health check for faster startup
+    healthcheck:
+      test: ['CMD-SHELL', 'pgrep promtail || exit 1']
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
 
   # ==============================================================================
   # Grafana - 監視ダッシュボード
@@ -168,6 +178,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     restart: unless-stopped
     # Resource limits
     mem_limit: 256m

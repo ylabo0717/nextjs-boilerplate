@@ -13,8 +13,9 @@
 # ==============================================================================
 
 # Define build arguments for Node.js version and Alpine base
-ARG NODE_VERSION=20.18.0
-ARG ALPINE_VERSION=3.20
+ARG NODE_VERSION=22.13.0
+ARG ALPINE_VERSION=3.21
+ARG PNPM_VERSION=10.3.0
 
 # ==============================================================================
 # Stage 1: Base - Common configuration for all stages
@@ -24,7 +25,7 @@ FROM node:${NODE_VERSION}-alpine${ALPINE_VERSION} AS base
 # Enable pnpm - faster package manager for monorepos
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN npm install -g pnpm@latest
+RUN npm install -g pnpm@${PNPM_VERSION}
 
 # Set working directory
 WORKDIR /app
@@ -49,8 +50,10 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml* ./
 
 # Use cache mount for pnpm to speed up subsequent builds
+# Cache dependency downloads and npm registry requests
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline
+    --mount=type=cache,id=npm-cache,target=/root/.npm \
+    pnpm install --frozen-lockfile --prefer-offline --store-dir /pnpm/store
 
 # ==============================================================================
 # Stage 3: Builder - Build the application
@@ -60,15 +63,29 @@ FROM base AS builder
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy source code
-COPY . .
+# Copy package files first for better layer caching
+COPY package.json pnpm-lock.yaml* next.config.ts tailwind.config.ts tsconfig.json postcss.config.mjs ./
+
+# Copy source code and essential files
+COPY src ./src
+COPY public ./public
+COPY instrumentation.ts ./
 
 # Set build environment
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build the application with standalone output
-RUN pnpm build
+# Use cache for Next.js build cache to speed up incremental builds
+RUN --mount=type=cache,id=next-build,target=/app/.next/cache \
+    # Skip husky hooks during Docker build
+    export HUSKY=0 && \
+    pnpm build && \
+    # Clean up unnecessary files after build to reduce image size
+    rm -rf src && \
+    # Remove husky and prepare script before pruning to avoid issues
+    npm pkg delete scripts.prepare && \
+    pnpm prune --production
 
 # ==============================================================================
 # Stage 4: Production Runtime - Minimal production image
@@ -87,10 +104,11 @@ WORKDIR /app
 # Switch to non-root user for security
 USER nextjs
 
-# Copy standalone build output from builder stage
+# Copy only necessary runtime files from builder stage
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
 # Copy instrumentation file for OpenTelemetry
 COPY --from=builder --chown=nextjs:nodejs /app/instrumentation.ts ./
@@ -99,7 +117,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/instrumentation.ts ./
 EXPOSE 3000
 
 # Add health check for monitoring and orchestration
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+# Optimized health check with reduced start period for faster startup
+HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/api/health || exit 1
 
 # Start the application
@@ -115,7 +134,8 @@ COPY package.json pnpm-lock.yaml* ./
 
 # Install all dependencies including dev dependencies for testing
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+    --mount=type=cache,id=npm-cache,target=/root/.npm \
+    pnpm install --frozen-lockfile --store-dir /pnpm/store
 
 # ==============================================================================
 # Stage 6: Test - Test environment for CI/CD
@@ -125,8 +145,14 @@ FROM base AS test
 # Copy dependencies from test-deps stage
 COPY --from=test-deps /app/node_modules ./node_modules
 
-# Copy source code
-COPY . .
+# Copy package files first for better layer caching
+COPY package.json pnpm-lock.yaml* *.config.* tsconfig.json ./
+
+# Copy source and test files
+COPY src ./src
+COPY tests ./tests
+COPY public ./public
+COPY instrumentation.ts ./
 
 # Set test environment
 ENV NODE_ENV=test
@@ -147,10 +173,16 @@ FROM base AS development
 # Install all dependencies including dev dependencies
 COPY package.json pnpm-lock.yaml* ./
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+    --mount=type=cache,id=npm-cache,target=/root/.npm \
+    pnpm install --frozen-lockfile --store-dir /pnpm/store
+
+# Copy package and config files first
+COPY *.config.* tsconfig.json ./
 
 # Copy source code
-COPY . .
+COPY src ./src
+COPY public ./public
+COPY instrumentation.ts ./
 
 # Set development environment
 ENV NODE_ENV=development

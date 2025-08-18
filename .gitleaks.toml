@@ -334,7 +334,10 @@ paths = [
   '''\.github/workflows/.*\.yml''',
   # Ignore MCP configuration
   '''claude_mcp_config\.json''',
-  '''\.mcp\.json'''
+  '''\.mcp\.json''',
+  # Ignore example environment files (contain dummy/test data)
+  '''\.env\..*\.example$''',
+  '''\.env\.test$'''
 ]
 
 # Allow example/dummy values
@@ -353,6 +356,10 @@ regexes = [
   '''test[_\-]?password''',
   '''sample[_\-]?password''',
   '''default[_\-]?password''',
+  # Test database credentials in .env files
+  '''test:test@''',
+  '''user:test@''',
+  '''postgresql://test:test@''',
   '''<.*>''',
   # Common weak passwords that are likely examples
   '''123456''',
@@ -396,7 +403,14 @@ regexes = [
   '''\:\?.*environment.*variable.*required''',
   '''\$\{.*:\?.*\}''',
   # Exact match for Grafana environment variable validation
-  '''GF_SECURITY_ADMIN_PASSWORD=\$\{GRAFANA_ADMIN_PASSWORD:\?GRAFANA_ADMIN_PASSWORD environment variable is required for security\}'''
+  '''GF_SECURITY_ADMIN_PASSWORD=\$\{GRAFANA_ADMIN_PASSWORD:\?GRAFANA_ADMIN_PASSWORD environment variable is required for security\}''',
+  # Test and example environment files
+  '''\.env\.test\.example''',
+  '''\.env\.prod\.example''',
+  # Allow common test/example password patterns
+  '''change-this-secure-password-in-production''',
+  '''change-this-in-production''',
+  '''your-.*-change-this-in-production'''
 ]
 
 # Note: commits allowlist is for specific commit SHAs, not file patterns

@@ -46,6 +46,7 @@ jobs:
 
       - name: Setup test environment
         run: |
+          cp .env.test.example .env.test
           cp .env.test .env.local
           echo "DOCKER_HOST=unix:///var/run/docker.sock" >> .env.local
 
@@ -76,6 +77,7 @@ jobs:
 
       - name: Setup test environment
         run: |
+          cp .env.test.example .env.test
           cp .env.test .env.local
           echo "DOCKER_HOST=unix:///var/run/docker.sock" >> .env.local
           echo "TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal" >> .env.local
@@ -119,6 +121,7 @@ jobs:
 
       - name: Setup test environment
         run: |
+          cp .env.test.example .env.test
           cp .env.test .env.local
           echo "BASE_URL=http://app-server:3000" >> .env.local
           echo "PLAYWRIGHT_SKIP_WEBSERVER=true" >> .env.local
@@ -185,6 +188,7 @@ jobs:
 
       - name: Setup test environment
         run: |
+          cp .env.test.example .env.test
           cp .env.test .env.local
           echo "DOCKER_HOST=unix:///var/run/docker.sock" >> .env.local
           echo "TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal" >> .env.local

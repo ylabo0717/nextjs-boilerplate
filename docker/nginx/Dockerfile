@@ -23,9 +23,13 @@ RUN apk update && \
     curl \
     && rm -rf /var/cache/apk/*
 
-# Create nginx user and set up directories
-RUN addgroup -g 101 -S nginx && \
-    adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx
+# Create nginx user and set up directories (skip if already exists)
+RUN if ! getent group nginx > /dev/null 2>&1; then \
+        addgroup -g 101 -S nginx; \
+    fi && \
+    if ! getent passwd nginx > /dev/null 2>&1; then \
+        adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx; \
+    fi
 
 # Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf

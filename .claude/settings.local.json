@@ -78,7 +78,10 @@
       "Bash(npx vitest:*)",
       "Bash(gh run list:*)",
       "Bash(pnpm docker:test:*)",
-      "Bash(time pnpm docker:test:unit)"
+      "Bash(time pnpm docker:test:unit)",
+      "Bash(docker-compose:*)",
+      "Bash(docker:*)",
+      "Bash(curl:*)"
     ],
     "deny": [
       "Bash(sudo *)",

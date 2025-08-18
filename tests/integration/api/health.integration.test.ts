@@ -29,8 +29,21 @@ describe('Health API Integration Tests', () => {
       const response = await GET();
 
       const data = await response.json();
-      expect(data).toEqual({
+      expect(data).toMatchObject({
         status: 'ok',
+        timestamp: expect.any(String),
+        uptime: expect.any(Number),
+        version: expect.any(String),
+        environment: expect.any(String),
+        system: {
+          memory: {
+            used: expect.any(Number),
+            total: expect.any(Number),
+            external: expect.any(Number),
+          },
+          pid: expect.any(Number),
+          nodejs_version: expect.any(String),
+        },
       });
     });
 
@@ -52,7 +65,11 @@ describe('Health API Integration Tests', () => {
       const responseData = await Promise.all(responses.map((response) => response.json()));
 
       responseData.forEach((data) => {
-        expect(data).toEqual({ status: 'ok' });
+        expect(data).toMatchObject({
+          status: 'ok',
+          timestamp: expect.any(String),
+          uptime: expect.any(Number),
+        });
       });
     });
 
@@ -79,7 +96,7 @@ describe('Health API Integration Tests', () => {
 
         expect(response.status).toBe(200);
         const data = await response.json();
-        expect(data).toEqual({ status: 'ok' });
+        expect(data).toMatchObject({ status: 'ok' });
       }
     });
 
@@ -146,6 +163,51 @@ describe('Health API Integration Tests', () => {
       // Both responses should be identical (stateless)
       expect(response1.status).toBe(response2.status);
       expect(data1).toEqual(data2);
+    });
+  });
+
+  describe('Enhanced Health Information', () => {
+    it('should include system metrics', async () => {
+      const response = await GET();
+      const data = await response.json();
+
+      expect(data.system).toBeDefined();
+      expect(data.system.memory).toBeDefined();
+      expect(data.system.pid).toBeGreaterThan(0);
+      expect(data.system.nodejs_version).toMatch(/^v\d+\.\d+\.\d+/);
+    });
+
+    it('should include cache control headers', async () => {
+      const response = await GET();
+
+      expect(response.headers.get('cache-control')).toBe('no-cache, no-store, must-revalidate');
+      expect(response.headers.get('pragma')).toBe('no-cache');
+      expect(response.headers.get('expires')).toBe('0');
+    });
+
+    it('should include valid timestamp', async () => {
+      const response = await GET();
+      const data = await response.json();
+
+      expect(data.timestamp).toBeDefined();
+      expect(() => new Date(data.timestamp)).not.toThrow();
+      expect(new Date(data.timestamp).getTime()).toBeGreaterThan(Date.now() - 5000);
+    });
+
+    it('should include uptime information', async () => {
+      const response = await GET();
+      const data = await response.json();
+
+      expect(data.uptime).toBeGreaterThanOrEqual(0);
+      expect(typeof data.uptime).toBe('number');
+    });
+
+    it('should include environment information', async () => {
+      const response = await GET();
+      const data = await response.json();
+
+      expect(data.environment).toBeDefined();
+      expect(['development', 'test', 'production']).toContain(data.environment);
     });
   });
 

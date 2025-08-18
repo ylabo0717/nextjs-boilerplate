@@ -23,15 +23,19 @@ RUN addgroup --system --gid 1001 nodejs && \
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first (for better layer caching)
 COPY package.json pnpm-lock.yaml* ./
 
 # Install dependencies with cache
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
-# Copy all source files
+# Copy source files (changed less frequently than dependencies)
 COPY . .
+
+# Pre-build Next.js with cache (for faster test startup)
+RUN --mount=type=cache,id=nextjs,target=/app/.next/cache \
+    pnpm build || echo "Build failed, tests will build on demand"
 
 # Set proper ownership for nextjs user
 RUN chown -R nextjs:nodejs /app

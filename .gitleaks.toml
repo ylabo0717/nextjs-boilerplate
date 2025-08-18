@@ -311,6 +311,8 @@ paths = [
   '''playwright-report\/.*''',
   '''coverage\/.*''',
   '''\.nyc_output\/.*''',
+  # Ignore Lighthouse reports (contain CSS properties like 'pass:')
+  '''\.lighthouseci\/.*''',
   # Ignore documentation
   '''docs?\/.*''',
   '''.*\.md$''',
@@ -402,6 +404,8 @@ regexes = [
   # Allow Docker Compose environment variable validation patterns (not actual secrets)
   '''\:\?.*environment.*variable.*required''',
   '''\$\{.*:\?.*\}''',
+  '''PASSWORD:\?GRAFANA_ADMIN_PASSWORD''',
+  '''PASSWORD:\?\$\{GRAFANA_ADMIN_PASSWORD''',
   # Exact match for Grafana environment variable validation
   '''GF_SECURITY_ADMIN_PASSWORD=\$\{GRAFANA_ADMIN_PASSWORD:\?GRAFANA_ADMIN_PASSWORD environment variable is required for security\}''',
   # Test and example environment files

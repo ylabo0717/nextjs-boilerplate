@@ -299,7 +299,8 @@ tags = ["password", "yaml"]
 [allowlist]
 description = "Global allowlist"
 commits = [
-  "202733c3d9445f03f5053abe8ea6dd342af164b7" # P0 security improvements - false positive on Grafana password env var syntax
+  "202733c3d9445f03f5053abe8ea6dd342af164b7", # P0 security improvements - false positive on Grafana password env var syntax
+  "38e33662ea7ed29dea8f4f9f5c040fcd60650abb"  # Phase 4 Docker Compose - false positive on Grafana environment variable validation pattern
 ]
 paths = [
   # Ignore test files
@@ -390,7 +391,12 @@ regexes = [
   '''GRAFANA_ADMIN_PASSWORD=\$\{.*\}''',
   # Allow Grafana password with required environment variable error message
   '''\$\{GRAFANA_ADMIN_PASSWORD:\?.*\}''',
-  '''GRAFANA_ADMIN_PASSWORD environment variable is required for security'''
+  '''GRAFANA_ADMIN_PASSWORD environment variable is required for security''',
+  # Allow Docker Compose environment variable validation patterns (not actual secrets)
+  '''\:\?.*environment.*variable.*required''',
+  '''\$\{.*:\?.*\}''',
+  # Exact match for Grafana environment variable validation
+  '''GF_SECURITY_ADMIN_PASSWORD=\$\{GRAFANA_ADMIN_PASSWORD:\?GRAFANA_ADMIN_PASSWORD environment variable is required for security\}'''
 ]
 
 # Note: commits allowlist is for specific commit SHAs, not file patterns

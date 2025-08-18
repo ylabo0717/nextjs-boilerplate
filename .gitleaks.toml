@@ -406,6 +406,8 @@ regexes = [
   '''\$\{.*:\?.*\}''',
   '''PASSWORD:\?GRAFANA_ADMIN_PASSWORD''',
   '''PASSWORD:\?\$\{GRAFANA_ADMIN_PASSWORD''',
+  # Match the actual detected secret part for Grafana environment variable validation
+  '''\?GRAFANA_ADMIN_PASSWORD''',
   # Exact match for Grafana environment variable validation
   '''GF_SECURITY_ADMIN_PASSWORD=\$\{GRAFANA_ADMIN_PASSWORD:\?GRAFANA_ADMIN_PASSWORD environment variable is required for security\}''',
   # Test and example environment files

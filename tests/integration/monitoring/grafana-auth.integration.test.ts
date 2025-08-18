@@ -8,8 +8,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-// 環境変数でのスキップチェック
-const shouldSkip = process.env.SKIP_LOKI_TESTS === 'true';
+// Grafana設定テストはファイル読み込みのみでLoki接続を必要としないため、常に実行
+const shouldSkip = false;
 
 // 早期スキップ
 if (shouldSkip) {

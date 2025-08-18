@@ -1,6 +1,11 @@
 /**
- * Loki Testcontainers Integration Tests
- * Testcontainersを使用した実際のLokiサーバーとの統合テスト
+ * Loki Integration Tests
+ *
+ * 実際のLokiサーバーとの統合テスト。Testcontainersを使用してLokiコンテナを起動し、
+ * 基本的な接続テストから高度な統合シナリオまでを包括的にテストします。
+ *
+ * Note: Docker-in-Docker環境では制限があるため、
+ * Docker環境での実行時は自動的にスキップされます。
  */
 
 import { describe, test, expect, beforeAll, beforeEach, afterEach, vi, inject } from 'vitest';
@@ -25,11 +30,9 @@ const shouldSkip = process.env.SKIP_LOKI_TESTS === 'true';
 
 // 早期スキップ
 if (shouldSkip) {
-  describe('Loki Testcontainers Integration Tests', () => {
+  describe('Loki Integration Tests', () => {
     test('should skip all tests when SKIP_LOKI_TESTS=true', () => {
-      console.log(
-        '⏭️ SKIP_LOKI_TESTS=true のため、すべてのLoki Testcontainersテストをスキップしました'
-      );
+      console.log('⏭️ SKIP_LOKI_TESTS=true のため、すべてのLoki統合テストをスキップしました');
     });
   });
 } else {
@@ -42,7 +45,7 @@ if (shouldSkip) {
     return globalData;
   };
 
-  describe('Loki Testcontainers Integration Tests', () => {
+  describe('Loki Integration Tests', () => {
     let lokiUrl: string;
 
     beforeAll(async () => {
@@ -69,7 +72,7 @@ if (shouldSkip) {
         }
         throw error;
       }
-    }, 30_000); // 30秒のタイムアウト
+    }, 30_000);
 
     beforeEach(() => {
       // Real timersを使用（Testcontainersとの互換性のため）
@@ -81,6 +84,64 @@ if (shouldSkip) {
     });
 
     describe('Basic Connectivity', () => {
+      test('should connect to Loki container', async () => {
+        if (!isTestcontainersAvailable()) {
+          console.log('⏭️ Testcontainersが利用できないため、テストをスキップ');
+          return;
+        }
+
+        // 健康性チェックが成功していれば接続確認完了
+        expect(lokiUrl).toBeTruthy();
+        expect(lokiUrl).toMatch(/^http:\/\/.*:\d+$/);
+      }, 10_000);
+
+      test('should send single log to Loki', async () => {
+        if (!isTestcontainersAvailable()) {
+          console.log('⏭️ Testcontainersが利用できないため、テストをスキップ');
+          return;
+        }
+
+        const testId = generateUniqueTestId();
+        const client = new LokiClient({
+          url: lokiUrl,
+          batchSize: 1,
+          defaultLabels: {
+            service: 'basic-test',
+            test_id: testId,
+          },
+        });
+
+        try {
+          // ログを送信
+          await client.pushLog('info', `Basic test message - ${testId}`);
+
+          // 送信完了まで短時間待機
+          await new Promise((resolve) => setTimeout(resolve, 200));
+
+          // shutdownして全てを送信
+          await client.shutdown();
+
+          // 例外が投げられなければ成功
+          expect(true).toBe(true);
+        } catch (error) {
+          console.error('Failed to send log:', error);
+          throw error;
+        }
+      }, 10_000);
+
+      test('should handle Loki health check', async () => {
+        if (!isTestcontainersAvailable()) {
+          console.log('⏭️ Testcontainersが利用できないため、テストをスキップ');
+          return;
+        }
+
+        const response = await fetch(`${lokiUrl}/ready`);
+        expect(response.status).toBe(200);
+
+        const metricsResponse = await fetch(`${lokiUrl}/metrics`);
+        expect(metricsResponse.status).toBe(200);
+      }, 5_000);
+
       test('should connect to Loki container successfully', async () => {
         const client = new LokiClient({
           url: lokiUrl,
@@ -100,7 +161,7 @@ if (shouldSkip) {
 
         // 例外が投げられなければ成功
         expect(true).toBe(true);
-      }, 15_000); // 15秒のタイムアウト
+      }, 15_000);
 
       test('should send logs successfully through LokiClient', async () => {
         const testId = generateUniqueTestId();

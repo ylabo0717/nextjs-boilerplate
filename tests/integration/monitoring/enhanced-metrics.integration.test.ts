@@ -19,8 +19,8 @@ import {
   resetPhase3Metrics,
 } from '@/lib/logger/enhanced-metrics';
 
-// 環境変数でのスキップチェック
-const shouldSkip = process.env.SKIP_LOKI_TESTS === 'true';
+// メトリクステストはLoki接続を必要としないため、常に実行
+const shouldSkip = false;
 
 describe.skipIf(shouldSkip)('Enhanced Metrics Integration Tests', () => {
   beforeEach(() => {

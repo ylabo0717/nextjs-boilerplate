@@ -21,8 +21,22 @@ test.describe('Health API E2E', () => {
     const response = await page.request.get('/api/health');
     const data = await response.json();
 
-    expect(data).toEqual({
+    // Verify the enhanced health response format
+    expect(data).toMatchObject({
       status: 'ok',
+      timestamp: expect.any(String),
+      uptime: expect.any(Number),
+      version: expect.any(String),
+      environment: expect.any(String),
+      system: expect.objectContaining({
+        memory: expect.objectContaining({
+          used: expect.any(Number),
+          total: expect.any(Number),
+          external: expect.any(Number),
+        }),
+        pid: expect.any(Number),
+        nodejs_version: expect.any(String),
+      }),
     });
   });
 
@@ -42,7 +56,15 @@ test.describe('Health API E2E', () => {
     const allData = await Promise.all(dataPromises);
 
     allData.forEach((data) => {
-      expect(data).toEqual({ status: 'ok' });
+      // Verify each response has the correct structure
+      expect(data).toMatchObject({
+        status: 'ok',
+        timestamp: expect.any(String),
+        uptime: expect.any(Number),
+        version: expect.any(String),
+        environment: expect.any(String),
+        system: expect.any(Object),
+      });
     });
   });
 
@@ -219,7 +241,14 @@ test.describe('Health API E2E', () => {
     expect(response.status()).toBe(200);
 
     const data = await response.json();
-    expect(data).toEqual({ status: 'ok' });
+    expect(data).toMatchObject({
+      status: 'ok',
+      timestamp: expect.any(String),
+      uptime: expect.any(Number),
+      version: expect.any(String),
+      environment: expect.any(String),
+      system: expect.any(Object),
+    });
 
     // Verify response headers are appropriate for health checks
     const contentType = response.headers()['content-type'];

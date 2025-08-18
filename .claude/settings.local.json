@@ -81,7 +81,8 @@
       "Bash(time pnpm docker:test:unit)",
       "Bash(docker-compose:*)",
       "Bash(docker:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(pnpm docker:monitoring:*)"
     ],
     "deny": [
       "Bash(sudo *)",

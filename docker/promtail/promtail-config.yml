@@ -206,7 +206,7 @@ scrape_configs:
           template: '{{ .method }} {{ .request_uri }} {{ .status }}'
 
   # ==============================================================================
-  # Error Logs (separate job for better filtering)
+  # Error Logs (simplified for better compatibility)
   # ==============================================================================
   - job_name: application-errors
     static_configs:
@@ -216,7 +216,7 @@ scrape_configs:
           job: errors
           __path__: /var/lib/docker/containers/*/*-json.log
 
-    # Pipeline specifically for error detection
+    # Simplified pipeline for error detection
     pipeline_stages:
       # Parse Docker JSON
       - json:
@@ -225,19 +225,9 @@ scrape_configs:
             stream: stream
             timestamp: time
 
-      # Only keep error-level logs
-      - match:
-          selector: '{job="errors"}'
-          stages:
-            - regex:
-                expression: '.*(ERROR|error|Error|FATAL|fatal|Fatal|Exception|exception).*'
-                source: message
-            - labels:
-                level: 'error'
-
-      # Drop non-error messages
-      - drop:
-          expression: '^(?!.*(ERROR|error|Error|FATAL|fatal|Fatal|Exception|exception)).*$'
+      # Add error label if message contains error keywords
+      - regex:
+          expression: '.*(ERROR|error|Error|FATAL|fatal|Fatal|Exception|exception).*'
           source: message
 
       # Set timestamp

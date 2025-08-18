@@ -1,61 +1,18 @@
 # ==============================================================================
 # Docker Compose Monitoring Configuration
 #
-# 本番環境用の監視・メトリクス・ログ統合設定
-# - 既存 Loki 設定との統合
-# - OpenTelemetry メトリクス活用
-# - Grafana ダッシュボード
-# - Prometheus メトリクス収集
+# シンプルな監視設定：
+# - Loki（ログ収集）
+# - Grafana（ログ可視化）
+# - Promtail（ログ転送）
 # ==============================================================================
 
 services:
   # ==============================================================================
-  # Application with Monitoring - メトリクス対応アプリケーション
-  # ==============================================================================
-  app-monitored:
-    extends:
-      file: docker-compose.prod.yml
-      service: app
-    environment:
-      # OpenTelemetry configuration
-      - OTEL_SERVICE_NAME=nextjs-app-prod
-      - OTEL_SERVICE_VERSION=${APP_VERSION:-1.0.0}
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=nextjs-app-prod,service.version=${APP_VERSION:-1.0.0},environment=production
-      # Prometheus metrics endpoint
-      - OTEL_EXPORTER_PROMETHEUS_PORT=9464
-      - OTEL_EXPORTER_PROMETHEUS_ENDPOINT=/metrics
-      # Logging configuration for Loki
-      - LOG_LEVEL=info
-      - LOG_OUTPUT=console
-      - STRUCTURED_LOGGING=true
-    ports:
-      - '9464:9464' # Prometheus metrics endpoint
-    networks:
-      - app-network
-      - monitoring-network
-    # Enhanced health check with metrics
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'curl -f http://localhost:3000/api/health && curl -f http://localhost:3000/api/metrics',
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    # Monitoring labels for service discovery
-    labels:
-      - 'monitoring.enable=true'
-      - 'monitoring.service=nextjs-app'
-      - 'monitoring.port=9464'
-      - 'monitoring.path=/metrics'
-
-  # ==============================================================================
   # Loki - ログ収集システム
   # ==============================================================================
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:3.5.0
     ports:
       - '3100:3100'
     command: -config.file=/etc/loki/local-config.yaml
@@ -73,42 +30,29 @@ services:
     restart: unless-stopped
     # Resource limits
     mem_limit: 512m
-    cpus: 0.3
+    cpus: 0.25
 
   # ==============================================================================
-  # Prometheus - メトリクス収集
+  # Promtail - ログ転送エージェント
   # ==============================================================================
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - '9090:9090'
+  promtail:
+    image: grafana/promtail:latest
+    command: -config.file=/etc/promtail/config.yml
     volumes:
-      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus-data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-      - '--web.enable-admin-api'
+      - ./docker/promtail/promtail-config.yml:/etc/promtail/config.yml
+      # Docker logs access
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
     networks:
+      - app-network
       - monitoring-network
     depends_on:
-      - app-monitored
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'wget --no-verbose --tries=1 --spider http://localhost:9090/-/ready || exit 1',
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      loki:
+        condition: service_healthy
     restart: unless-stopped
     # Resource limits
-    mem_limit: 1g
-    cpus: 0.5
+    mem_limit: 128m
+    cpus: 0.1
 
   # ==============================================================================
   # Grafana - 監視ダッシュボード
@@ -122,20 +66,16 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SERVER_DOMAIN=${GRAFANA_DOMAIN:-localhost}
-      - GF_SMTP_ENABLED=${GF_SMTP_ENABLED:-false}
-      # Dashboard configuration
-      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/nextjs-overview.json
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./docker/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
       - ./docker/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
       - ./docker/grafana/dashboards:/var/lib/grafana/dashboards
     networks:
       - monitoring-network
     depends_on:
       loki:
-        condition: service_healthy
-      prometheus:
         condition: service_healthy
     healthcheck:
       test: ['CMD-SHELL', 'curl -f http://localhost:3000/api/health || exit 1']
@@ -144,48 +84,8 @@ services:
       retries: 5
     restart: unless-stopped
     # Resource limits
-    mem_limit: 512m
-    cpus: 0.3
-
-  # ==============================================================================
-  # Promtail - ログ収集エージェント
-  # ==============================================================================
-  promtail:
-    image: grafana/promtail:latest
-    volumes:
-      - ./docker/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: -config.file=/etc/promtail/promtail-config.yml
-    networks:
-      - monitoring-network
-    depends_on:
-      - loki
-    restart: unless-stopped
-    # Resource limits
     mem_limit: 256m
-    cpus: 0.2
-
-  # ==============================================================================
-  # Nginx Proxy with Monitoring
-  # ==============================================================================
-  proxy-monitored:
-    extends:
-      file: docker-compose.prod.yml
-      service: proxy
-    # Nginx logs available to Promtail
-    logging:
-      driver: json-file
-      options:
-        max-size: '10m'
-        max-file: '3'
-        labels: 'service,container'
-    depends_on:
-      app-monitored:
-        condition: service_healthy
-    networks:
-      - app-network
-      - monitoring-network
+    cpus: 0.25
 
 # ==============================================================================
 # Volumes - データ永続化
@@ -193,59 +93,34 @@ services:
 volumes:
   loki-data:
     name: nextjs-loki-data
-  prometheus-data:
-    name: nextjs-prometheus-data
+    driver: local
   grafana-data:
     name: nextjs-grafana-data
+    driver: local
 
 # ==============================================================================
 # Networks - ネットワーク分離
 # ==============================================================================
 networks:
   app-network:
-    name: nextjs-prod-network
     driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.20.0.0/16
+    internal: false
 
   monitoring-network:
-    name: nextjs-monitoring-network
     driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.21.0.0/16
 # ==============================================================================
 # 使用方法
 # ==============================================================================
 #
-# フル監視環境起動:
-#   docker-compose -f docker-compose.monitoring.yml up -d
+# 基本起動：
+# docker-compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml --env-file .env.prod up -d
 #
-# 本番環境 + 監視統合起動:
-#   docker-compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
+# アクセス：
+# - Webアプリ: http://localhost:8080
+# - Grafana: http://localhost:3001 (admin/パスワード)
+# - Loki API: http://localhost:3100
 #
-# 監視サービスのみ起動:
-#   docker-compose -f docker-compose.monitoring.yml up -d loki prometheus grafana promtail
-#
-# アクセス先:
-#   - アプリケーション: http://localhost (プロキシ経由)
-#   - Grafana: http://localhost:3001
-#   - Prometheus: http://localhost:9090
-#   - Loki: http://localhost:3100
-#   - メトリクス: http://localhost:9464/metrics
-#
-# 環境変数設定:
-#   GRAFANA_ADMIN_PASSWORD=your-secure-password
-#   GRAFANA_ADMIN_USER=admin
-#   APP_VERSION=1.0.0
-#
-# ログ・メトリクス確認:
-#   curl http://localhost:3000/api/health
-#   curl http://localhost:3000/api/metrics
-#   curl http://localhost:9090/api/v1/query?query=up
-#   curl http://localhost:3100/ready
+# 停止：
+# docker-compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml down
 #
 # ==============================================================================

@@ -59,6 +59,7 @@ services:
     build:
       context: docker/nginx
       dockerfile: Dockerfile
+      target: production
     ports:
       - '${PROXY_PORT:-8080}:80'
       - '${PROXY_SSL_PORT:-8443}:443'
@@ -103,14 +104,9 @@ services:
 # ==============================================================================
 networks:
   app-network:
-    name: nextjs-prod-network
     driver: bridge
     # Network isolation for security
     internal: false
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.25.0.0/16
 # ==============================================================================
 # 使用方法
 # ==============================================================================

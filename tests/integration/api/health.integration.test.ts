@@ -143,10 +143,17 @@ describe('Health API Integration Tests', () => {
         });
       }
 
-      // All responses should be identical
+      // All responses should have consistent structure
       responses.forEach((response) => {
         expect(response.status).toBe(200);
-        expect(response.data).toEqual({ status: 'ok' });
+        expect(response.data).toMatchObject({
+          status: 'ok',
+          timestamp: expect.any(String),
+          uptime: expect.any(Number),
+          version: expect.any(String),
+          environment: expect.any(String),
+          system: expect.any(Object),
+        });
         expect(response.contentType).toBe('application/json');
       });
     });
@@ -160,9 +167,14 @@ describe('Health API Integration Tests', () => {
       const response2 = await GET();
       const data2 = await response2.json();
 
-      // Both responses should be identical (stateless)
+      // Both responses should have same structure and status (stateless)
       expect(response1.status).toBe(response2.status);
-      expect(data1).toEqual(data2);
+      expect(data1.status).toBe(data2.status);
+      expect(data1.version).toBe(data2.version);
+      expect(data1.environment).toBe(data2.environment);
+      expect(data1.system.pid).toBe(data2.system.pid);
+      expect(data1.system.nodejs_version).toBe(data2.system.nodejs_version);
+      // Dynamic fields (timestamp, uptime, memory) can differ between calls
     });
   });
 
@@ -218,7 +230,14 @@ describe('Health API Integration Tests', () => {
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data).toEqual({ status: 'ok' });
+      expect(data).toMatchObject({
+        status: 'ok',
+        timestamp: expect.any(String),
+        uptime: expect.any(Number),
+        version: expect.any(String),
+        environment: expect.any(String),
+        system: expect.any(Object),
+      });
     });
 
     it('should handle empty or malformed headers gracefully', async () => {
@@ -226,7 +245,14 @@ describe('Health API Integration Tests', () => {
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data).toEqual({ status: 'ok' });
+      expect(data).toMatchObject({
+        status: 'ok',
+        timestamp: expect.any(String),
+        uptime: expect.any(Number),
+        version: expect.any(String),
+        environment: expect.any(String),
+        system: expect.any(Object),
+      });
     });
   });
 });

@@ -91,19 +91,19 @@ services:
   # Playwright E2E Tests - Playwrightテスト実行環境
   # ==============================================================================
   playwright:
-    image: mcr.microsoft.com/playwright:v1.54.2-jammy
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile.e2e
     environment:
       - CI=true
       - BASE_URL=http://app-server:3000
       - PLAYWRIGHT_SKIP_WEBSERVER=true
       - NODE_ENV=test
+      - NEXT_TELEMETRY_DISABLED=1
     volumes:
-      # プロジェクトファイルのマウント
-      - ./:/workspace
       # テスト結果とレポートの出力
-      - ./test-results:/workspace/test-results
-      - ./playwright-report:/workspace/playwright-report
-    working_dir: /workspace
+      - ./test-results:/app/test-results
+      - ./playwright-report:/app/playwright-report
     # Docker専用設定を使用してE2Eテストを実行
     command: ['npx', 'playwright', 'test', '--config=playwright.docker.config.ts']
     depends_on:
@@ -118,7 +118,7 @@ services:
   all-tests:
     build:
       context: .
-      dockerfile: docker/app/Dockerfile.test
+      dockerfile: docker/app/Dockerfile.e2e
     environment:
       - NODE_ENV=test
       - CI=true

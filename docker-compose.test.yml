@@ -50,6 +50,8 @@ services:
       - TESTCONTAINERS_RYUK_DISABLED=false
       # Loki関連テストのスキップ設定
       - SKIP_LOKI_TESTS=true
+      # KV Storage設定 - Docker環境用短縮タイムアウト
+      - KV_TIMEOUT_MS=2000
     volumes:
       # Dockerソケットのマウント（Testcontainers用）
       - /var/run/docker.sock:/var/run/docker.sock

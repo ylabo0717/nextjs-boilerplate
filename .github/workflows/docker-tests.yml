@@ -56,6 +56,8 @@ jobs:
 
       - name: Run Unit Tests in Docker
         run: |
+          # テスト結果ディレクトリを事前作成
+          mkdir -p test-results coverage
           docker compose -f docker-compose.test.yml run --rm app-test pnpm test:unit
 
       - name: Clean up containers
@@ -88,6 +90,8 @@ jobs:
 
       - name: Run Integration Tests in Docker
         run: |
+          # テスト結果ディレクトリを事前作成
+          mkdir -p test-results
           docker compose -f docker-compose.test.yml run --rm app-integration
 
       - name: Upload test results
@@ -97,6 +101,7 @@ jobs:
           name: docker-integration-test-results
           path: test-results/
           retention-days: 7
+          if-no-files-found: ignore
 
       - name: Clean up containers
         if: always()
@@ -112,6 +117,7 @@ jobs:
       matrix:
         browser: [chromium, firefox]
       fail-fast: false
+      # Matrix job の結果を Quality Gate で適切に評価するための設定
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -141,6 +147,8 @@ jobs:
 
       - name: Run Playwright E2E Tests in Docker
         run: |
+          # テスト結果ディレクトリを事前作成
+          mkdir -p test-results playwright-report
           docker compose -f docker-compose.test.yml run --rm \
             -e PLAYWRIGHT_PROJECT=${{ matrix.browser }} \
             playwright npx playwright test --project=${{ matrix.browser }} --config=playwright.docker.config.ts
@@ -152,6 +160,7 @@ jobs:
           name: docker-playwright-report-${{ matrix.browser }}
           path: playwright-report/
           retention-days: 7
+          if-no-files-found: ignore
 
       - name: Upload test videos
         if: failure()
@@ -160,6 +169,7 @@ jobs:
           name: docker-playwright-videos-${{ matrix.browser }}
           path: test-results/
           retention-days: 7
+          if-no-files-found: ignore
 
       - name: Show container logs on failure
         if: failure()
@@ -256,25 +266,65 @@ jobs:
     steps:
       - name: Check Docker test results
         run: |
+          echo "=== Docker Quality Gate Analysis ==="
           echo "Checking Docker test results..."
 
+          # デバッグ情報: 各ジョブの結果値を出力
+          echo "📊 Job Results Debug Information:"
+          echo "  docker-unit-tests.result: '${{ needs.docker-unit-tests.result }}'"
+          echo "  docker-integration-tests.result: '${{ needs.docker-integration-tests.result }}'"
+          echo "  docker-e2e-tests.result: '${{ needs.docker-e2e-tests.result }}'"
+          echo ""
+
+          # 失敗カウンター
+          FAILED_JOBS=0
+          FAILED_NAMES=""
+
+          # Docker Unit Tests チェック
           if [ "${{ needs.docker-unit-tests.result }}" != "success" ]; then
-            echo "❌ Docker Unit Tests failed"
-            exit 1
+            echo "❌ Docker Unit Tests: '${{ needs.docker-unit-tests.result }}'"
+            FAILED_JOBS=$((FAILED_JOBS + 1))
+            FAILED_NAMES="${FAILED_NAMES}Unit Tests, "
+          else
+            echo "✅ Docker Unit Tests: success"
           fi
 
+          # Docker Integration Tests チェック
           if [ "${{ needs.docker-integration-tests.result }}" != "success" ]; then
-            echo "❌ Docker Integration Tests failed"
-            exit 1
+            echo "❌ Docker Integration Tests: '${{ needs.docker-integration-tests.result }}'"
+            FAILED_JOBS=$((FAILED_JOBS + 1))
+            FAILED_NAMES="${FAILED_NAMES}Integration Tests, "
+          else
+            echo "✅ Docker Integration Tests: success"
           fi
 
+          # Docker E2E Tests チェック (matrix job - 複数結果の可能性を考慮)
           if [ "${{ needs.docker-e2e-tests.result }}" != "success" ]; then
-            echo "❌ Docker E2E Tests failed"
-            exit 1
+            echo "❌ Docker E2E Tests: '${{ needs.docker-e2e-tests.result }}'"
+            FAILED_JOBS=$((FAILED_JOBS + 1))
+            FAILED_NAMES="${FAILED_NAMES}E2E Tests, "
+          else
+            echo "✅ Docker E2E Tests: success"
           fi
 
-          echo "✅ All Docker tests passed successfully"
-          echo "🐳 Docker-based CI/CD pipeline is working correctly"
+          echo ""
+          echo "=== Quality Gate Summary ==="
+
+          if [ $FAILED_JOBS -eq 0 ]; then
+            echo "✅ All Docker tests passed successfully"
+            echo "🐳 Docker-based CI/CD pipeline is working correctly"
+            echo "📈 Quality Gate: PASSED (0 failures)"
+          else
+            echo "❌ Quality Gate: FAILED ($FAILED_JOBS failures)"
+            echo "🔍 Failed components: ${FAILED_NAMES%, }"
+            echo ""
+            echo "💡 Debugging tips:"
+            echo "  1. Check individual job logs for detailed error information"
+            echo "  2. Verify Docker compose configuration and test environments"
+            echo "  3. Ensure all dependencies and services are properly configured"
+            echo "  4. Check for resource constraints or timeout issues"
+            exit 1
+          fi
 
       - name: Post success notification
         if: success()

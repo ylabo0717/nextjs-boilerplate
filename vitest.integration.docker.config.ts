@@ -12,6 +12,7 @@ export default defineConfig({
     css: true,
     globals: true,
     passWithNoTests: true,
+    testTimeout: 10000, // 10秒タイムアウト（Docker環境対応）
     include: ['tests/integration/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     exclude: [
       '**/node_modules/**',

@@ -29,8 +29,9 @@ COPY . .
 # Pre-build Next.js (for faster test startup)
 RUN pnpm build || echo "Build failed, tests will build on demand"
 
-# Set proper ownership for pwuser
-RUN chown -R pwuser:pwuser /app
+# Create test result directories with proper ownership
+RUN mkdir -p /app/test-results /app/playwright-report && \
+    chown -R pwuser:pwuser /app
 
 # Set environment variables
 ENV NODE_ENV=test

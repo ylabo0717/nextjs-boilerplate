@@ -8,6 +8,22 @@ import { GenericContainer, type StartedTestContainer, Wait } from 'testcontainer
 let lokiContainer: StartedTestContainer | null = null;
 
 export async function setup({ provide }: { provide: (key: string, value: any) => void }) {
+  // Docker環境でLokiテストをスキップする場合はセットアップを省略
+  if (process.env.SKIP_LOKI_TESTS === 'true') {
+    console.log('🔄 Skipping Loki testcontainer setup (SKIP_LOKI_TESTS=true)');
+
+    // Lokiが必要なテストがスキップされるよう、ダミー値を提供
+    provide('lokiUrl', 'http://localhost:3100');
+    provide('lokiHost', 'localhost');
+    provide('lokiPort', 3100);
+
+    return {
+      lokiUrl: 'http://localhost:3100',
+      lokiHost: 'localhost',
+      lokiPort: 3100,
+    };
+  }
+
   console.log('🚀 Starting Loki testcontainer...');
 
   try {
@@ -48,7 +64,7 @@ export async function setup({ provide }: { provide: (key: string, value: any) =>
       // コンテナは起動済みなので、エラーを投げずに続行
     }
 
-    // Vitestのprovide機能でテストにLoki URLを提供
+    // VitestのprovideでテストにLoki URLを提供
     provide('lokiUrl', lokiUrl);
     provide('lokiHost', lokiContainer.getHost());
     provide('lokiPort', lokiContainer.getMappedPort(3100));

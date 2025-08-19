@@ -8,8 +8,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
-    // globalSetupを無効化（TestcontainersはDocker-in-Docker環境では動作しない）
-    // globalSetup: ['./tests/setup/vitest-global-setup.ts'],
+    globalSetup: ['./tests/setup/vitest-global-setup.ts'], // Enable for Docker integration tests
     css: true,
     globals: true,
     passWithNoTests: true,

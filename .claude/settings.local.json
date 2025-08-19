@@ -82,7 +82,8 @@
       "Bash(docker-compose:*)",
       "Bash(docker:*)",
       "Bash(curl:*)",
-      "Bash(pnpm docker:monitoring:*)"
+      "Bash(pnpm docker:monitoring:*)",
+      "WebFetch(domain:hub.docker.com)"
     ],
     "deny": [
       "Bash(sudo *)",

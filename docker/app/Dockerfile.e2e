@@ -11,8 +11,11 @@ FROM mcr.microsoft.com/playwright:v1.54.2-noble
 # Enable corepack for pnpm
 RUN corepack enable
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install system dependencies (including sudo for entrypoint script)
+RUN apt-get update && apt-get install -y curl sudo && rm -rf /var/lib/apt/lists/*
+
+# Allow pwuser to run sudo without password (for CI environment permission fixes)
+RUN echo "pwuser ALL=(ALL) NOPASSWD: /bin/mkdir, /bin/chown, /usr/bin/chown, /bin/chmod, /usr/bin/chmod, /usr/bin/find, /bin/rm, /usr/bin/rm" >> /etc/sudoers
 
 # Set working directory
 WORKDIR /app
@@ -29,6 +32,10 @@ COPY . .
 # Pre-build Next.js (for faster test startup)
 RUN pnpm build || echo "Build failed, tests will build on demand"
 
+# Copy entrypoint script
+COPY docker/app/entrypoint-e2e.sh /usr/local/bin/entrypoint-e2e.sh
+RUN chmod +x /usr/local/bin/entrypoint-e2e.sh
+
 # Create test result directories with proper ownership
 RUN mkdir -p /app/test-results /app/playwright-report && \
     chown -R pwuser:pwuser /app
@@ -40,6 +47,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 # Switch to non-root user (use existing pwuser from Playwright image)
 USER pwuser
+
+# Set entrypoint to handle CI environment permission issues
+ENTRYPOINT ["/usr/local/bin/entrypoint-e2e.sh"]
 
 # Default command
 CMD ["npx", "playwright", "test"]

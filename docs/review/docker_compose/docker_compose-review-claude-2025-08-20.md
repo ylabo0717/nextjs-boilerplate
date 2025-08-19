@@ -1,24 +1,10 @@
-**Claude finished @ylabo0717's task** —— [View job](https://github.com/ylabo0717/nextjs-boilerplate/actions/runs/17075561611)
+**Claude finished @ylabo0717's task** —— [View job](https://github.com/ylabo0717/nextjs-boilerplate/actions/runs/17081647033)
 
 ---
 
-### Docker Compose実装の包括的レビュー
+### Docker Compose実装レビュー
 
-PRの詳細な技術レビューを実施いたします。以下のタスクリストに従って進めます：
-
-#### 📋 レビュータスク
-
-- [x] CLAUDE.mdの確認とリポジトリガイドラインの理解
-- [x] Docker Compose設定ファイルの分析
-- [x] セキュリティとシークレット管理の確認
-- [x] CI/CDワークフローの評価
-- [x] 環境変数管理の検証
-- [x] テストカバレッジとテスト戦略の確認
-- [x] パフォーマンスと最適化の評価
-- [x] コード品質とベストプラクティスの確認
-- [x] 最終的な推奨事項のまとめ
-
----
+包括的なDocker Compose実装のレビューを完了いたしました。
 
 ## 🚨 必須チェック（ブロッカー）
 
@@ -30,7 +16,7 @@ PRの詳細な技術レビューを実施いたします。以下のタスクリ
 - **シークレットスキャン対策**: `.gitleaks.toml:341-342`で適切に example・testファイルが除外されている
 - **認証・認可**: `docker-compose.prod.yml:161`でGrafanaの管理者パスワードが必須環境変数として適切に要求されている
 - **入力値検証**: `src/app/api/health/route.ts:54-71`で適切なエラーハンドリングが実装されている
-- **非rootユーザー実行**: `docker/app/Dockerfile:105`で適切にセキュアな実行環境を構築
+- **非rootユーザー実行**: `docker/app/Dockerfile:41-42`で適切にセキュアな実行環境を構築
 
 ### ✅ 型安全性
 
@@ -43,8 +29,8 @@ PRの詳細な技術レビューを実施いたします。以下のタスクリ
 
 **包括的なテスト統合:**
 
-- **Docker CI統合**: `.github/workflows/docker-tests.yml:36-283`で包括的なDocker testワークフローが実装されている
-- **品質ゲート**: `docker-tests.yml:247-283`で全テストスイートの成功を要求する適切な品質ゲートを実装
+- **Docker CI統合**: `.github/workflows/docker-tests.yml`で包括的なDocker testワークフローが実装されている
+- **品質ゲート**: 全テストスイートの成功を要求する適切な品質ゲートを実装
 
 ---
 
@@ -54,7 +40,7 @@ PRの詳細な技術レビューを実施いたします。以下のタスクリ
 
 **改善点:**
 
-1. **CI設定の複雑性**: `.github/workflows/docker-tests.yml`が283行と非常に長く、保守性に懸念
+1. **CI設定の複雑性**: `.github/workflows/docker-tests.yml`が337行と非常に長く、保守性に懸念
 2. **環境変数の分散**: 3つの異なる環境ファイルで同じ変数の管理が分散し、保守が困難
 
 **推奨改善:**
@@ -66,9 +52,9 @@ PRの詳細な技術レビューを実施いたします。以下のタスクリ
 
 **優秀な実装:**
 
-- **マルチステージビルド**: `docker/app/Dockerfile:22-197`で適切な最適化が実装されている
-- **本番環境設定**: `Dockerfile:92-126`でstandalone buildとnon-rootユーザーでセキュアな実装
-- **レイヤーキャッシュ最適化**: `Dockerfile:54-56`でpnpm cache mountを活用
+- **マルチステージビルド**: `docker/app/Dockerfile:22-47`で適切な最適化が実装されている
+- **本番環境設定**: standalone buildとnon-rootユーザーでセキュアな実装
+- **レイヤーキャッシュ最適化**: pnpm cache mountを活用
 
 ### 🟡 パフォーマンス
 
@@ -113,14 +99,14 @@ PRの詳細な技術レビューを実施いたします。以下のタスクリ
 **優秀な実装:**
 
 - **ヘルスチェック**: `src/app/api/health/route.ts:17-72`で適切なエラーハンドリングとレスポンス形式
-- **包括的なE2Eテスト**: `tests/e2e/health.spec.ts:10-257`で様々なシナリオをカバー
+- **包括的なE2Eテスト**: `tests/e2e/health.spec.ts`で様々なシナリオをカバー
 
 ### ✅ テスト
 
 **優秀な実装:**
 
 - **包括的なテスト戦略**: Unit/Integration/E2Eの全レベルをDockerで統合
-- **適切なテスト期待値**: `tests/e2e/health.spec.ts:25-40`で実際のAPIレスポンス形式と一致
+- **適切なテスト期待値**: `tests/integration/api/health.integration.test.ts:32-47`で実際のAPIレスポンス形式と一致
 
 ---
 
@@ -138,7 +124,7 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style
 
 ### 2. 環境変数管理の改善
 
-`.env.prod.example:140`で以下を改善推奨:
+`.env.prod.example`で以下を改善推奨:
 
 ```bash
 # より強力なデフォルトパスワード生成の説明追加
@@ -147,7 +133,7 @@ GRAFANA_ADMIN_PASSWORD=use-openssl-rand-base64-32-to-generate-secure-password
 
 ### 3. Gitleaks設定の最適化
 
-`.gitleaks.toml:413-419`の複雑な正規表現を簡略化可能
+`.gitleaks.toml:341-369`の複雑な正規表現を簡略化可能
 
 ---
 

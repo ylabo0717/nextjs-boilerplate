@@ -33,6 +33,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Important:** This project uses `pnpm` as the package manager, not npm or yarn.
 
+### Environment Variables and Docker
+
+**Integrated Environment Variable System:**
+
+This project uses an integrated environment variable system that separates common settings from environment-specific configurations for better maintainability.
+
+**Environment Variable File Structure:**
+
+- `.env.base.example` - Common settings for all environments
+- `.env.dev.example` - Development-specific settings
+- `.env.prod.example` - Production-specific settings
+- `.env.test.example` - Test-specific settings
+
+**Docker Compose Usage:**
+
+```bash
+# Development environment
+docker compose --env-file .env.base --env-file .env.dev up
+
+# Production environment
+docker compose -f docker-compose.prod.yml --env-file .env.base --env-file .env.prod up -d
+
+# Test environment (environment variables are automatically loaded)
+pnpm test
+```
+
+**Initial Setup:**
+
+```bash
+cp .env.base.example .env.base
+cp .env.dev.example .env.dev
+cp .env.prod.example .env.prod
+cp .env.test.example .env.test
+```
+
+For detailed information, see [`docs/environment-variables.md`](docs/environment-variables.md).
+
 ## Essential Workflow
 
 ### IMPORTANT: Code Quality Standards
@@ -68,10 +105,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    ```
 
 4. **Run all pre-commit checks at once** (recommended)
+
    ```bash
    pnpm precommit:check
    ```
+
    If there are issues, attempt automatic fixes:
+
    ```bash
    pnpm precommit:fix
    ```

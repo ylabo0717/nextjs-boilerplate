@@ -158,18 +158,40 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 - **Health Check**: [http://localhost:8080/api/health](http://localhost:8080/api/health)
 - **Metrics**: [http://localhost:8080/api/metrics](http://localhost:8080/api/metrics)
 
-### Environment Files
+### Environment Variables
 
-Create appropriate environment files for your deployment:
+This project uses an **integrated environment variable system** that separates common settings from environment-specific configurations for better maintainability.
+
+**File Structure:**
+
+- `.env.base.example` - Common settings for all environments
+- `.env.dev.example` - Development-specific settings
+- `.env.prod.example` - Production-specific settings
+- `.env.test.example` - Test-specific settings
+
+**Setup:**
 
 ```bash
-# Development (optional, has defaults)
-cp .env.example .env.local
-
-# Production (required)
+# Copy example files (required)
+cp .env.base.example .env.base
+cp .env.dev.example .env.dev
 cp .env.prod.example .env.prod
-# Edit .env.prod with your production values
+cp .env.test.example .env.test
+
+# Edit files with your actual values (especially .env.prod for production)
 ```
+
+**Usage with Docker Compose:**
+
+```bash
+# Development
+docker compose --env-file .env.base --env-file .env.dev up
+
+# Production
+docker compose -f docker-compose.prod.yml --env-file .env.base --env-file .env.prod up -d
+```
+
+For detailed configuration options, see [`docs/environment-variables.md`](docs/environment-variables.md).
 
 ### Docker Architecture
 

@@ -10,11 +10,12 @@ Phase 4で実装された本番環境対応のDocker Compose設定の運用方�
 
 ```bash
 # 環境変数設定
+cp .env.base.example .env.base
 cp .env.prod.example .env.prod
 vim .env.prod  # 必要な値を設定
 
 # 本番環境起動
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml --env-file .env.base --env-file .env.prod up -d
 
 # ヘルスチェック
 curl http://localhost/api/health

@@ -46,6 +46,7 @@ jobs:
 
       - name: Setup test environment
         run: |
+          cp .env.base.example .env.base
           cp .env.test.example .env.test
           cp .env.test .env.local
           echo "DOCKER_HOST=unix:///var/run/docker.sock" >> .env.local
@@ -79,6 +80,7 @@ jobs:
 
       - name: Setup test environment
         run: |
+          cp .env.base.example .env.base
           cp .env.test.example .env.test
           cp .env.test .env.local
           echo "DOCKER_HOST=unix:///var/run/docker.sock" >> .env.local
@@ -127,6 +129,7 @@ jobs:
 
       - name: Setup test environment
         run: |
+          cp .env.base.example .env.base
           cp .env.test.example .env.test
           cp .env.test .env.local
           echo "BASE_URL=http://app-server:3000" >> .env.local
@@ -198,6 +201,7 @@ jobs:
 
       - name: Setup test environment
         run: |
+          cp .env.base.example .env.base
           cp .env.test.example .env.test
           cp .env.test .env.local
           echo "DOCKER_HOST=unix:///var/run/docker.sock" >> .env.local
@@ -350,12 +354,13 @@ jobs:
 
       - name: Setup production environment
         run: |
+          cp .env.base.example .env.base
           cp .env.prod.example .env.prod
 
       - name: Build and start production environment
         run: |
-          docker compose -f docker-compose.prod.yml --env-file .env.prod build
-          docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+          docker compose -f docker-compose.prod.yml --env-file .env.base --env-file .env.prod build
+          docker compose -f docker-compose.prod.yml --env-file .env.base --env-file .env.prod up -d
 
       - name: Wait for services to be ready
         run: |
@@ -370,4 +375,4 @@ jobs:
       - name: Clean up production environment
         if: always()
         run: |
-          docker compose -f docker-compose.prod.yml --env-file .env.prod down -v
+          docker compose -f docker-compose.prod.yml --env-file .env.base --env-file .env.prod down -v

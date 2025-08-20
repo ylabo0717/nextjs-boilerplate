@@ -89,14 +89,15 @@ docker/
 
 - **docker-compose.yml**: Main service definitions
 - **docker-compose.override.yml**: Development environment overrides
-- **.env.example**: Environment variable template
+- **.env.base.example**: Common environment variable template
 
 ## Environment Variables
 
-Copy `.env.example` to `.env.local` and customize:
+This project uses an integrated environment variable system. Copy the example files:
 
 ```bash
-cp .env.example .env.local
+cp .env.base.example .env.base
+cp .env.dev.example .env.dev
 ```
 
 Key variables:

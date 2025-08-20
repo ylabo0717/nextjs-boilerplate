@@ -82,13 +82,14 @@ limit_req_zone $binary_remote_addr zone=general:10m rate=30r/s; # 一般制限
 #### 3.1 機密情報分離 ✅ 実装済み
 
 ```bash
-# .env.prod.example の使用方法
+# 統合環境変数システムの使用方法
+cp .env.base.example .env.base
 cp .env.prod.example .env.prod
 # 実際の値を設定
 vim .env.prod
 
 # Docker Compose起動時に指定
-docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d
+docker compose -f docker-compose.prod.yml --env-file .env.base --env-file .env.prod up -d
 ```
 
 #### 3.2 必須環境変数チェック ✅ 実装済み

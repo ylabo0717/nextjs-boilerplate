@@ -256,6 +256,18 @@ export function validateStorageConfig(config: StorageConfig): boolean {
     return false;
   }
 
+  // 🔧 追加: Redis URL フォーマット検証
+  if (config.type === 'redis' && config.connection_string) {
+    try {
+      const url = new URL(config.connection_string);
+      if (!['redis:', 'rediss:'].includes(url.protocol)) {
+        return false;
+      }
+    } catch {
+      return false; // 無効なURL形式
+    }
+  }
+
   if (config.ttl_default <= 0 || config.max_retries < 0 || config.timeout_ms <= 0) {
     return false;
   }
@@ -360,8 +372,9 @@ export class RedisStorage implements KVStorage {
         const Redis = await import('ioredis');
         this.client = new Redis.default(this.config.connection_string!, {
           maxRetriesPerRequest: this.config.max_retries,
-          connectTimeout: this.config.timeout_ms,
-          commandTimeout: this.config.timeout_ms,
+          connectTimeout: 2000, // 🔧 2秒に短縮
+          commandTimeout: 2000, // 🔧 2秒に短縮
+          enableOfflineQueue: false, // 🔧 追加
         }) as RedisClient;
 
         // Connection event listeners

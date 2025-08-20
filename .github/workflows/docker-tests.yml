@@ -335,3 +335,39 @@ jobs:
           echo "- E2E Tests in Docker: ✅"
           echo "- Testcontainers integration: ✅"
           echo "- CI/CD Docker integration: ✅"
+
+  # 本番環境セキュリティヘッダー検証
+  docker-security-verification:
+    name: Production Security Headers Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Setup production environment
+        run: |
+          cp .env.prod.example .env.prod
+
+      - name: Build and start production environment
+        run: |
+          docker compose -f docker-compose.prod.yml --env-file .env.prod build
+          docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for production services to start..."
+          timeout 120s bash -c 'until curl -f http://localhost:8080/api/health; do sleep 5; done'
+
+      - name: Verify security headers
+        run: |
+          echo "🔒 Running security headers verification..."
+          ./scripts/verify-security-headers.sh
+
+      - name: Clean up production environment
+        if: always()
+        run: |
+          docker compose -f docker-compose.prod.yml --env-file .env.prod down -v

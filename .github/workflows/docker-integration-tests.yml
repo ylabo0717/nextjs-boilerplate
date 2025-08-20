@@ -1,0 +1,97 @@
+name: Docker Integration Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/**'
+      - 'tests/integration/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'vitest.*.config.ts'
+      - 'docker/**'
+      - 'docker-compose.test.yml'
+      - '.github/workflows/docker-integration-tests.yml'
+      - '.github/actions/setup-docker-test-env/**'
+      - '.github/actions/docker-cleanup/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'src/**'
+      - 'tests/integration/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'vitest.*.config.ts'
+      - 'docker/**'
+      - 'docker-compose.test.yml'
+      - '.github/workflows/docker-integration-tests.yml'
+      - '.github/actions/setup-docker-test-env/**'
+      - '.github/actions/docker-cleanup/**'
+
+env:
+  NODE_VERSION: '20.x'
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+concurrency:
+  group: docker-integration-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker-integration-tests:
+    name: Docker Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker test environment
+        uses: ./.github/actions/setup-docker-test-env
+        with:
+          test-type: 'integration'
+          enable-testcontainers: 'true'
+          create-directories: 'true'
+
+      - name: Build integration test image
+        run: |
+          echo "🔨 Building Docker integration test image..."
+          docker compose -f docker-compose.test.yml build app-integration
+
+      - name: Run Integration Tests in Docker
+        run: |
+          echo "🧪 Running integration tests in Docker with Testcontainers..."
+          docker compose -f docker-compose.test.yml run --rm app-integration
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-integration-test-results-${{ github.sha }}
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          echo "🔍 Displaying container logs for debugging..."
+          docker compose -f docker-compose.test.yml logs --tail=50
+
+      - name: Clean up Docker environment
+        if: always()
+        uses: ./.github/actions/docker-cleanup
+        with:
+          cleanup-level: 'full'
+          compose-file: 'docker-compose.test.yml'
+          preserve-cache: 'true'
+
+      - name: Post test summary
+        if: always()
+        run: |
+          echo "📊 Docker Integration Tests Summary"
+          echo "  Test Type: Integration Tests with Testcontainers"
+          echo "  Environment: Docker"
+          echo "  Duration: ${{ job.status == 'success' && 'Completed successfully' || 'Failed or cancelled' }}"
+          echo "  Artifacts: Integration test results uploaded"

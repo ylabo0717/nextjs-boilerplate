@@ -1,0 +1,95 @@
+name: 'Docker Environment Cleanup'
+description: 'Clean up Docker containers, volumes, and optionally perform system cleanup'
+author: 'NextJS Boilerplate Team'
+
+inputs:
+  cleanup-level:
+    description: 'Cleanup level (basic|full|aggressive)'
+    required: false
+    default: 'basic'
+  compose-file:
+    description: 'Docker Compose file to use for cleanup'
+    required: false
+    default: 'docker-compose.test.yml'
+  preserve-cache:
+    description: 'Preserve Docker build cache'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Display cleanup configuration
+      shell: bash
+      run: |
+        echo "🧹 Docker Cleanup Configuration"
+        echo "  Cleanup Level: ${{ inputs.cleanup-level }}"
+        echo "  Compose File: ${{ inputs.compose-file }}"
+        echo "  Preserve Cache: ${{ inputs.preserve-cache }}"
+        
+    - name: Stop and remove containers
+      shell: bash
+      run: |
+        echo "Stopping and removing containers from ${{ inputs.compose-file }}..."
+        if [ -f "${{ inputs.compose-file }}" ]; then
+          docker compose -f ${{ inputs.compose-file }} down -v --remove-orphans
+        else
+          echo "Warning: Compose file ${{ inputs.compose-file }} not found, skipping compose cleanup"
+        fi
+        
+    - name: Basic system cleanup
+      if: inputs.cleanup-level == 'basic' || inputs.cleanup-level == 'full' || inputs.cleanup-level == 'aggressive'
+      shell: bash
+      run: |
+        echo "Performing basic cleanup..."
+        # Remove unused containers
+        docker container prune -f
+        
+    - name: Full system cleanup
+      if: inputs.cleanup-level == 'full' || inputs.cleanup-level == 'aggressive'
+      shell: bash
+      run: |
+        echo "Performing full cleanup..."
+        # Remove unused volumes
+        docker volume prune -f
+        # Remove unused networks
+        docker network prune -f
+        
+    - name: Aggressive cleanup
+      if: inputs.cleanup-level == 'aggressive'
+      shell: bash
+      run: |
+        echo "Performing aggressive cleanup..."
+        # Remove unused images (excluding cache if preserve-cache is true)
+        if [ "${{ inputs.preserve-cache }}" = "true" ]; then
+          echo "Preserving build cache, removing only dangling images..."
+          docker image prune -f
+        else
+          echo "Removing all unused images including cache..."
+          docker image prune -a -f
+        fi
+        # Full system prune (excluding cache if preserve-cache is true)
+        if [ "${{ inputs.preserve-cache }}" = "false" ]; then
+          echo "Performing full system prune..."
+          docker system prune -a -f
+        fi
+        
+    - name: Display cleanup summary
+      shell: bash
+      run: |
+        echo "🏁 Cleanup Summary"
+        echo "Remaining Docker resources:"
+        echo ""
+        echo "📦 Containers:"
+        docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Image}}" 2>/dev/null || echo "  None"
+        echo ""
+        echo "🗄️ Volumes:"
+        docker volume ls --format "table {{.Name}}\t{{.Driver}}" 2>/dev/null || echo "  None"
+        echo ""
+        echo "🌐 Networks:"
+        docker network ls --format "table {{.Name}}\t{{.Driver}}" 2>/dev/null || echo "  None"
+        echo ""
+        echo "💾 Images:"
+        docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" 2>/dev/null || echo "  None"
+        echo ""
+        echo "✅ Docker cleanup completed successfully"

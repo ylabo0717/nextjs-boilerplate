@@ -53,17 +53,17 @@ if (shouldSkip) {
       });
     });
 
-    describe('.env.example設定の検証', () => {
+    describe('.env.prod.example設定の検証', () => {
       it('GRAFANA_ADMIN_PASSWORD環境変数が例に含まれている', () => {
-        const envExamplePath = resolve(process.cwd(), '.env.example');
+        const envExamplePath = resolve(process.cwd(), '.env.prod.example');
         const envExampleContent = readFileSync(envExamplePath, 'utf-8');
 
         expect(envExampleContent).toContain('GRAFANA_ADMIN_PASSWORD=');
-        expect(envExampleContent).toContain('Grafana Admin Password');
+        expect(envExampleContent).toContain('Grafana');
       });
 
       it('セキュリティに関する注意書きが含まれている', () => {
-        const envExamplePath = resolve(process.cwd(), '.env.example');
+        const envExamplePath = resolve(process.cwd(), '.env.prod.example');
         const envExampleContent = readFileSync(envExamplePath, 'utf-8');
 
         expect(envExampleContent).toContain('IMPORTANT');

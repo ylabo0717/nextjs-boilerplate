@@ -63,11 +63,11 @@ test.describe('Navigation', () => {
   });
 
   /**
-   * Tests that the application properly handles page scrolling and maintains scroll behavior.
+   * Tests that the application properly handles page scrolling functionality.
    *
    * Creates dynamic scrollable content and verifies that scrolling functions work correctly.
    * This ensures the application provides good user experience with proper scroll handling
-   * and doesn't break scrolling functionality during navigation or content updates.
+   * and doesn't break scrolling functionality during content updates.
    *
    * @example
    * ```typescript
@@ -82,7 +82,7 @@ test.describe('Navigation', () => {
    * });
    * ```
    */
-  test('should maintain scroll position on navigation', async ({ page }) => {
+  test('should handle page scrolling correctly', async ({ page }) => {
     // Add more content to make page scrollable
     await page.evaluate(
       ({ contentCount, elementHeight }) => {

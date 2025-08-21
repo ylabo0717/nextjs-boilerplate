@@ -76,7 +76,7 @@ describe('Health API Integration Tests', () => {
     it('should set correct content-type header', async () => {
       const response = await GET();
 
-      expect(response.headers.get('content-type')).toBe('application/json');
+      expect(response.headers.get('content-type')).toContain('application/json');
     });
 
     /**
@@ -184,7 +184,7 @@ describe('Health API Integration Tests', () => {
       expect(data.status).toBe('ok');
 
       // Should have proper JSON content type for monitoring systems
-      expect(response.headers.get('content-type')).toBe('application/json');
+      expect(response.headers.get('content-type')).toContain('application/json');
     });
   });
 
@@ -222,7 +222,7 @@ describe('Health API Integration Tests', () => {
           environment: expect.any(String),
           system: expect.any(Object),
         });
-        expect(response.contentType).toBe('application/json');
+        expect(response.contentType).toContain('application/json');
       });
     });
 

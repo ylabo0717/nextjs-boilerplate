@@ -29,6 +29,11 @@ test.describe('Home Page', () => {
      * Verify the page title matches the expected application name.
      * This ensures the Next.js app is correctly configured and the metadata
      * is properly set in the layout component.
+     * 
+     * @remarks
+     * Note: This test uses a fixed string 'Next.js Boilerplate'. If the project
+     * name changes, this test will need to be updated. Consider using a constant
+     * or dynamic value from the application's metadata for better maintainability.
      */
     await expect(page).toHaveTitle('Next.js Boilerplate');
 
@@ -53,6 +58,12 @@ test.describe('Home Page', () => {
 
     // Check description meta tag
     const description = await page.locator('meta[name="description"]');
+    /**
+     * @remarks
+     * Note: This test uses a fixed description string. If the project description
+     * changes, this test will need to be updated. Consider using a constant or
+     * dynamic value for better maintainability and to avoid unnecessary test failures.
+     */
     await expect(description).toHaveAttribute(
       'content',
       'Production-ready Next.js boilerplate for enterprise applications'

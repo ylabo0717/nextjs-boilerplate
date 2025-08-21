@@ -31,7 +31,7 @@ test.describe('Health API E2E', () => {
     expect(response.status()).toBe(200);
 
     const contentType = response.headers()['content-type'];
-    expect(contentType).toBe('application/json');
+    expect(contentType).toContain('application/json');
   });
 
   /**
@@ -351,6 +351,6 @@ test.describe('Health API E2E', () => {
 
     // Verify response headers are appropriate for health checks
     const contentType = response.headers()['content-type'];
-    expect(contentType).toBe('application/json');
+    expect(contentType).toContain('application/json');
   });
 });

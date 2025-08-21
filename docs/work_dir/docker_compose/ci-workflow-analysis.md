@@ -8,13 +8,13 @@
 
 ### ワークフローファイル構成
 
-| ファイル名 | 行数 | 主要機能 | 実行頻度 |
-|------------|------|----------|----------|
-| `ci.yml` | 426行 | メインCI (lint, typecheck, test, build, e2e) | 全PR/push |
-| `docker-tests.yml` | **378行** | Docker環境特化テスト | Docker関連変更時 |
-| `code-quality.yml` | ~150行 | 品質メトリクス | 全PR/push |
-| `security.yml` | ~100行 | セキュリティスキャン | 全PR/push |
-| `lighthouse.yml` | ~80行 | パフォーマンステスト | 全PR/push |
+| ファイル名         | 行数      | 主要機能                                     | 実行頻度         |
+| ------------------ | --------- | -------------------------------------------- | ---------------- |
+| `ci.yml`           | 426行     | メインCI (lint, typecheck, test, build, e2e) | 全PR/push        |
+| `docker-tests.yml` | **378行** | Docker環境特化テスト                         | Docker関連変更時 |
+| `code-quality.yml` | ~150行    | 品質メトリクス                               | 全PR/push        |
+| `security.yml`     | ~100行    | セキュリティスキャン                         | 全PR/push        |
+| `lighthouse.yml`   | ~80行     | パフォーマンステスト                         | 全PR/push        |
 
 ### docker-tests.yml 詳細分析
 
@@ -67,6 +67,7 @@
 ```
 
 **重複による冗長性:**
+
 - 合計重複行数: **約88行 (23%)**
 - 保守対象の重複ロジック: 環境設定、Docker設定、クリーンアップ
 
@@ -95,27 +96,29 @@ graph TB
     A --> C[docker-tests.yml]
     A --> D[code-quality.yml]
     A --> E[security.yml]
-    
+
     B --> F[品質ゲート]
     C --> F
     D --> F
     E --> F
-    
+
     F --> G[マージ可能]
 ```
 
 ### トリガー条件
 
 **docker-tests.yml の実行条件:**
+
 ```yaml
 paths:
-  - 'docker/**'           # Docker設定変更
-  - 'docker-compose.test.yml'  # テスト設定変更
-  - 'tests/**'           # テストコード変更
-  - 'src/**'             # アプリケーションコード変更
+  - 'docker/**' # Docker設定変更
+  - 'docker-compose.test.yml' # テスト設定変更
+  - 'tests/**' # テストコード変更
+  - 'src/**' # アプリケーションコード変更
 ```
 
 **影響範囲:**
+
 - Docker関連変更: 高頻度実行
 - アプリケーション変更: 全PR実行
 - **実際の実行頻度: 約80%のPRで実行される見込み**
@@ -145,6 +148,7 @@ echo "TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal" >> .env.local
 ```
 
 **制約事項:**
+
 - Docker-in-Docker環境の特殊設定
 - ネットワーク設定の依存関係
 - リソース制限とタイムアウト管理
@@ -183,16 +187,19 @@ echo "TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal" >> .env.local
 ## 🎯 改善目標
 
 ### 短期目標 (1-2週間)
+
 - 378行ファイルの機能別分離
 - 共通ステップのComposite Action化
 - 重複ロジックの削減 (目標: 30%削減)
 
 ### 中期目標 (1ヶ月)
+
 - ワークフロー間の効率的な連携設計
 - デバッグ性の向上
 - ドキュメント整備
 
 ### 長期目標 (2-3ヶ月)
+
 - テンプレート化と他プロジェクト適用
 - CI/CD全体最適化
 - 実行時間短縮 (目標: 20%短縮)

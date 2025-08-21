@@ -7,12 +7,14 @@
 ## 🎯 設計目標
 
 ### 主要目標
+
 1. **378行の単一ファイルを3-4個の機能別ファイルに分離**
 2. **重複ロジックを30%削減** (共通Actionの活用)
 3. **デバッグ効率を向上** (機能別の明確化)
 4. **実行時間維持** (並列性を損なわない)
 
 ### 非機能要件
+
 - 既存の実行時間を悪化させない
 - CI/CD全体の安定性を保持
 - トリガー条件と依存関係を維持
@@ -25,7 +27,7 @@
 .github/
 ├── workflows/
 │   ├── docker-unit-tests.yml          # 新規 (~80行)
-│   ├── docker-integration-tests.yml   # 新規 (~90行) 
+│   ├── docker-integration-tests.yml   # 新規 (~90行)
 │   ├── docker-e2e-tests.yml          # 新規 (~100行)
 │   ├── docker-quality-gate.yml       # 新規 (~60行)
 │   └── docker-tests.yml              # 削除対象
@@ -43,10 +45,12 @@
 #### 1. `docker-unit-tests.yml` (対象: Unit Tests)
 
 **責務:**
+
 - Docker環境でのUnit Tests実行
 - 最も軽量で高速なテスト
 
 **実行条件:**
+
 ```yaml
 on:
   push:
@@ -66,6 +70,7 @@ on:
 ```
 
 **ジョブ構成:**
+
 ```yaml
 jobs:
   docker-unit-tests:
@@ -85,10 +90,12 @@ jobs:
 #### 2. `docker-integration-tests.yml` (対象: Integration Tests)
 
 **責務:**
+
 - Testcontainers統合テスト
 - 外部依存サービス（Redis、DB等）を含むテスト
 
 **実行条件:**
+
 ```yaml
 on:
   push:
@@ -107,6 +114,7 @@ on:
 ```
 
 **特殊設定:**
+
 ```yaml
 - name: Setup Testcontainers environment
   run: |
@@ -117,10 +125,12 @@ on:
 #### 3. `docker-e2e-tests.yml` (対象: E2E Tests)
 
 **責務:**
+
 - Docker環境でのPlaywright E2Eテスト
 - マルチブラウザ対応
 
 **マトリックス戦略:**
+
 ```yaml
 strategy:
   matrix:
@@ -129,12 +139,13 @@ strategy:
 ```
 
 **アプリケーションサーバー管理:**
+
 ```yaml
 jobs:
   start-app-server:
     name: Start Application Server
     # アプリサーバーの起動と準備確認
-    
+
   e2e-tests:
     name: E2E Tests
     needs: start-app-server
@@ -147,22 +158,25 @@ jobs:
 #### 4. `docker-quality-gate.yml` (対象: Quality Gate)
 
 **責務:**
+
 - 全Docker testの結果統合
 - 品質ゲート判定
 - 結果レポート生成
 
 **依存関係:**
+
 ```yaml
 on:
   workflow_run:
-    workflows: 
-      - "Docker Unit Tests"
-      - "Docker Integration Tests"  
-      - "Docker E2E Tests"
+    workflows:
+      - 'Docker Unit Tests'
+      - 'Docker Integration Tests'
+      - 'Docker E2E Tests'
     types: [completed]
 ```
 
 **品質判定ロジック:**
+
 ```yaml
 jobs:
   quality-gate:
@@ -201,21 +215,21 @@ runs:
   steps:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-      
+
     - name: Setup base environment
       shell: bash
       run: |
         cp .env.base.example .env.base
         cp .env.test.example .env.test
         cp .env.test .env.local
-        
+
     - name: Configure for Testcontainers
       if: inputs.enable-testcontainers == 'true'
       shell: bash
       run: |
         echo "DOCKER_HOST=unix:///var/run/docker.sock" >> .env.local
         echo "TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal" >> .env.local
-        
+
     - name: Create test directories
       shell: bash
       run: |
@@ -243,7 +257,7 @@ runs:
       shell: bash
       run: |
         docker compose -f docker-compose.test.yml down -v
-        
+
     - name: Full system cleanup
       if: inputs.cleanup-level == 'full'
       shell: bash
@@ -257,6 +271,7 @@ runs:
 ### 1. Sequential Execution Pattern
 
 **従来のパターン (単一ワークフロー内):**
+
 ```yaml
 jobs:
   unit-tests: ...
@@ -267,11 +282,12 @@ jobs:
 ```
 
 **新しいパターン (ワークフロー間):**
+
 ```yaml
 # workflow_dispatch または workflow_run を活用
 on:
   workflow_run:
-    workflows: ["Docker Unit Tests"]
+    workflows: ['Docker Unit Tests']
     types: [completed]
     branches: [main, develop]
 ```
@@ -279,6 +295,7 @@ on:
 ### 2. Parallel Execution Pattern
 
 **高速化のための並列実行:**
+
 - Unit Tests と Integration Tests は並列実行可能
 - E2E Tests は他の完了を待たずに並列実行
 - Quality Gate のみ全ての完了を待機
@@ -307,12 +324,12 @@ on:
 
 ### 定量的効果
 
-| 項目 | 現在 | 分離後 | 改善率 |
-|------|------|--------|--------|
-| ファイル行数 | 378行 | 80+90+100+60=330行 | -13% |
-| 重複ロジック | ~88行 | ~30行 | -66% |
-| デバッグ範囲 | 378行全体 | 80-100行範囲 | -70% |
-| 並列実行ジョブ数 | 6ジョブ | 8-10ジョブ | +33% |
+| 項目             | 現在      | 分離後             | 改善率 |
+| ---------------- | --------- | ------------------ | ------ |
+| ファイル行数     | 378行     | 80+90+100+60=330行 | -13%   |
+| 重複ロジック     | ~88行     | ~30行              | -66%   |
+| デバッグ範囲     | 378行全体 | 80-100行範囲       | -70%   |
+| 並列実行ジョブ数 | 6ジョブ   | 8-10ジョブ         | +33%   |
 
 ### 定性的効果
 
@@ -366,5 +383,6 @@ on:
 ---
 
 **関連文書:**
+
 - [CI/CDワークフロー分析レポート](./ci-workflow-analysis.md)
 - [実装計画書](./implementation-plan.md) (次回作成予定)

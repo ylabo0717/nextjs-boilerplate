@@ -13,6 +13,7 @@ GitHub Appのセキュリティ制限により、ワークフローファイル�
 ### 1. 共通Actions（手動作成必要）
 
 #### `.github/actions/setup-docker-test-env/action.yml`
+
 ```yaml
 name: 'Setup Docker Test Environment'
 description: 'Setup standardized Docker test environment for various test types'
@@ -38,27 +39,27 @@ runs:
       uses: docker/setup-buildx-action@v3
       with:
         platforms: linux/amd64
-        
+
     - name: Setup base environment files
       shell: bash
       run: |
         echo "Setting up environment files for test type: ${{ inputs.test-type }}"
-        
+
         # Copy base environment files
         cp .env.base.example .env.base
         cp .env.test.example .env.test
         cp .env.test .env.local
-        
+
         # Add Docker-specific configurations
         echo "DOCKER_HOST=unix:///var/run/docker.sock" >> .env.local
-        
+
     - name: Configure for Testcontainers
       if: inputs.enable-testcontainers == 'true'
       shell: bash
       run: |
         echo "Configuring Testcontainers support..."
         echo "TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal" >> .env.local
-        
+
     - name: Configure for E2E tests
       if: inputs.test-type == 'e2e'
       shell: bash
@@ -66,14 +67,14 @@ runs:
         echo "Configuring E2E test environment..."
         echo "BASE_URL=http://app-server:3000" >> .env.local
         echo "PLAYWRIGHT_SKIP_WEBSERVER=true" >> .env.local
-        
+
     - name: Create test directories
       if: inputs.create-directories == 'true'
       shell: bash
       run: |
         echo "Creating test result directories..."
         mkdir -p test-results coverage playwright-report
-        
+
     - name: Display environment summary
       shell: bash
       run: |
@@ -85,6 +86,7 @@ runs:
 ```
 
 #### `.github/actions/docker-cleanup/action.yml`
+
 ```yaml
 name: 'Docker Environment Cleanup'
 description: 'Clean up Docker containers, volumes, and optionally perform system cleanup'
@@ -114,7 +116,7 @@ runs:
         echo "  Cleanup Level: ${{ inputs.cleanup-level }}"
         echo "  Compose File: ${{ inputs.compose-file }}"
         echo "  Preserve Cache: ${{ inputs.preserve-cache }}"
-        
+
     - name: Stop and remove containers
       shell: bash
       run: |
@@ -124,7 +126,7 @@ runs:
         else
           echo "Warning: Compose file ${{ inputs.compose-file }} not found, skipping compose cleanup"
         fi
-        
+
     - name: Basic system cleanup
       if: inputs.cleanup-level == 'basic' || inputs.cleanup-level == 'full' || inputs.cleanup-level == 'aggressive'
       shell: bash
@@ -132,7 +134,7 @@ runs:
         echo "Performing basic cleanup..."
         # Remove unused containers
         docker container prune -f
-        
+
     - name: Full system cleanup
       if: inputs.cleanup-level == 'full' || inputs.cleanup-level == 'aggressive'
       shell: bash
@@ -142,7 +144,7 @@ runs:
         docker volume prune -f
         # Remove unused networks
         docker network prune -f
-        
+
     - name: Aggressive cleanup
       if: inputs.cleanup-level == 'aggressive'
       shell: bash
@@ -161,7 +163,7 @@ runs:
           echo "Performing full system prune..."
           docker system prune -a -f
         fi
-        
+
     - name: Display cleanup summary
       shell: bash
       run: |
@@ -186,6 +188,7 @@ runs:
 ### 2. 分離ワークフローファイル（手動作成必要）
 
 #### `.github/workflows/docker-unit-tests.yml`
+
 ```yaml
 name: Docker Unit Tests
 
@@ -233,7 +236,7 @@ jobs:
     name: Docker Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -287,6 +290,7 @@ jobs:
 ## 🔄 実装手順
 
 ### Phase 1: 準備
+
 1. 上記ファイルを手動でローカルリポジトリに作成
 2. 各ディレクトリの作成確認:
    ```bash
@@ -295,11 +299,13 @@ jobs:
    ```
 
 ### Phase 2: 段階的テスト
+
 1. `docker-unit-tests.yml` のみ追加してテスト
 2. 正常動作確認後、他のワークフローを順次追加
 3. 各段階で既存ワークフローとの並行実行で検証
 
 ### Phase 3: 完全移行
+
 1. 全新ワークフローの安定稼働確認
 2. `docker-tests.yml` の無効化
 3. 最終動作確認
@@ -307,6 +313,7 @@ jobs:
 ## 📊 検証ポイント
 
 ### 必須確認項目
+
 - [ ] Unit Tests の実行成功
 - [ ] Integration Tests の実行成功（Testcontainers含む）
 - [ ] E2E Tests の実行成功（マルチブラウザ）
@@ -315,6 +322,7 @@ jobs:
 - [ ] 実行時間が既存と同等またはそれ以下
 
 ### 品質ゲート基準
+
 - **全ワークフロー成功**: 3/3ワークフローが成功
 - **実行時間**: 各ワークフローが制限時間内に完了
 - **アーティファクト**: テスト結果とカバレッジの正常保存

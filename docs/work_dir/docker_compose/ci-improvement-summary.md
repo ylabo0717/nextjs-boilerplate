@@ -22,7 +22,7 @@
  ↓
 新構成:
 ├── docker-unit-tests.yml (80行)
-├── docker-integration-tests.yml (90行)  
+├── docker-integration-tests.yml (90行)
 ├── docker-e2e-tests.yml (100行)
 ├── docker-quality-gate.yml (60行)
 ├── .github/actions/setup-docker-test-env/
@@ -33,12 +33,12 @@
 
 ### 定量的効果
 
-| 項目 | 現在 | 改善後 | 改善率 |
-|------|------|--------|--------|
-| **ファイル行数** | 378行 | 330行 | **-13%** |
-| **重複ロジック** | 88行 | 30行 | **-66%** |
+| 項目             | 現在      | 改善後       | 改善率   |
+| ---------------- | --------- | ------------ | -------- |
+| **ファイル行数** | 378行     | 330行        | **-13%** |
+| **重複ロジック** | 88行      | 30行         | **-66%** |
 | **デバッグ範囲** | 378行全体 | 80-100行範囲 | **-70%** |
-| **並列ジョブ数** | 6ジョブ | 8-10ジョブ | **+33%** |
+| **並列ジョブ数** | 6ジョブ   | 8-10ジョブ   | **+33%** |
 
 ### 定性的効果
 
@@ -62,16 +62,19 @@
 ### 段階的移行戦略
 
 **Phase 1**: 基盤整備 (1週間)
+
 - 共通Action作成
 - Unit Tests分離
 - 初期動作確認
 
 **Phase 2**: 段階的移行 (1週間)
+
 - Integration & E2E Tests分離
 - Quality Gate実装
 - 並行実行テスト
 
 **Phase 3**: 最適化・検証 (1週間)
+
 - 既存ワークフローからの完全移行
 - パフォーマンス最適化
 - 包括的検証
@@ -87,6 +90,7 @@
 ### 共通Action
 
 #### 1. setup-docker-test-env
+
 ```yaml
 # 標準化されたDocker環境セットアップ
 inputs:
@@ -96,6 +100,7 @@ inputs:
 ```
 
 #### 2. docker-cleanup
+
 ```yaml
 # レベル別クリーンアップ
 inputs:
@@ -106,21 +111,25 @@ inputs:
 ### 分離後のワークフロー構成
 
 #### docker-unit-tests.yml
+
 - **責務**: 軽量・高速なUnit Tests
 - **実行時間**: 20分以内
 - **特徴**: 最も頻繁に実行される基本テスト
 
 #### docker-integration-tests.yml
+
 - **責務**: Testcontainers統合テスト
 - **実行時間**: 25分以内
 - **特徴**: 外部依存サービス（Redis、DB等）を含む
 
 #### docker-e2e-tests.yml
+
 - **責務**: マルチブラウザE2Eテスト
 - **実行時間**: 30分以内
 - **特徴**: アプリケーションサーバー管理とPlaywright実行
 
 #### docker-quality-gate.yml
+
 - **責務**: 全テスト結果統合と品質判定
 - **実行時間**: 10分以内
 - **特徴**: GitHub API活用でワークフロー間連携
@@ -133,7 +142,7 @@ inputs:
 # workflow_run トリガーで連携
 on:
   workflow_run:
-    workflows: ["Docker Unit Tests", "Docker Integration Tests", "Docker E2E Tests"]
+    workflows: ['Docker Unit Tests', 'Docker Integration Tests', 'Docker E2E Tests']
     types: [completed]
 ```
 
@@ -142,7 +151,7 @@ on:
 ```yaml
 # 従来の重複ステップ
 - name: Checkout code
-- name: Set up Docker Buildx  
+- name: Set up Docker Buildx
 - name: Setup test environment
 
 # 新しい共通Action化

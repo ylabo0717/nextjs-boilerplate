@@ -59,17 +59,6 @@ jobs:
           echo "🔨 Building Docker test image for integration tests..."
           docker compose -f docker-compose.test.yml build app-test
 
-      - name: Start required services
-        run: |
-          echo "🚀 Starting required services for integration tests..."
-          docker compose -f docker-compose.yml up -d redis loki prometheus
-
-      - name: Wait for services
-        run: |
-          echo "⏳ Waiting for services to be ready..."
-          sleep 10
-          docker compose -f docker-compose.yml ps
-
       - name: Run Integration Tests in Docker
         run: |
           echo "🧪 Running integration tests with Testcontainers in Docker environment..."

@@ -19,7 +19,10 @@ import {
   resetPhase3Metrics,
 } from '@/lib/logger/enhanced-metrics';
 
-describe('Enhanced Metrics Integration Tests', () => {
+// メトリクステストはLoki接続を必要としないため、常に実行
+const shouldSkip = false;
+
+describe.skipIf(shouldSkip)('Enhanced Metrics Integration Tests', () => {
   beforeEach(() => {
     resetPhase3Metrics();
     vi.clearAllMocks();

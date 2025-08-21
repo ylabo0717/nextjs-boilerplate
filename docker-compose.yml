@@ -1,0 +1,60 @@
+# Docker Compose configuration for Next.js application
+# Development environment setup with integrated environment variables
+#
+# Usage:
+#   docker compose --env-file .env.base --env-file .env.dev up
+#
+# Environment variable files:
+#   .env.base - Common settings for all environments
+#   .env.dev  - Development-specific overrides
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile.dev
+    ports:
+      - '${PORT:-3000}:3000'
+      - '9229:9229' # Debug port
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - /app/.next # Exclude .next directory from volume mount
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - WATCHPACK_POLLING=${WATCHPACK_POLLING:-true}
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-nextjs-app-dev}
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES}
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
+      interval: ${HEALTH_CHECK_INTERVAL:-30s}
+      timeout: ${HEALTH_CHECK_TIMEOUT:-10s}
+      retries: ${HEALTH_CHECK_RETRIES:-3}
+      start_period: ${HEALTH_CHECK_START_PERIOD:-40s}
+    restart: unless-stopped
+
+  proxy:
+    build:
+      context: docker/nginx
+      dockerfile: Dockerfile
+    ports:
+      - '${PROXY_PORT:-8080}:80'
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
+      - BACKEND_HOST=app
+      - BACKEND_PORT=3000
+      - NGINX_WORKER_PROCESSES=${NGINX_WORKER_PROCESSES:-auto}
+      - NGINX_WORKER_CONNECTIONS=${NGINX_WORKER_CONNECTIONS:-512}
+    restart: unless-stopped
+
+volumes:
+  node_modules: {}
+
+networks:
+  default:
+    name: nextjs-app-network

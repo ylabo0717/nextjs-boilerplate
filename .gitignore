@@ -35,6 +35,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# Allow example env files to be committed
+!.env.*.example
 
 # vercel
 .vercel
@@ -57,3 +59,7 @@ next-env.d.ts
 
 # Lighthouse CI
 .lighthouseci
+
+*.log
+.env.prod
+.env.test

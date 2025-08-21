@@ -8,6 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { logger } from '@/lib/logger';
 
+// このファイルは実際のLoki接続を行わないため、常に実行されます
 describe('Documentation Validation - Loki Integration', () => {
   let originalEnv: Record<string, string | undefined>;
 

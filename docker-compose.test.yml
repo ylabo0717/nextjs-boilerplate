@@ -1,0 +1,178 @@
+# ==============================================================================
+# Docker Compose Test Configuration
+#
+# テスト専用のDocker Compose設定
+# - Unit Tests (Vitest)
+# - Integration Tests (Vitest + Testcontainers)
+# - E2E Tests (Playwright)
+# - すべてのテストスイートをコンテナ化して実行
+# ==============================================================================
+
+services:
+  # ==============================================================================
+  # Unit & Integration Tests - Vitest実行環境
+  # ==============================================================================
+  app-test:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile.test
+    environment:
+      - NODE_ENV=test
+      - CI=true
+      - NEXT_TELEMETRY_DISABLED=1
+      # Docker内でのTestcontainers実行に必要
+      - TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      # Dockerソケットのマウント（Testcontainers用）
+      - /var/run/docker.sock:/var/run/docker.sock
+      # テスト結果とカバレッジレポートの出力
+      - ./coverage:/app/coverage
+      - ./test-results:/app/test-results
+    command: ['npx', 'vitest', '--run', '--config', 'vitest.test.config.ts']
+    networks:
+      - test-network
+
+  # ==============================================================================
+  # Integration Tests - Testcontainers対応環境
+  # ==============================================================================
+  app-integration:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile.test
+    environment:
+      - NODE_ENV=test
+      - CI=true
+      - NEXT_TELEMETRY_DISABLED=1
+      # Testcontainers設定
+      - TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - TESTCONTAINERS_RYUK_DISABLED=false
+      # Loki関連テストのスキップ設定
+      - SKIP_LOKI_TESTS=true
+      # KV Storage設定 - Docker環境用短縮タイムアウト
+      - KV_TIMEOUT_MS=2000
+    volumes:
+      # Dockerソケットのマウント（Testcontainers用）
+      - /var/run/docker.sock:/var/run/docker.sock
+      # テスト結果とカバレッジレポートの出力
+      - ./coverage:/app/coverage
+      - ./test-results:/app/test-results
+    command: ['npx', 'vitest', '--run', '--config', 'vitest.integration.docker.config.ts']
+    networks:
+      - test-network
+    depends_on:
+      - app-test
+
+  # ==============================================================================
+  # Test App Server - E2Eテスト用アプリケーションサーバー
+  # ==============================================================================
+  app-server:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile.test
+    environment:
+      - NODE_ENV=test
+      - CI=true
+      - NEXT_TELEMETRY_DISABLED=1
+      - PORT=3000
+    ports:
+      - '3000:3000'
+    user: root
+    command: ['sh', '-c', 'pnpm build && pnpm start:test']
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - test-network
+
+  # ==============================================================================
+  # Playwright E2E Tests - Playwrightテスト実行環境
+  # ==============================================================================
+  playwright:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile.e2e
+    environment:
+      - CI=true
+      - BASE_URL=http://app-server:3000
+      - PLAYWRIGHT_SKIP_WEBSERVER=true
+      - NODE_ENV=test
+      - NEXT_TELEMETRY_DISABLED=1
+    volumes:
+      # テスト結果とレポートの出力
+      - ./test-results:/app/test-results
+      - ./playwright-report:/app/playwright-report
+    # Docker専用設定を使用してE2Eテストを実行
+    command: ['npx', 'playwright', 'test', '--config=playwright.docker.config.ts']
+    depends_on:
+      app-server:
+        condition: service_healthy
+    networks:
+      - test-network
+
+  # ==============================================================================
+  # All Tests - 全テストスイート実行
+  # ==============================================================================
+  all-tests:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile.e2e
+    environment:
+      - NODE_ENV=test
+      - CI=true
+      - NEXT_TELEMETRY_DISABLED=1
+      - BASE_URL=http://app-server:3000
+      - PLAYWRIGHT_SKIP_WEBSERVER=true
+      # Testcontainers設定
+      - TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      # Dockerソケットのマウント（Testcontainers用）
+      - /var/run/docker.sock:/var/run/docker.sock
+      # テスト結果とカバレッジレポートの出力
+      - ./coverage:/app/coverage
+      - ./test-results:/app/test-results
+      - ./playwright-report:/app/playwright-report
+    command:
+      ['sh', '-c', 'pnpm test:unit && npx playwright test --config=playwright.docker.config.ts']
+    depends_on:
+      app-server:
+        condition: service_healthy
+    networks:
+      - test-network
+
+# ==============================================================================
+# Networks
+# ==============================================================================
+networks:
+  test-network:
+    name: nextjs-test-network
+    driver: bridge
+# ==============================================================================
+# 使用方法
+# ==============================================================================
+#
+# Unit Tests実行:
+#   docker compose -f docker-compose.test.yml run --rm app-test
+#
+# Integration Tests実行:
+#   docker compose -f docker-compose.test.yml run --rm app-integration
+#
+# E2E Tests実行:
+#   docker compose -f docker-compose.test.yml up app-server -d
+#   docker compose -f docker-compose.test.yml run --rm playwright
+#
+# 全テスト実行:
+#   docker compose -f docker-compose.test.yml run --rm all-tests
+#
+# カバレッジ付きテスト実行:
+#   docker compose -f docker-compose.test.yml run --rm app-test pnpm test:coverage
+#
+# テスト環境クリーンアップ:
+#   docker compose -f docker-compose.test.yml down -v
+#
+# ==============================================================================

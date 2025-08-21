@@ -1,0 +1,270 @@
+# ==============================================================================
+# Promtail Configuration for Next.js Application Log Collection
+#
+# Features:
+# - Docker container log collection
+# - Structured log parsing
+# - Label extraction for Grafana filtering
+# - Integration with existing Loki setup
+# ==============================================================================
+
+# Promtail server configuration
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+# Position tracking for log files
+positions:
+  filename: /tmp/positions.yaml
+
+# Loki client configuration
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    tenant_id: ''
+    batchwait: 1s
+    batchsize: 1048576
+    timeout: 10s
+    backoff_config:
+      min_period: 500ms
+      max_period: 5m
+      max_retries: 10
+    # Authentication (if required)
+    # basic_auth:
+    #   username: ""
+    #   password: ""
+
+# Scrape configuration
+scrape_configs:
+  # ==============================================================================
+  # Docker Container Logs
+  # ==============================================================================
+  - job_name: docker-containers
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: docker-containers
+          __path__: /var/lib/docker/containers/*/*-json.log
+
+    # Pipeline for processing Docker logs
+    pipeline_stages:
+      # Parse JSON log format from Docker
+      - json:
+          expressions:
+            output: log
+            stream: stream
+            attrs: attrs
+            timestamp: time
+
+      # Extract container information from log path
+      - regex:
+          expression: '/var/lib/docker/containers/(?P<container_id>[^/]+)/.*'
+          source: __path__
+
+      # Set timestamp from Docker log
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+          fallback_formats:
+            - '2006-01-02T15:04:05.999999999Z'
+            - RFC3339
+
+      # Add container metadata labels
+      - labels:
+          container_id: container_id
+          stream: stream
+
+      # Output the actual log content
+      - output:
+          source: output
+
+  # ==============================================================================
+  # Next.js Application Specific Logs
+  # ==============================================================================
+  - job_name: nextjs-app-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nextjs-app
+          service: nextjs
+          environment: production
+          __path__: /var/lib/docker/containers/*/*-json.log
+
+    # Filter only Next.js application containers
+    relabel_configs:
+      # Only scrape logs from nextjs containers
+      - source_labels: [__meta_docker_container_name]
+        regex: '.*nextjs.*|.*app.*'
+        action: keep
+
+      # Add service label from container name
+      - source_labels: [__meta_docker_container_name]
+        target_label: container_name
+        regex: '/(.*)'
+        replacement: '${1}'
+
+    # Pipeline for Next.js structured logs
+    pipeline_stages:
+      # Parse Docker JSON wrapper
+      - json:
+          expressions:
+            message: log
+            stream: stream
+            timestamp: time
+            container_id: attrs.tag
+
+      # Try to parse structured JSON logs from Next.js
+      - json:
+          expressions:
+            level: level
+            component: component
+            msg: msg
+            timestamp: timestamp
+            error: error
+            request_id: request_id
+            method: method
+            url: url
+            status: status
+            duration: duration
+          source: message
+
+      # Set log level label
+      - labels:
+          level: level
+          component: component
+          method: method
+          status: status
+
+      # Set timestamp
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+          fallback_formats:
+            - '2006-01-02T15:04:05Z'
+            - '2006-01-02 15:04:05'
+
+      # Output structured message or original message
+      - template:
+          source: output
+          template: '{{ if .msg }}{{ .msg }}{{ else }}{{ .message }}{{ end }}'
+
+      # Drop empty messages
+      - match:
+          selector: '{job="nextjs-app"}'
+          stages:
+            - drop:
+                expression: '^$'
+
+  # ==============================================================================
+  # Nginx Access Logs
+  # ==============================================================================
+  - job_name: nginx-access-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx
+          service: proxy
+          log_type: access
+          __path__: /var/lib/docker/containers/*/*-json.log
+
+    # Filter only nginx containers
+    relabel_configs:
+      - source_labels: [__meta_docker_container_name]
+        regex: '.*nginx.*|.*proxy.*'
+        action: keep
+
+    # Pipeline for Nginx access logs
+    pipeline_stages:
+      # Parse Docker JSON wrapper
+      - json:
+          expressions:
+            message: log
+            stream: stream
+            timestamp: time
+
+      # Parse Nginx access log format
+      - regex:
+          expression: '^(?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<time_local>[^\]]+)\] "(?P<method>\S+) (?P<request_uri>\S+) (?P<server_protocol>\S+)" (?P<status>\d+) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)".*'
+          source: message
+
+      # Add parsed fields as labels
+      - labels:
+          method: method
+          status: status
+          remote_addr: remote_addr
+
+      # Set timestamp from log
+      - timestamp:
+          source: time_local
+          format: '02/Jan/2006:15:04:05 -0700'
+
+      # Template for clean output
+      - template:
+          source: output
+          template: '{{ .method }} {{ .request_uri }} {{ .status }}'
+
+  # ==============================================================================
+  # Error Logs (simplified for better compatibility)
+  # ==============================================================================
+  - job_name: application-errors
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: errors
+          __path__: /var/lib/docker/containers/*/*-json.log
+
+    # Simplified pipeline for error detection
+    pipeline_stages:
+      # Parse Docker JSON
+      - json:
+          expressions:
+            message: log
+            stream: stream
+            timestamp: time
+
+      # Add error label if message contains error keywords
+      - regex:
+          expression: '.*(ERROR|error|Error|FATAL|fatal|Fatal|Exception|exception).*'
+          source: message
+
+      # Set timestamp
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+
+      # Output error message
+      - output:
+          source: message
+# ==============================================================================
+# Configuration Notes
+# ==============================================================================
+#
+# 1. Log Collection:
+#    - Monitors Docker container logs from /var/lib/docker/containers
+#    - Requires mounting Docker socket and container directory
+#    - Automatically discovers new containers
+#
+# 2. Label Strategy:
+#    - Uses job, service, environment for high-level filtering
+#    - Adds specific labels like level, method, status for detailed queries
+#    - Container metadata helps with debugging
+#
+# 3. Pipeline Processing:
+#    - Parses Docker JSON wrapper first
+#    - Attempts structured log parsing for Next.js logs
+#    - Falls back to plain text for unstructured logs
+#
+# 4. Performance:
+#    - Uses batching for efficient transmission to Loki
+#    - Filters logs at scrape level to reduce processing
+#    - Position tracking prevents log duplication
+#
+# 5. Security:
+#    - Consider using authentication for Loki in production
+#    - Limit log retention based on compliance requirements
+#    - Use TLS for secure transmission if required
+#
+# ==============================================================================

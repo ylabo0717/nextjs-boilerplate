@@ -1,0 +1,180 @@
+# ==============================================================================
+# Prometheus Configuration for Next.js Application Monitoring
+#
+# Features:
+# - Next.js application metrics collection
+# - Docker container metrics
+# - OpenTelemetry metrics integration
+# - Service discovery configuration
+# ==============================================================================
+
+# Global configuration
+global:
+  scrape_interval: 15s # デフォルトのスクレイプ間隔
+  evaluation_interval: 15s # ルール評価間隔
+  # scrape_timeout is set to the global default (10s).
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+        # - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files: []
+# - "first_rules.yml"
+# - "second_rules.yml"
+
+# A scrape configuration containing exactly one endpoint to scrape:
+scrape_configs:
+  # ==============================================================================
+  # Prometheus self-monitoring
+  # ==============================================================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # ==============================================================================
+  # Next.js Application Metrics - OpenTelemetry integration
+  # ==============================================================================
+  - job_name: 'nextjs-app'
+    static_configs:
+      - targets: ['app-monitored:3000'] # Next.js application
+    scrape_interval: 15s
+    metrics_path: /api/metrics # Custom metrics endpoint
+    scrape_timeout: 10s
+    # Labels for service identification
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'nextjs-app'
+      - source_labels: [__address__]
+        target_label: environment
+        replacement: 'production'
+
+  # ==============================================================================
+  # OpenTelemetry Prometheus Metrics
+  # ==============================================================================
+  - job_name: 'nextjs-app-otel'
+    static_configs:
+      - targets: ['app-monitored:9464'] # OpenTelemetry Prometheus exporter
+    scrape_interval: 15s
+    metrics_path: /metrics # Prometheus format metrics
+    scrape_timeout: 10s
+    # Labels for OpenTelemetry metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'nextjs-app'
+      - source_labels: [__address__]
+        target_label: exporter
+        replacement: 'opentelemetry'
+      - source_labels: [__address__]
+        target_label: environment
+        replacement: 'production'
+
+  # ==============================================================================
+  # Docker Container Metrics (optional - requires cAdvisor)
+  # ==============================================================================
+  # - job_name: 'docker-containers'
+  #   static_configs:
+  #     - targets: ['cadvisor:8080']
+  #   scrape_interval: 30s
+  #   metrics_path: /metrics
+
+  # ==============================================================================
+  # Node Exporter for System Metrics (optional)
+  # ==============================================================================
+  # - job_name: 'node-exporter'
+  #   static_configs:
+  #     - targets: ['node-exporter:9100']
+  #   scrape_interval: 30s
+
+  # ==============================================================================
+  # Nginx Metrics (if nginx-prometheus-exporter is used)
+  # ==============================================================================
+  # - job_name: 'nginx'
+  #   static_configs:
+  #     - targets: ['nginx-exporter:9113']
+  #   scrape_interval: 30s
+
+  # ==============================================================================
+  # Service Discovery Configuration (for dynamic environments)
+  # ==============================================================================
+  # Docker service discovery example
+  # - job_name: 'docker-services'
+  #   docker_sd_configs:
+  #     - host: unix:///var/run/docker.sock
+  #       refresh_interval: 30s
+  #   relabel_configs:
+  #     # Only scrape services with monitoring label
+  #     - source_labels: [__meta_docker_container_label_monitoring_enable]
+  #       regex: 'true'
+  #       action: keep
+  #     # Use custom port from label if available
+  #     - source_labels: [__meta_docker_container_label_monitoring_port]
+  #       target_label: __address__
+  #       regex: '(.+)'
+  #       replacement: '${1}'
+  #     # Use custom metrics path from label if available
+  #     - source_labels: [__meta_docker_container_label_monitoring_path]
+  #       target_label: __metrics_path__
+  #       regex: '(.+)'
+  #       replacement: '${1}'
+  #     # Add service name from container label
+  #     - source_labels: [__meta_docker_container_label_monitoring_service]
+  #       target_label: service
+  #       regex: '(.+)'
+  #       replacement: '${1}'
+# ==============================================================================
+# Recording Rules (optional - for performance optimization)
+# ==============================================================================
+# Recording rules allow you to precompute frequently needed or computationally expensive expressions
+# and save their result as a new set of time series.
+
+# Example recording rules configuration:
+# recording_rules:
+#   groups:
+#   - name: nextjs_app_rules
+#     interval: 30s
+#     rules:
+#     # Request rate per minute
+#     - record: nextjs:request_rate_1m
+#       expr: rate(http_requests_total[1m])
+#
+#     # Error rate percentage
+#     - record: nextjs:error_rate_1m
+#       expr: rate(http_requests_total{status=~"5.."}[1m]) / rate(http_requests_total[1m]) * 100
+#
+#     # Average response time
+#     - record: nextjs:response_time_avg_1m
+#       expr: rate(http_request_duration_seconds_sum[1m]) / rate(http_request_duration_seconds_count[1m])
+
+# ==============================================================================
+# Configuration Notes
+# ==============================================================================
+#
+# 1. Targets Configuration:
+#    - Use service names from docker-compose.yml as hostnames
+#    - Ensure services are on the same network for communication
+#    - Check that target ports match exposed ports
+#
+# 2. Scrape Intervals:
+#    - Shorter intervals provide more granular data but increase storage
+#    - Consider data retention and storage capacity
+#    - Adjust based on application requirements
+#
+# 3. Service Discovery:
+#    - Static configuration is simple for small deployments
+#    - Use service discovery for dynamic environments
+#    - Docker labels can be used for automated service discovery
+#
+# 4. Security:
+#    - Consider enabling authentication for production deployments
+#    - Use TLS for secure communication
+#    - Implement network policies for access control
+#
+# ==============================================================================

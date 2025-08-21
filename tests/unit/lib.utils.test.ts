@@ -1,9 +1,13 @@
 /**
- * Class Name Utility Function Tests
+ * Class Name Utility Testing Suite
  *
  * Unit tests for the cn (className) utility functions that handle Tailwind CSS
- * class merging and deduplication. Tests both the direct import from utils/cn
- * and the re-export from lib/utils to ensure consistency.
+ * class merging and deduplication. Validates both direct imports and re-exports
+ * to ensure API consistency across different import paths.
+ *
+ * @remarks
+ * The cn utility is built on clsx and tailwind-merge libraries to provide
+ * robust class name merging with Tailwind CSS conflict resolution.
  */
 
 /// <reference types="vitest/globals" />
@@ -24,6 +28,13 @@ describe('cn', () => {
    * Verifies that when conflicting Tailwind classes are provided (like px-2 and px-4),
    * the function keeps the last one (px-4) and removes duplicates. Also tests that
    * falsy values are filtered out and undefined values are handled gracefully.
+   *
+   * @example
+   * ```typescript
+   * // Conflicting classes resolution
+   * cn('px-2', 'px-4', 'text-sm') // Result: 'px-4 text-sm'
+   * cn('bg-red-500', false && 'hidden', 'bg-blue-500') // Result: 'bg-blue-500'
+   * ```
    */
   it('merges class names and dedupes Tailwind variants', () => {
     expect(cn('px-2', 'px-4', false && 'hidden', undefined, 'text-sm')).toBe('px-4 text-sm');

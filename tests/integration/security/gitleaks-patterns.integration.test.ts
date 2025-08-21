@@ -124,45 +124,45 @@ describe('Gitleaks Pattern Simulation Tests', () => {
       'LOG_IP_HASH_SECRET=${SOME_VAR}',
       '${GRAFANA_ADMIN_PASSWORD:-changeme123!}',
 
-      // 設定例
+      // Configuration examples
       'password123',
       'changeme',
       'example.com',
       'localhost',
       'your_api_key',
 
-      // Redis例
+      // Redis examples
       'redis://localhost:6379',
       'redis://new-host:6379',
     ];
 
-    it.each(allowedPatterns)('パターン "%s" は許可される', (pattern) => {
+    it.each(allowedPatterns)('pattern "%s" should be allowed', (pattern) => {
       // このテストは実際のgitleaksツールを使用しないため、
       // パターンの存在確認のみ行う
       expect(pattern).toBeTruthy();
     });
   });
 
-  describe('検出されるべきパターン', () => {
+  describe('Patterns That Should Be Detected', () => {
     const secretPatterns = [
-      // 実際のシークレット（テスト用のダミー値）
+      // Actual secrets (dummy values for testing)
       'LOG_IP_HASH_SECRET=actual-secret-value-here',
       'JWT_SECRET=real-jwt-secret-key',
       'password=supersecret123',
       'api_key=sk-abcd1234567890',
 
-      // AWS キー
+      // AWS keys
       'AKIAIOSFODNN7EXAMPLE',
       'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
 
-      // GitHub トークン
+      // GitHub token
       'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 
-      // API キー
+      // API key
       'AIzaSyDaGmWKa4JsXZ-HjGw7_FLYXxxxxxxxx',
     ];
 
-    it.each(secretPatterns)('パターン "%s" は検出される', (pattern) => {
+    it.each(secretPatterns)('pattern "%s" should be detected', (pattern) => {
       // このテストは実際のgitleaksツールを使用しないため、
       // パターンの形式確認のみ行う
       expect(pattern).toBeTruthy();

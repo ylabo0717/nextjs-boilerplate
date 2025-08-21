@@ -1,8 +1,13 @@
 /**
- * Health API Integration Tests
+ * Health API Integration Testing Suite
  *
- * Tests the /api/health endpoint that provides basic service health status.
- * This endpoint is essential for Docker health checks and monitoring systems.
+ * Integration tests for the /api/health endpoint that provides service health status
+ * and system information. Critical for Docker health checks, Kubernetes probes,
+ * and monitoring system integration in production environments.
+ *
+ * @remarks
+ * These tests validate the health endpoint's contract and ensure it meets
+ * requirements for container orchestration and monitoring systems.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';

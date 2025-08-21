@@ -1,7 +1,8 @@
 /**
- * Metrics API E2E Tests
+ * Metrics API Testing Suite
  *
  * End-to-end tests for OpenTelemetry metrics integration and Prometheus endpoint.
+ * Validates metrics collection, response formats, and monitoring system compatibility.
  */
 
 import { test, expect } from '@playwright/test';
@@ -36,6 +37,19 @@ test.describe('Metrics API', () => {
    * Validates that the response contains all required fields (status, endpoint, format, port, 
    * message, timestamp) with correct data types and valid timestamp format (ISO 8601).
    * This ensures the metrics API provides consistent, parseable data for monitoring systems.
+   *
+   * @example
+   * ```typescript
+   * // Expected metrics response structure
+   * {
+   *   status: 'active',
+   *   endpoint: '/metrics',
+   *   format: 'prometheus',
+   *   port: 9464,
+   *   message: '...',
+   *   timestamp: '2024-01-01T00:00:00.000Z'
+   * }
+   * ```
    */
   test('should return metrics information in correct format', async ({ page }) => {
     const response = await page.request.get('/api/metrics');
@@ -121,6 +135,15 @@ test.describe('Metrics API', () => {
    * Makes concurrent requests to test thread safety and stability under load.
    * Verifies that all requests succeed and return consistent response structure,
    * ensuring the metrics system is reliable under concurrent access patterns.
+   *
+   * @example
+   * ```typescript
+   * // Concurrent request testing pattern
+   * const requests = Array.from({ length: 5 }, () => 
+   *   page.request.get('/api/metrics')
+   * );
+   * const responses = await Promise.all(requests);
+   * ```
    */
   test('should handle concurrent requests properly', async ({ page }) => {
     // Make multiple concurrent requests to test stability

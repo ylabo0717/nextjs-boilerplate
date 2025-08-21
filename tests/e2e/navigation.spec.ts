@@ -1,11 +1,11 @@
 /**
- * Playwright test framework for end-to-end testing
+ * Navigation Testing Suite
+ *
+ * End-to-end tests for application navigation system including links,
+ * routing, and scroll behavior across different user interaction scenarios.
  */
-import { test, expect } from '@playwright/test';
 
-/**
- * Test constants for UI interactions, scroll positions, and test data
- */
+import { test, expect } from '@playwright/test';
 import { UI_WAIT_TIMES, SCROLL_POSITIONS, TEST_DATA } from '../constants/test-constants';
 
 /**
@@ -24,6 +24,12 @@ test.describe('Navigation', () => {
    * Verifies that all external links (`target="_blank"`) include the `rel="noopener noreferrer"`
    * attribute to prevent security vulnerabilities like tabnabbing attacks and to avoid
    * sharing the referrer information with external sites.
+   *
+   * @example
+   * ```html
+   * <!-- Secure external link -->
+   * <a href="https://example.com" target="_blank" rel="noopener noreferrer">External Link</a>
+   * ```
    */
   test('should load external links with correct attributes', async ({ page }) => {
     // Get all external links
@@ -62,6 +68,19 @@ test.describe('Navigation', () => {
    * Creates dynamic scrollable content and verifies that scrolling functions work correctly.
    * This ensures the application provides good user experience with proper scroll handling
    * and doesn't break scrolling functionality during navigation or content updates.
+   *
+   * @example
+   * ```typescript
+   * // Dynamic content creation for scroll testing
+   * await page.evaluate(() => {
+   *   const main = document.querySelector('main');
+   *   for (let i = 0; i < 50; i++) {
+   *     const div = document.createElement('div');
+   *     div.textContent = `Content ${i}`;
+   *     main.appendChild(div);
+   *   }
+   * });
+   * ```
    */
   test('should maintain scroll position on navigation', async ({ page }) => {
     // Add more content to make page scrollable

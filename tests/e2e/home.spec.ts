@@ -1,11 +1,12 @@
 /**
- * Playwright test framework for end-to-end testing
+ * Home Page Testing Suite
+ *
+ * End-to-end tests for the main landing page functionality, content validation,
+ * responsive design, and basic accessibility features. Ensures the application's
+ * entry point works correctly across different devices and user scenarios.
  */
-import { test, expect } from '@playwright/test';
 
-/**
- * Viewport size constants for responsive design testing
- */
+import { test, expect } from '@playwright/test';
 import { VIEWPORT_SIZES } from '../constants/test-constants';
 
 /**

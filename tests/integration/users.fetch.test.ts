@@ -1,9 +1,13 @@
 /**
- * Users API Integration Tests
+ * Users API Integration Testing Suite
  *
  * Integration tests for the /api/users endpoint using Mock Service Worker (MSW)
- * to simulate API responses. Tests the API endpoint functionality, response format,
- * and type safety validation using Zod schemas.
+ * to simulate API responses. Validates API functionality, response format,
+ * and runtime type safety using Zod schema validation patterns.
+ *
+ * @remarks
+ * These tests demonstrate proper API testing patterns with runtime type validation,
+ * ensuring both functional correctness and type safety in API interactions.
  */
 
 /// <reference types="vitest/globals" />
@@ -26,6 +30,15 @@ describe('GET /api/users (mocked)', () => {
    * the response data against the UsersSchema using Zod. This test ensures
    * runtime type safety and validates that the API contract is properly
    * implemented with the expected data structure and types.
+   *
+   * @example
+   * ```typescript
+   * // Zod schema validation pattern
+   * const data = await res.json();
+   * const parseResult = UsersSchema.safeParse(data);
+   * assert(parseResult.success, 'Schema validation should succeed');
+   * const users = parseResult.data; // Now type-safe
+   * ```
    */
   it('returns users from MSW', async () => {
     const res = await fetch('/api/users');

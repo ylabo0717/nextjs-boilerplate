@@ -3,6 +3,11 @@
  *
  * End-to-end tests for the /api/health endpoint, validating it works correctly
  * in a real browser environment for Docker health checks and monitoring.
+ *
+ * @remarks
+ * These tests ensure the health endpoint meets production requirements for
+ * containerized deployments and monitoring systems. Health checks are critical
+ * for Kubernetes liveness/readiness probes and load balancer health routing.
  */
 
 import { test, expect } from '@playwright/test';
@@ -14,6 +19,11 @@ test.describe('Health API E2E', () => {
    * Verifies the /api/health endpoint returns 200 OK status with proper JSON content type.
    * This is essential for Docker health checks and monitoring systems that depend on
    * the health endpoint to determine application availability and readiness.
+   *
+   * @remarks
+   * Docker health checks typically expect HTTP 200 responses to consider a container healthy.
+   * Failure to return proper status codes can cause container orchestration systems
+   * to restart or remove healthy containers.
    */
   test('should respond to health endpoint with success status', async ({ page }) => {
     const response = await page.request.get('/api/health');
@@ -30,6 +40,11 @@ test.describe('Health API E2E', () => {
    * Verifies the response contains status, timestamp, uptime, version, environment, and system
    * information with correct data types. This ensures monitoring systems can reliably parse
    * and use the health data for operational dashboards and alerting.
+   *
+   * @remarks
+   * Structured health responses enable automated monitoring, alerting, and operational
+   * dashboards. The version and environment fields help with deployment tracking
+   * and debugging in multi-environment setups.
    */
   test('should return correct health status format', async ({ page }) => {
     const response = await page.request.get('/api/health');

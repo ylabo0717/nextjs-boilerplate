@@ -1,11 +1,12 @@
 /**
- * Playwright test framework for end-to-end testing
+ * Performance Testing Suite
+ *
+ * End-to-end tests for application performance metrics including Core Web Vitals,
+ * memory usage, image optimization, and load times. Ensures the application meets
+ * performance standards for optimal user experience and SEO rankings.
  */
-import { test, expect } from '@playwright/test';
 
-/**
- * Performance testing constants including network timing, thresholds, and memory conversion utilities
- */
+import { test, expect } from '@playwright/test';
 import {
   NETWORK_WAIT_TIMES,
   PERFORMANCE_THRESHOLDS,
@@ -40,6 +41,15 @@ test.describe('Performance', () => {
    * Measures First Contentful Paint (FCP) and ensures it meets Google's "good" threshold.
    * Core Web Vitals are essential for SEO and user experience, directly impacting
    * search rankings and user satisfaction with page load performance.
+   *
+   * @example
+   * ```typescript
+   * // FCP measurement using PerformanceObserver
+   * new PerformanceObserver((list) => {
+   *   const fcp = list.getEntries().find(e => e.name === 'first-contentful-paint');
+   *   if (fcp) console.log('FCP:', fcp.startTime);
+   * }).observe({ entryTypes: ['paint'] });
+   * ```
    */
   test('should have good Web Vitals metrics', async ({ page }) => {
     await page.goto('/');

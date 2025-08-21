@@ -34,7 +34,7 @@ test.describe('Metrics API', () => {
   /**
    * Tests that the metrics endpoint returns well-structured response data.
    *
-   * Validates that the response contains all required fields (status, endpoint, format, port, 
+   * Validates that the response contains all required fields (status, endpoint, format, port,
    * message, timestamp) with correct data types and valid timestamp format (ISO 8601).
    * This ensures the metrics API provides consistent, parseable data for monitoring systems.
    *
@@ -139,7 +139,7 @@ test.describe('Metrics API', () => {
    * @example
    * ```typescript
    * // Concurrent request testing pattern
-   * const requests = Array.from({ length: 5 }, () => 
+   * const requests = Array.from({ length: 5 }, () =>
    *   page.request.get('/api/metrics')
    * );
    * const responses = await Promise.all(requests);

@@ -83,7 +83,8 @@
       "Bash(docker:*)",
       "Bash(curl:*)",
       "Bash(pnpm docker:monitoring:*)",
-      "WebFetch(domain:hub.docker.com)"
+      "WebFetch(domain:hub.docker.com)",
+      "Bash(find:*)"
     ],
     "deny": [
       "Bash(sudo *)",

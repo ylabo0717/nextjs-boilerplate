@@ -1,0 +1,134 @@
+name: 'Setup Docker Test Environment'
+description: 'Sets up Docker test environment with required configurations'
+author: 'nextjs-boilerplate'
+
+inputs:
+  test-type:
+    description: 'Type of test environment (integration, e2e, unit)'
+    required: true
+    default: 'integration'
+  enable-testcontainers:
+    description: 'Enable Testcontainers support'
+    required: false
+    default: 'false'
+  create-directories:
+    description: 'Create test result directories'
+    required: false
+    default: 'true'
+  node-version:
+    description: 'Node.js version to use'
+    required: false
+    default: '20.x'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: latest
+        run_install: false
+
+    - name: Get pnpm store directory
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+    - name: Setup pnpm cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        driver-opts: network=host
+
+    - name: Create test directories
+      if: inputs.create-directories == 'true'
+      shell: bash
+      run: |
+        echo "📁 Creating test result directories..."
+        mkdir -p test-results
+        mkdir -p coverage
+        mkdir -p playwright-report
+        echo "✅ Test directories created successfully"
+
+    - name: Setup Docker environment variables
+      shell: bash
+      run: |
+        echo "🔧 Setting up Docker environment variables..."
+        echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
+        echo "COMPOSE_DOCKER_CLI_BUILD=1" >> $GITHUB_ENV
+        echo "TESTCONTAINERS_RYUK_DISABLED=true" >> $GITHUB_ENV
+
+        if [ "${{ inputs.enable-testcontainers }}" = "true" ]; then
+          echo "🐳 Enabling Testcontainers configuration..."
+          echo "TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal" >> $GITHUB_ENV
+        fi
+
+        echo "✅ Docker environment configured for ${{ inputs.test-type }} tests"
+
+    - name: Setup environment files
+      shell: bash
+      run: |
+        echo "📋 Setting up environment files..."
+
+        # Copy environment files if they exist
+        if [ -f ".env.base.example" ]; then
+          cp .env.base.example .env.base
+          echo "✅ .env.base created from example"
+        fi
+
+        if [ -f ".env.test.example" ]; then
+          cp .env.test.example .env.test
+          echo "✅ .env.test created from example"
+        fi
+
+        echo "✅ Environment files setup completed"
+
+    - name: Verify Docker setup
+      shell: bash
+      run: |
+        echo "🔍 Verifying Docker setup..."
+        docker --version
+        docker compose --version
+
+        # Check if Docker daemon is running
+        if docker info > /dev/null 2>&1; then
+          echo "✅ Docker daemon is running"
+        else
+          echo "❌ Docker daemon is not running"
+          exit 1
+        fi
+
+        echo "✅ Docker setup verification completed"
+
+    - name: Display configuration summary
+      shell: bash
+      run: |
+        echo "📊 Docker Test Environment Configuration Summary"
+        echo "  Test Type: ${{ inputs.test-type }}"
+        echo "  Testcontainers: ${{ inputs.enable-testcontainers }}"
+        echo "  Create Directories: ${{ inputs.create-directories }}"
+        echo "  Node.js Version: ${{ inputs.node-version }}"
+        echo "  Docker Buildkit: $DOCKER_BUILDKIT"
+        echo "  Compose CLI Build: $COMPOSE_DOCKER_CLI_BUILD"
+        if [ "${{ inputs.enable-testcontainers }}" = "true" ]; then
+          echo "  Testcontainers Host: $TESTCONTAINERS_HOST_OVERRIDE"
+        fi
+        echo "✅ Setup completed successfully"

@@ -1,0 +1,174 @@
+name: 'Docker Cleanup'
+description: 'Cleans up Docker resources including containers, networks, and optionally images'
+author: 'nextjs-boilerplate'
+
+inputs:
+  cleanup-level:
+    description: 'Level of cleanup (basic, moderate, full)'
+    required: false
+    default: 'moderate'
+  compose-file:
+    description: 'Docker Compose file to clean up'
+    required: false
+    default: 'docker-compose.yml'
+  preserve-cache:
+    description: 'Preserve Docker build cache'
+    required: false
+    default: 'true'
+  force-cleanup:
+    description: 'Force cleanup even if containers are running'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Stop and remove containers
+      shell: bash
+      run: |
+        echo "🛑 Stopping and removing containers..."
+
+        if [ -f "${{ inputs.compose-file }}" ]; then
+          echo "📁 Using compose file: ${{ inputs.compose-file }}"
+          
+          # Stop containers gracefully
+          docker compose -f ${{ inputs.compose-file }} down --timeout 30 || true
+          
+          # If force cleanup is enabled, remove containers forcefully
+          if [ "${{ inputs.force-cleanup }}" = "true" ]; then
+            echo "🔨 Force stopping containers..."
+            docker compose -f ${{ inputs.compose-file }} down --timeout 5 || true
+            docker compose -f ${{ inputs.compose-file }} kill || true
+            docker compose -f ${{ inputs.compose-file }} rm -f || true
+          fi
+        else
+          echo "⚠️ Compose file ${{ inputs.compose-file }} not found, skipping compose cleanup"
+        fi
+
+        echo "✅ Container cleanup completed"
+
+    - name: Clean up networks
+      shell: bash
+      run: |
+        echo "🌐 Cleaning up Docker networks..."
+
+        # Remove compose networks
+        if [ -f "${{ inputs.compose-file }}" ]; then
+          docker compose -f ${{ inputs.compose-file }} down --volumes --remove-orphans || true
+        fi
+
+        # Clean up dangling networks
+        DANGLING_NETWORKS=$(docker network ls -q --filter "dangling=true" 2>/dev/null || true)
+        if [ -n "$DANGLING_NETWORKS" ]; then
+          echo "🧹 Removing dangling networks..."
+          echo "$DANGLING_NETWORKS" | xargs -r docker network rm || true
+        fi
+
+        echo "✅ Network cleanup completed"
+
+    - name: Clean up volumes
+      if: inputs.cleanup-level == 'moderate' || inputs.cleanup-level == 'full'
+      shell: bash
+      run: |
+        echo "💾 Cleaning up Docker volumes..."
+
+        # Remove compose volumes
+        if [ -f "${{ inputs.compose-file }}" ]; then
+          docker compose -f ${{ inputs.compose-file }} down --volumes || true
+        fi
+
+        # Clean up dangling volumes (only for moderate and full cleanup)
+        DANGLING_VOLUMES=$(docker volume ls -q --filter "dangling=true" 2>/dev/null || true)
+        if [ -n "$DANGLING_VOLUMES" ]; then
+          echo "🧹 Removing dangling volumes..."
+          echo "$DANGLING_VOLUMES" | xargs -r docker volume rm || true
+        fi
+
+        echo "✅ Volume cleanup completed"
+
+    - name: Clean up images
+      if: inputs.cleanup-level == 'full'
+      shell: bash
+      run: |
+        echo "🖼️ Cleaning up Docker images..."
+
+        # Remove dangling images
+        DANGLING_IMAGES=$(docker images -q --filter "dangling=true" 2>/dev/null || true)
+        if [ -n "$DANGLING_IMAGES" ]; then
+          echo "🧹 Removing dangling images..."
+          echo "$DANGLING_IMAGES" | xargs -r docker rmi || true
+        fi
+
+        # Remove unused images (careful with this in CI)
+        if [ "${{ inputs.force-cleanup }}" = "true" ]; then
+          echo "🔨 Removing unused images..."
+          docker image prune -f || true
+        fi
+
+        echo "✅ Image cleanup completed"
+
+    - name: Clean up build cache
+      if: inputs.preserve-cache == 'false'
+      shell: bash
+      run: |
+        echo "🗂️ Cleaning up Docker build cache..."
+
+        # Remove build cache
+        docker builder prune -f || true
+
+        echo "✅ Build cache cleanup completed"
+
+    - name: System cleanup
+      if: inputs.cleanup-level == 'full'
+      shell: bash
+      run: |
+        echo "🧽 Performing system cleanup..."
+
+        # Clean up system (removes all unused containers, networks, images, and build cache)
+        if [ "${{ inputs.force-cleanup }}" = "true" ]; then
+          docker system prune -a -f --volumes || true
+        else
+          docker system prune -f || true
+        fi
+
+        echo "✅ System cleanup completed"
+
+    - name: Display cleanup summary
+      shell: bash
+      run: |
+        echo "📊 Docker Cleanup Summary"
+        echo "  Cleanup Level: ${{ inputs.cleanup-level }}"
+        echo "  Compose File: ${{ inputs.compose-file }}"
+        echo "  Preserve Cache: ${{ inputs.preserve-cache }}"
+        echo "  Force Cleanup: ${{ inputs.force-cleanup }}"
+
+        echo ""
+        echo "💾 Current Docker Usage:"
+        docker system df 2>/dev/null || echo "Unable to get Docker system info"
+
+        echo ""
+        echo "📋 Remaining Resources:"
+        echo "  Containers: $(docker ps -a -q 2>/dev/null | wc -l || echo '0')"
+        echo "  Images: $(docker images -q 2>/dev/null | wc -l || echo '0')"
+        echo "  Networks: $(docker network ls -q 2>/dev/null | wc -l || echo '0')"
+        echo "  Volumes: $(docker volume ls -q 2>/dev/null | wc -l || echo '0')"
+
+        echo "✅ Cleanup completed successfully"
+
+    - name: Verify cleanup
+      shell: bash
+      run: |
+        echo "🔍 Verifying cleanup results..."
+
+        # Check if any containers from the compose file are still running
+        if [ -f "${{ inputs.compose-file }}" ]; then
+          RUNNING_CONTAINERS=$(docker compose -f ${{ inputs.compose-file }} ps -q 2>/dev/null || true)
+          if [ -n "$RUNNING_CONTAINERS" ]; then
+            echo "⚠️ Some containers are still running:"
+            docker compose -f ${{ inputs.compose-file }} ps
+          else
+            echo "✅ No containers from ${{ inputs.compose-file }} are running"
+          fi
+        fi
+
+        echo "✅ Cleanup verification completed"

@@ -1,6 +1,6 @@
 /**
  * Measure Metrics Script Tests
- * 
+ *
  * Unit tests for the measure-metrics script that collects and analyzes
  * code quality metrics including bundle size, build times, and performance
  * measurements. Tests script functionality and error handling.
@@ -24,9 +24,10 @@ vi.spyOn(process, 'exit').mockImplementation((code) => {
 import { measureMetrics } from '../../scripts/measure-metrics';
 
 /**
- * メトリクス測定機能のテストスイート
- * scripts/measure-metrics.tsのmeasureMetrics関数が
- * ビルド時間、テスト実行時間、バンドルサイズの測定を正しく行うことを検証
+ * Metrics Measurement Function Test Suite
+ *
+ * Verifies that the measureMetrics function in scripts/measure-metrics.ts
+ * correctly measures build time, test execution time, and bundle size.
  */
 describe('measure-metrics', () => {
   const PNPM_BUILD_COMMAND = 'pnpm build';

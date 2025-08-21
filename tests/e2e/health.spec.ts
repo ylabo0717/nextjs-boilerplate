@@ -10,7 +10,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Health API E2E', () => {
   /**
    * Tests that the health endpoint responds with correct HTTP status and content type.
-   * 
+   *
    * Verifies the /api/health endpoint returns 200 OK status with proper JSON content type.
    * This is essential for Docker health checks and monitoring systems that depend on
    * the health endpoint to determine application availability and readiness.
@@ -26,7 +26,7 @@ test.describe('Health API E2E', () => {
 
   /**
    * Tests that the health endpoint returns a well-structured response with all required fields.
-   * 
+   *
    * Verifies the response contains status, timestamp, uptime, version, environment, and system
    * information with correct data types. This ensures monitoring systems can reliably parse
    * and use the health data for operational dashboards and alerting.
@@ -56,7 +56,7 @@ test.describe('Health API E2E', () => {
 
   /**
    * Tests that the health endpoint can handle multiple simultaneous requests reliably.
-   * 
+   *
    * Makes 10 concurrent requests to simulate real-world monitoring scenarios where
    * multiple systems may check health simultaneously. Ensures the endpoint remains
    * stable and consistent under concurrent load without race conditions or failures.
@@ -91,7 +91,7 @@ test.describe('Health API E2E', () => {
 
   /**
    * Tests that the health endpoint meets performance requirements for monitoring systems.
-   * 
+   *
    * Verifies response times stay under 500ms, which is critical for monitoring systems
    * that perform frequent health checks. Fast response times prevent monitoring timeouts
    * and reduce the overhead of health checking on application performance.
@@ -110,7 +110,7 @@ test.describe('Health API E2E', () => {
 
   /**
    * Tests that the health endpoint works with Docker health check user agents.
-   * 
+   *
    * Verifies the endpoint responds correctly to requests from Docker's built-in
    * health check mechanism. This ensures containerized deployments can properly
    * monitor application health using Docker's native health check functionality.
@@ -130,7 +130,7 @@ test.describe('Health API E2E', () => {
 
   /**
    * Tests that the health endpoint works with various monitoring system user agents.
-   * 
+   *
    * Verifies compatibility with common monitoring tools (Prometheus, Grafana, Kubernetes, curl)
    * by testing different user agent headers. This ensures the health endpoint works reliably
    * across diverse monitoring and observability toolchains in production environments.
@@ -159,7 +159,7 @@ test.describe('Health API E2E', () => {
 
   /**
    * Tests that the health endpoint properly handles HEAD requests for efficient health checks.
-   * 
+   *
    * Verifies the endpoint responds appropriately to HEAD requests, which allow monitoring
    * systems to check availability without downloading the full response body.
    * This enables more efficient health checking with reduced bandwidth usage.
@@ -175,7 +175,7 @@ test.describe('Health API E2E', () => {
 
   /**
    * Tests that the health endpoint is available immediately after application startup.
-   * 
+   *
    * Verifies the health endpoint works correctly after the main application has loaded,
    * ensuring proper initialization order and that health checks don't fail during
    * application warm-up periods in production deployments.
@@ -196,7 +196,7 @@ test.describe('Health API E2E', () => {
 
   /**
    * Tests that the health endpoint remains stable during various application states.
-   * 
+   *
    * Navigates through different pages (including non-existent ones) and verifies
    * the health endpoint continues to function correctly. This ensures the health
    * check system is resilient and doesn't break during normal application usage patterns.
@@ -229,7 +229,7 @@ test.describe('Health API E2E', () => {
 
   /**
    * Tests that the health endpoint handles requests with different HTTP headers correctly.
-   * 
+   *
    * Tests various header combinations (Accept, Cache-Control, X-Forwarded-For, X-Real-IP)
    * commonly used in production environments with load balancers and proxies.
    * This ensures the health endpoint works reliably in complex deployment architectures.
@@ -268,7 +268,7 @@ test.describe('Health API E2E', () => {
 
   /**
    * Tests that the health endpoint maintains consistent performance under repeated usage.
-   * 
+   *
    * Makes multiple sequential requests and measures response times to ensure performance
    * doesn't degrade over time. Consistent performance is critical for monitoring systems
    * that make frequent health check requests throughout application lifecycle.
@@ -301,7 +301,7 @@ test.describe('Health API E2E', () => {
 
   /**
    * Tests that the health endpoint functions correctly in realistic production scenarios.
-   * 
+   *
    * Simulates production conditions by making requests after full page loads and other
    * API calls. Verifies the health endpoint works reliably when the application is under
    * normal operational load and returns properly structured responses with correct headers.

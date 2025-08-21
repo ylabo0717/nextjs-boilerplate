@@ -21,7 +21,7 @@ describe('Health API Integration Tests', () => {
   describe('GET /api/health', () => {
     /**
      * Tests that the health endpoint returns successful HTTP status.
-     * 
+     *
      * Verifies the GET /api/health endpoint responds with 200 OK status,
      * which is essential for Docker health checks and monitoring systems
      * to determine that the application is running and responsive.
@@ -34,7 +34,7 @@ describe('Health API Integration Tests', () => {
 
     /**
      * Tests that the health endpoint returns a properly structured JSON response.
-     * 
+     *
      * Verifies the response contains all required fields (status, timestamp, uptime,
      * version, environment, system metrics) with correct data types. This ensures
      * monitoring systems can reliably parse and use the health data.
@@ -63,7 +63,7 @@ describe('Health API Integration Tests', () => {
 
     /**
      * Tests that the health endpoint sets appropriate HTTP content-type header.
-     * 
+     *
      * Verifies the response includes 'application/json' content-type header,
      * enabling monitoring systems and Docker health checks to properly parse
      * the response body as JSON data.
@@ -76,7 +76,7 @@ describe('Health API Integration Tests', () => {
 
     /**
      * Tests that the health endpoint handles concurrent requests without issues.
-     * 
+     *
      * Makes 10 simultaneous requests to verify thread safety and stability under load.
      * This ensures the health check system remains reliable when multiple monitoring
      * systems or Docker health checks access the endpoint simultaneously.
@@ -103,7 +103,7 @@ describe('Health API Integration Tests', () => {
 
     /**
      * Tests that the health endpoint meets performance requirements for monitoring systems.
-     * 
+     *
      * Measures response time and ensures it stays under 100ms for optimal monitoring
      * efficiency. Fast health checks are critical to prevent monitoring timeouts
      * and reduce operational overhead in production environments.
@@ -120,7 +120,7 @@ describe('Health API Integration Tests', () => {
 
     /**
      * Tests that the health endpoint works with different HTTP headers from monitoring tools.
-     * 
+     *
      * Verifies compatibility with headers commonly sent by Docker health checks,
      * load balancers, and monitoring systems. This ensures the endpoint works
      * reliably across diverse production deployment architectures.
@@ -144,7 +144,7 @@ describe('Health API Integration Tests', () => {
 
     /**
      * Tests that the health endpoint meets Docker health check requirements.
-     * 
+     *
      * Verifies the endpoint returns the 200 status and valid JSON that Docker
      * expects for determining container health. This enables proper container
      * orchestration and automatic container restart on health check failures.
@@ -164,7 +164,7 @@ describe('Health API Integration Tests', () => {
 
     /**
      * Tests that the health endpoint integrates properly with monitoring systems.
-     * 
+     *
      * Verifies the endpoint provides the status information and content-type headers
      * that monitoring tools (Prometheus, Grafana, etc.) expect for service health
      * monitoring and alerting in production environments.
@@ -186,7 +186,7 @@ describe('Health API Integration Tests', () => {
   describe('Health Check Reliability', () => {
     /**
      * Tests that the health endpoint provides consistent responses across multiple requests.
-     * 
+     *
      * Makes 5 sequential requests and verifies each returns the same structure and status.
      * This ensures the health endpoint is reliable and stateless, providing consistent
      * information for monitoring systems regardless of request timing.
@@ -223,7 +223,7 @@ describe('Health API Integration Tests', () => {
 
     /**
      * Tests that the health endpoint is stateless and has no side effects.
-     * 
+     *
      * Verifies that multiple requests don't affect each other and return consistent
      * static information (version, environment, PID, Node.js version). This ensures
      * the health check doesn't alter application state or consume resources.
@@ -251,7 +251,7 @@ describe('Health API Integration Tests', () => {
   describe('Enhanced Health Information', () => {
     /**
      * Tests that the health endpoint includes comprehensive system information.
-     * 
+     *
      * Verifies the response contains memory metrics, process ID, and Node.js version
      * in the expected format. This information helps monitoring systems understand
      * resource usage and system state for operational visibility.
@@ -268,7 +268,7 @@ describe('Health API Integration Tests', () => {
 
     /**
      * Tests that the health endpoint includes appropriate caching headers.
-     * 
+     *
      * Verifies cache control headers prevent caching of health data, ensuring
      * monitoring systems always receive fresh, real-time health information
      * rather than stale cached responses.
@@ -283,7 +283,7 @@ describe('Health API Integration Tests', () => {
 
     /**
      * Tests that the health endpoint includes a valid and current timestamp.
-     * 
+     *
      * Verifies the timestamp is properly formatted, parseable as a Date,
      * and represents recent time (within 5 seconds). This helps monitoring
      * systems track when health information was generated.
@@ -299,7 +299,7 @@ describe('Health API Integration Tests', () => {
 
     /**
      * Tests that the health endpoint includes accurate process uptime information.
-     * 
+     *
      * Verifies uptime is a non-negative number representing how long the
      * application has been running. This metric helps monitoring systems
      * track application stability and restart frequency.
@@ -314,7 +314,7 @@ describe('Health API Integration Tests', () => {
 
     /**
      * Tests that the health endpoint includes valid environment information.
-     * 
+     *
      * Verifies the environment field contains a recognized value (development, test,
      * or production). This helps monitoring systems differentiate between
      * different deployment environments for proper alerting and routing.
@@ -331,7 +331,7 @@ describe('Health API Integration Tests', () => {
   describe('Error Handling', () => {
     /**
      * Tests that the health endpoint gracefully handles unusual or unexpected parameters.
-     * 
+     *
      * Verifies the endpoint ignores query parameters and still returns a valid
      * health response. This ensures robustness when monitoring systems send
      * extra parameters or malformed requests.
@@ -354,7 +354,7 @@ describe('Health API Integration Tests', () => {
 
     /**
      * Tests that the health endpoint handles malformed or empty headers without errors.
-     * 
+     *
      * Verifies the endpoint still returns a valid health response even when
      * receiving requests with malformed headers. This ensures the health check
      * remains reliable even in edge cases or when facing unusual client behavior.

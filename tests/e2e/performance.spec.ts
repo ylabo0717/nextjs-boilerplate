@@ -20,7 +20,7 @@ import {
 test.describe('Performance', () => {
   /**
    * Tests that the home page loads within acceptable performance thresholds.
-   * 
+   *
    * Measures the time from navigation start to page load completion and ensures
    * it meets performance standards. Fast page load times are crucial for user
    * experience, SEO rankings, and reducing bounce rates.
@@ -36,7 +36,7 @@ test.describe('Performance', () => {
 
   /**
    * Tests that the application meets Core Web Vitals performance standards.
-   * 
+   *
    * Measures First Contentful Paint (FCP) and ensures it meets Google's "good" threshold.
    * Core Web Vitals are essential for SEO and user experience, directly impacting
    * search rankings and user satisfaction with page load performance.
@@ -85,7 +85,7 @@ test.describe('Performance', () => {
 
   /**
    * Tests that the application doesn't have memory leaks during normal usage.
-   * 
+   *
    * Performs multiple page reloads and monitors JavaScript heap usage to ensure
    * memory consumption doesn't grow excessively. Memory leaks can cause performance
    * degradation and application crashes in long-running sessions.
@@ -132,7 +132,7 @@ test.describe('Performance', () => {
 
   /**
    * Tests that images are properly optimized for performance and accessibility.
-   * 
+   *
    * Verifies that images use appropriate loading strategies (lazy/eager) and have
    * alt text for accessibility. Proper image optimization reduces bandwidth usage,
    * improves load times, and ensures the application is accessible to all users.

@@ -1,6 +1,6 @@
 /**
  * Users API Integration Tests
- * 
+ *
  * Integration tests for the /api/users endpoint using Mock Service Worker (MSW)
  * to simulate API responses. Tests the API endpoint functionality, response format,
  * and type safety validation using Zod schemas.
@@ -13,7 +13,7 @@ import { UsersSchema } from '@/types/user';
 
 /**
  * Test suite for the GET /api/users endpoint with mocked responses.
- * 
+ *
  * Uses MSW (Mock Service Worker) to simulate API responses and validates
  * both the HTTP response and the data structure using Zod schema validation.
  * This ensures type safety and proper API contract compliance.
@@ -21,7 +21,7 @@ import { UsersSchema } from '@/types/user';
 describe('GET /api/users (mocked)', () => {
   /**
    * Tests that the users endpoint returns valid data with proper type validation.
-   * 
+   *
    * Verifies the /api/users endpoint returns successful response and validates
    * the response data against the UsersSchema using Zod. This test ensures
    * runtime type safety and validates that the API contract is properly

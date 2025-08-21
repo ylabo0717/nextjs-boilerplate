@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Metrics API', () => {
   /**
    * Tests that the metrics endpoint responds with correct HTTP status and content type.
-   * 
+   *
    * Verifies that the /api/metrics endpoint returns a 200 OK status and proper JSON
    * content type, ensuring the metrics collection system is functioning correctly
    * for monitoring and observability purposes.
@@ -32,7 +32,7 @@ test.describe('Metrics API', () => {
 
   /**
    * Tests that the metrics endpoint returns well-structured response data.
-   * 
+   *
    * Validates that the response contains all required fields (status, endpoint, format, port, 
    * message, timestamp) with correct data types and valid timestamp format (ISO 8601).
    * This ensures the metrics API provides consistent, parseable data for monitoring systems.
@@ -55,7 +55,7 @@ test.describe('Metrics API', () => {
 
   /**
    * Tests that the metrics endpoint properly handles HEAD requests for lightweight health checks.
-   * 
+   *
    * Verifies that HEAD requests return appropriate status and cache control headers without
    * response body, allowing monitoring systems to perform efficient health checks without
    * downloading the full metrics payload.
@@ -73,7 +73,7 @@ test.describe('Metrics API', () => {
 
   /**
    * Tests that the metrics endpoint includes appropriate cache control headers.
-   * 
+   *
    * Verifies that cache headers (no-store, no-cache, must-revalidate) are set correctly
    * to prevent caching of metrics data, ensuring monitoring systems always receive
    * fresh, real-time metrics information.
@@ -89,7 +89,7 @@ test.describe('Metrics API', () => {
 
   /**
    * Tests that the metrics system continues to function after various page interactions.
-   * 
+   *
    * Performs multiple page navigations and verifies that the metrics endpoint remains
    * responsive and functional. This ensures the metrics collection system is robust
    * and doesn't break during normal application usage patterns.
@@ -117,7 +117,7 @@ test.describe('Metrics API', () => {
 
   /**
    * Tests that the metrics endpoint handles multiple simultaneous requests correctly.
-   * 
+   *
    * Makes concurrent requests to test thread safety and stability under load.
    * Verifies that all requests succeed and return consistent response structure,
    * ensuring the metrics system is reliable under concurrent access patterns.
@@ -145,7 +145,7 @@ test.describe('Metrics API', () => {
 
   /**
    * Tests that the metrics endpoint meets performance requirements for monitoring systems.
-   * 
+   *
    * Measures response time and ensures it stays under acceptable thresholds (1 second).
    * Fast response times are critical for monitoring systems that may query metrics
    * frequently without impacting application performance.

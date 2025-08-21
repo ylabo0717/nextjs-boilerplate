@@ -1,3 +1,11 @@
+/**
+ * Measure Metrics Script Tests
+ * 
+ * Unit tests for the measure-metrics script that collects and analyzes
+ * code quality metrics including bundle size, build times, and performance
+ * measurements. Tests script functionality and error handling.
+ */
+
 import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 

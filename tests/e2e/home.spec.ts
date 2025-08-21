@@ -14,6 +14,13 @@ import { VIEWPORT_SIZES } from '../constants/test-constants';
  * Validates core elements and user interactions on the home page
  */
 test.describe('Home Page', () => {
+  /**
+   * Tests that the home page loads successfully with correct title and main content.
+   * 
+   * Verifies the page title matches expectations and the main content area is visible.
+   * This is a fundamental smoke test ensuring the application's entry point works correctly
+   * and basic Next.js routing and metadata configuration are functioning properly.
+   */
   test('should display the home page', async ({ page }) => {
     await page.goto('/');
 
@@ -29,6 +36,13 @@ test.describe('Home Page', () => {
     await expect(main).toBeVisible();
   });
 
+  /**
+   * Tests that essential HTML meta tags are properly configured for SEO and mobile optimization.
+   * 
+   * Verifies viewport and description meta tags have correct attributes for responsive design
+   * and search engine optimization. Proper meta tags are crucial for SEO rankings
+   * and ensuring the application displays correctly on mobile devices.
+   */
   test('should have correct meta tags', async ({ page }) => {
     await page.goto('/');
 
@@ -44,6 +58,13 @@ test.describe('Home Page', () => {
     );
   });
 
+  /**
+   * Tests that documentation links are properly configured for external navigation.
+   * 
+   * Verifies that links to Next.js documentation have correct href attributes pointing
+   * to nextjs.org and open in new tabs for better user experience. This ensures
+   * users can access documentation without leaving the application.
+   */
   test('should navigate to Next.js docs when clicking the first card', async ({ page }) => {
     await page.goto('/');
 
@@ -61,6 +82,13 @@ test.describe('Home Page', () => {
     }
   });
 
+  /**
+   * Tests that the application's responsive design works across different viewport sizes.
+   * 
+   * Verifies that main content remains visible and properly displayed on both desktop
+   * and mobile viewports. Responsive design ensures the application provides
+   * a good user experience across all device types and screen sizes.
+   */
   test('should have responsive design', async ({ page }) => {
     // Test desktop view
     await page.setViewportSize(VIEWPORT_SIZES.DESKTOP);
@@ -74,6 +102,13 @@ test.describe('Home Page', () => {
     await expect(mainContent).toBeVisible();
   });
 
+  /**
+   * Tests that the application supports basic keyboard accessibility navigation.
+   * 
+   * Verifies that keyboard navigation (Tab key) works and elements can receive focus.
+   * This is a basic accessibility test ensuring the application is usable by people
+   * who rely on keyboard navigation due to motor disabilities or assistive technologies.
+   */
   test('should have accessible elements', async ({ page }) => {
     await page.goto('/');
 

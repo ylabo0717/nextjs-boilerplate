@@ -18,6 +18,13 @@ test.describe('Navigation', () => {
     await page.goto('/');
   });
 
+  /**
+   * Tests that external links have proper security attributes for safe navigation.
+   * 
+   * Verifies that all external links (`target="_blank"`) include the `rel="noopener noreferrer"`
+   * attribute to prevent security vulnerabilities like tabnabbing attacks and to avoid
+   * sharing the referrer information with external sites.
+   */
   test('should load external links with correct attributes', async ({ page }) => {
     // Get all external links
     const externalLinks = page.locator('a[target="_blank"]');
@@ -33,6 +40,13 @@ test.describe('Navigation', () => {
     }
   });
 
+  /**
+   * Tests that the application handles non-existent routes with appropriate responses.
+   * 
+   * Verifies that navigating to a non-existent page returns either a 200 status
+   * (for client-side routing) or 404 status (for server-side rendering), ensuring
+   * the application doesn't crash on invalid routes and provides proper error handling.
+   */
   test('should handle 404 pages gracefully', async ({ page }) => {
     // Navigate to a non-existent page
     const response = await page.goto('/non-existent-page');
@@ -42,6 +56,13 @@ test.describe('Navigation', () => {
     expect([200, 404]).toContain(response?.status());
   });
 
+  /**
+   * Tests that the application properly handles page scrolling and maintains scroll behavior.
+   * 
+   * Creates dynamic scrollable content and verifies that scrolling functions work correctly.
+   * This ensures the application provides good user experience with proper scroll handling
+   * and doesn't break scrolling functionality during navigation or content updates.
+   */
   test('should maintain scroll position on navigation', async ({ page }) => {
     // Add more content to make page scrollable
     await page.evaluate(

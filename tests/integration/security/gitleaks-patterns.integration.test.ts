@@ -1,7 +1,9 @@
 /**
- * Gitleaksパターンテスト
+ * Gitleaks Secret Scanning Pattern Tests
  *
- * 改善されたシークレットスキャニングパターンが正しく動作することを検証
+ * Integration tests that verify improved secret scanning patterns work correctly
+ * in the .gitleaks.toml configuration. These tests ensure that secret detection
+ * rules properly identify sensitive data while avoiding false positives.
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -16,17 +18,31 @@ describe('Gitleaks Secret Scanning Patterns', () => {
     gitleaksContent = readFileSync(gitleaksPath, 'utf-8');
   });
 
-  describe('環境変数参照パターンの検証', () => {
-    it('Docker Compose環境変数展開パターンが含まれている', () => {
-      // LOG_IP_HASH_SECRET関連
+  /**
+   * Test suite for validating environment variable reference patterns.
+   * 
+   * These tests verify that the Gitleaks configuration correctly identifies
+   * environment variable patterns used in Docker Compose and other deployment
+   * configurations to prevent accidental exposure of sensitive values.
+   */
+  describe('Environment Variable Reference Pattern Validation', () => {
+    /**
+     * Tests that Docker Compose environment variable expansion patterns are included in Gitleaks config.
+     * 
+     * Verifies that the .gitleaks.toml file contains proper regex patterns to detect
+     * Docker Compose variable expansion syntax (${VARIABLE_NAME}) for sensitive
+     * environment variables like secrets, passwords, and API keys.
+     */
+    it('should include Docker Compose environment variable expansion patterns', () => {
+      // LOG_IP_HASH_SECRET patterns
       expect(gitleaksContent).toContain('\\$\\{LOG_IP_HASH_SECRET\\}');
       expect(gitleaksContent).toContain('LOG_IP_HASH_SECRET=\\$\\{.*\\}');
 
-      // JWT_SECRET関連
+      // JWT_SECRET patterns
       expect(gitleaksContent).toContain('\\$\\{JWT_SECRET\\}');
       expect(gitleaksContent).toContain('JWT_SECRET=\\$\\{.*\\}');
 
-      // LOKI認証関連
+      // LOKI authentication patterns
       expect(gitleaksContent).toContain('\\$\\{LOKI_PASSWORD\\}');
       expect(gitleaksContent).toContain('\\$\\{LOKI_USERNAME\\}');
 

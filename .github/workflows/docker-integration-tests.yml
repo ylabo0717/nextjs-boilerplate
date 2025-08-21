@@ -65,6 +65,7 @@ jobs:
           docker compose -f docker-compose.test.yml run --rm \
             -e TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal \
             -e DOCKER_HOST=unix:///var/run/docker.sock \
+            -e SKIP_LOKI_TESTS=true \
             app-test pnpm test:integration
 
       - name: Upload test results

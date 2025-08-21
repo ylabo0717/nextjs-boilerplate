@@ -99,15 +99,15 @@ jobs:
           enable-testcontainers: 'false'
           create-directories: 'true'
 
-      - name: Build test image
+      - name: Build E2E test image
         run: |
-          echo "🔨 Building Docker test image for E2E tests..."
-          docker compose -f docker-compose.test.yml build app-test
+          echo "🔨 Building Docker E2E test image..."
+          docker compose -f docker-compose.test.yml build playwright
 
       - name: Install Playwright browsers
         run: |
           echo "📦 Installing Playwright browsers in Docker..."
-          docker compose -f docker-compose.test.yml run --rm app-test \
+          docker compose -f docker-compose.test.yml run --rm --user root playwright \
             pnpm playwright install --with-deps ${{ matrix.browser }}
 
       - name: Run E2E Tests
@@ -116,7 +116,7 @@ jobs:
           docker compose -f docker-compose.test.yml run --rm \
             -e BASE_URL=http://app-server:3000 \
             -e PLAYWRIGHT_SKIP_WEBSERVER=true \
-            app-test pnpm playwright test \
+            playwright pnpm playwright test \
             --config=playwright.docker.config.ts \
             --project=${{ matrix.browser }}
 

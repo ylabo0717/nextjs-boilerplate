@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { TEST_TIMEOUTS, WEBSERVER_TIMEOUT } from './tests/constants/test-constants';
+import { TEST_TIMEOUTS, WEBSERVER_TIMEOUT } from '../tests/constants/test-constants';
 
 /**
  * Playwright configuration for Docker environment

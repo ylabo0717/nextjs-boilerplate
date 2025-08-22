@@ -3,7 +3,8 @@
  * セキュリティクリティカルな機能を含む
  */
 
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
+
 import { LogLevel, LOG_LEVELS, BaseProperties, SEVERITY_NUMBERS } from './types';
 
 /**

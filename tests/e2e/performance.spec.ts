@@ -1,11 +1,12 @@
 /**
- * Playwright test framework for end-to-end testing
+ * Performance Testing Suite
+ *
+ * End-to-end tests for application performance metrics including Core Web Vitals,
+ * memory usage, image optimization, and load times. Ensures the application meets
+ * performance standards for optimal user experience and SEO rankings.
  */
-import { test, expect } from '@playwright/test';
 
-/**
- * Performance testing constants including network timing, thresholds, and memory conversion utilities
- */
+import { test, expect } from '@playwright/test';
 import {
   NETWORK_WAIT_TIMES,
   PERFORMANCE_THRESHOLDS,
@@ -18,6 +19,13 @@ import {
  * Ensures the application meets performance standards and provides a fast user experience
  */
 test.describe('Performance', () => {
+  /**
+   * Tests that the home page loads within acceptable performance thresholds.
+   *
+   * Measures the time from navigation start to page load completion and ensures
+   * it meets performance standards. Fast page load times are crucial for user
+   * experience, SEO rankings, and reducing bounce rates.
+   */
   test('should load the home page within acceptable time', async ({ page }) => {
     const startTime = Date.now();
     await page.goto('/');
@@ -27,6 +35,22 @@ test.describe('Performance', () => {
     expect(loadTime).toBeLessThan(NETWORK_WAIT_TIMES.API_RESPONSE);
   });
 
+  /**
+   * Tests that the application meets Core Web Vitals performance standards.
+   *
+   * Measures First Contentful Paint (FCP) and ensures it meets Google's "good" threshold.
+   * Core Web Vitals are essential for SEO and user experience, directly impacting
+   * search rankings and user satisfaction with page load performance.
+   *
+   * @example
+   * ```typescript
+   * // FCP measurement using PerformanceObserver
+   * new PerformanceObserver((list) => {
+   *   const fcp = list.getEntries().find(e => e.name === 'first-contentful-paint');
+   *   if (fcp) console.log('FCP:', fcp.startTime);
+   * }).observe({ entryTypes: ['paint'] });
+   * ```
+   */
   test('should have good Web Vitals metrics', async ({ page }) => {
     await page.goto('/');
 
@@ -69,6 +93,13 @@ test.describe('Performance', () => {
     expect(fcpMetric as number).toBeLessThan(PERFORMANCE_THRESHOLDS.FCP_GOOD);
   });
 
+  /**
+   * Tests that the application doesn't have memory leaks during normal usage.
+   *
+   * Performs multiple page reloads and monitors JavaScript heap usage to ensure
+   * memory consumption doesn't grow excessively. Memory leaks can cause performance
+   * degradation and application crashes in long-running sessions.
+   */
   test('should not have memory leaks on navigation', async ({ page }) => {
     await page.goto('/');
 
@@ -109,6 +140,13 @@ test.describe('Performance', () => {
     }
   });
 
+  /**
+   * Tests that images are properly optimized for performance and accessibility.
+   *
+   * Verifies that images use appropriate loading strategies (lazy/eager) and have
+   * alt text for accessibility. Proper image optimization reduces bandwidth usage,
+   * improves load times, and ensures the application is accessible to all users.
+   */
   test('should have optimized images', async ({ page }) => {
     await page.goto('/');
 

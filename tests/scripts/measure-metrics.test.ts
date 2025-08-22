@@ -1,3 +1,11 @@
+/**
+ * Measure Metrics Script Tests
+ *
+ * Unit tests for the measure-metrics script that collects and analyzes
+ * code quality metrics including bundle size, build times, and performance
+ * measurements. Tests script functionality and error handling.
+ */
+
 import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 
@@ -16,9 +24,10 @@ vi.spyOn(process, 'exit').mockImplementation((code) => {
 import { measureMetrics } from '../../scripts/measure-metrics';
 
 /**
- * メトリクス測定機能のテストスイート
- * scripts/measure-metrics.tsのmeasureMetrics関数が
- * ビルド時間、テスト実行時間、バンドルサイズの測定を正しく行うことを検証
+ * Metrics Measurement Function Test Suite
+ *
+ * Verifies that the measureMetrics function in scripts/measure-metrics.ts
+ * correctly measures build time, test execution time, and bundle size.
  */
 describe('measure-metrics', () => {
   const PNPM_BUILD_COMMAND = 'pnpm build';
@@ -34,8 +43,10 @@ describe('measure-metrics', () => {
 
   describe('measureMetrics', () => {
     /**
-     * すべてのメトリクス測定が正常に完了するケースを検証
-     * ビルド、テスト、バンドルサイズを測定し、metricsフォルダに保存されることを確認
+     * Tests that all metrics measurement processes complete successfully.
+     *
+     * Verifies that build, test, and bundle size measurements are performed
+     * and the results are saved to the metrics folder.
      */
     it('should successfully measure all metrics', async () => {
       // Mock successful build output
@@ -75,8 +86,10 @@ describe('measure-metrics', () => {
     });
 
     /**
-     * ビルドコマンドが失敗した場合のエラーハンドリングを検証
-     * process.exit(1)が呼ばれ、適切なエラーメッセージが出力されることを確認
+     * Tests error handling when the build command fails.
+     *
+     * Verifies that process.exit(1) is called and an appropriate error
+     * message is output when build execution fails.
      */
     it('should handle build failure', async () => {
       vi.mocked(execSync).mockImplementation(() => {
@@ -90,8 +103,10 @@ describe('measure-metrics', () => {
     });
 
     /**
-     * --buildフラグ指定時、ビルド時間のみを測定することを検証
-     * テストやバンドルサイズの測定はスキップされることを確認
+     * Tests that only build time is measured when the --build flag is specified.
+     *
+     * Verifies that test and bundle size measurements are skipped when using
+     * the build-only flag option.
      */
     it('should measure only build time with --build flag', async () => {
       process.argv = ['node', 'test.js', '--build'];
@@ -122,8 +137,10 @@ describe('measure-metrics', () => {
     });
 
     /**
-     * --testフラグ指定時、テスト実行時間のみを測定することを検証
-     * ビルドやバンドルサイズの測定はスキップされることを確認
+     * Tests that only test execution time is measured when the --test flag is specified.
+     *
+     * Verifies that build and bundle size measurements are skipped when using
+     * the test-only flag option.
      */
     it('should measure only test time with --test flag', async () => {
       process.argv = ['node', 'test.js', '--test'];
@@ -146,8 +163,10 @@ describe('measure-metrics', () => {
     });
 
     /**
-     * --bundleフラグ指定時、バンドルサイズのみを測定することを検証
-     * .nextフォルダ内のファイルサイズを再帰的に計算することを確認
+     * Tests that only bundle size is measured when the --bundle flag is specified.
+     *
+     * Verifies that file sizes within the .next folder are calculated recursively
+     * when using the bundle-only flag option.
      */
     it('should measure bundle size with --bundle flag', async () => {
       process.argv = ['node', 'test.js', '--bundle'];

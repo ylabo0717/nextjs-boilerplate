@@ -1,21 +1,15 @@
 /**
- * Playwright test framework for end-to-end testing
+ * Accessibility Testing Suite
+ *
+ * End-to-end tests for WCAG compliance and accessibility standards.
+ * Uses Playwright and Axe-core for automated accessibility testing across
+ * all application pages and components.
  */
+
 import { AxeBuilder } from '@axe-core/playwright';
 import { test, expect } from '@playwright/test';
-
-/**
- * Accessibility test configuration constants
- */
 import { SUPPORTED_LOCALES, isValidLanguageCode } from '@/constants';
-
 import { ACCESSIBILITY_TEST } from '../constants/test-constants';
-/**
- * Localization constants and utilities from the application
- */
-/**
- * Axe accessibility testing library for automated accessibility checks
- */
 
 /**
  * Accessibility test suite
@@ -23,6 +17,18 @@ import { ACCESSIBILITY_TEST } from '../constants/test-constants';
  * Ensures the application is usable by people with disabilities
  */
 test.describe('Accessibility', () => {
+  /**
+   * Tests that the application meets WCAG 2.0 and 2.1 accessibility standards.
+   *
+   * Uses Axe accessibility testing library to automatically detect violations
+   * of WCAG 2A and 2AA guidelines. This ensures the application is usable
+   * by people with disabilities and meets legal accessibility requirements.
+   *
+   * @remarks
+   * Automated accessibility testing catches approximately 30-40% of accessibility
+   * issues. Manual testing and screen reader testing are still necessary for
+   * comprehensive accessibility validation.
+   */
   test('should not have any automatically detectable accessibility issues', async ({ page }) => {
     await page.goto('/');
 
@@ -33,6 +39,18 @@ test.describe('Accessibility', () => {
     expect(accessibilityScanResults.violations).toEqual([]);
   });
 
+  /**
+   * Tests that the page has a logical and accessible heading hierarchy.
+   *
+   * Verifies there is exactly one H1 element per page and that heading levels
+   * don't skip (e.g., H1 → H3 without H2). Proper heading structure is essential
+   * for screen readers and helps users navigate content effectively.
+   *
+   * @remarks
+   * Heading structure is one of the most important accessibility features.
+   * Screen reader users often navigate by headings, making proper hierarchy
+   * critical for content comprehension and efficient navigation.
+   */
   test('should have proper heading structure', async ({ page }) => {
     await page.goto('/');
 
@@ -70,6 +88,18 @@ test.describe('Accessibility', () => {
     });
   });
 
+  /**
+   * Tests that all interactive elements have accessible text or ARIA labels.
+   *
+   * Verifies that buttons and links have either visible text content, aria-label,
+   * or aria-labelledby attributes. This ensures screen readers can properly
+   * announce the purpose of interactive elements to users with visual impairments.
+   *
+   * @remarks
+   * Interactive elements without accessible names are unusable for screen reader
+   * users. This is a WCAG 2.1 Level A requirement and failure to implement
+   * can result in legal accessibility violations.
+   */
   test('should have proper ARIA labels for interactive elements', async ({ page }) => {
     await page.goto('/');
 
@@ -102,6 +132,18 @@ test.describe('Accessibility', () => {
     }
   });
 
+  /**
+   * Tests that the application supports full keyboard navigation functionality.
+   *
+   * Verifies that users can navigate through all focusable elements using the Tab key,
+   * ensuring the application is accessible to users who cannot use a mouse
+   * or other pointing devices. This is a critical accessibility requirement.
+   *
+   * @remarks
+   * Keyboard navigation is essential for users with motor disabilities and
+   * screen reader users. WCAG 2.1 requires all functionality to be operable
+   * through a keyboard interface.
+   */
   test('should support keyboard navigation', async ({ page }) => {
     await page.goto('/');
 
@@ -138,6 +180,18 @@ test.describe('Accessibility', () => {
     }
   });
 
+  /**
+   * Tests that text and background colors meet WCAG 2AA contrast requirements.
+   *
+   * Uses Axe to check color contrast ratios, ensuring text is readable for users
+   * with visual impairments including color blindness and low vision.
+   * Sufficient contrast is required for WCAG compliance.
+   *
+   * @remarks
+   * WCAG 2.1 Level AA requires a contrast ratio of at least 4.5:1 for normal text
+   * and 3:1 for large text. This affects approximately 8% of men and 0.5% of women
+   * who have some form of color vision deficiency.
+   */
   test('should have sufficient color contrast', async ({ page }) => {
     await page.goto('/');
 
@@ -150,6 +204,18 @@ test.describe('Accessibility', () => {
     expect(contrastViolations).toHaveLength(0);
   });
 
+  /**
+   * Tests that the HTML element has a proper language attribute for internationalization.
+   *
+   * Verifies the lang attribute is present and contains a valid language code.
+   * This helps screen readers pronounce content correctly and supports
+   * browser translation features and search engine optimization.
+   *
+   * @remarks
+   * The lang attribute is required for WCAG 2.1 Level A compliance.
+   * It enables screen readers to switch to the appropriate pronunciation rules
+   * and helps translation tools work more effectively.
+   */
   test('should have lang attribute on html element', async ({ page }) => {
     await page.goto('/');
 
@@ -165,6 +231,18 @@ test.describe('Accessibility', () => {
     expect(isSupported || isValid).toBeTruthy();
   });
 
+  /**
+   * Tests for the presence and functionality of skip navigation links.
+   *
+   * Checks if a skip link exists and is the first focusable element when using Tab.
+   * Skip links allow keyboard users to bypass repetitive navigation content
+   * and jump directly to main content, improving navigation efficiency.
+   *
+   * @remarks
+   * Skip links are particularly important for screen reader users who would
+   * otherwise have to navigate through all navigation elements on every page.
+   * This is a WCAG 2.1 Level A requirement for multiple ways to locate content.
+   */
   test('should have skip navigation link', async ({ page }) => {
     await page.goto('/');
 

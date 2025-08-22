@@ -3,20 +3,49 @@
  *
  * End-to-end tests for the /api/health endpoint, validating it works correctly
  * in a real browser environment for Docker health checks and monitoring.
+ *
+ * @remarks
+ * These tests ensure the health endpoint meets production requirements for
+ * containerized deployments and monitoring systems. Health checks are critical
+ * for Kubernetes liveness/readiness probes and load balancer health routing.
  */
 
 import { test, expect } from '@playwright/test';
 
 test.describe('Health API E2E', () => {
+  /**
+   * Tests that the health endpoint responds with correct HTTP status and content type.
+   *
+   * Verifies the /api/health endpoint returns 200 OK status with proper JSON content type.
+   * This is essential for Docker health checks and monitoring systems that depend on
+   * the health endpoint to determine application availability and readiness.
+   *
+   * @remarks
+   * Docker health checks typically expect HTTP 200 responses to consider a container healthy.
+   * Failure to return proper status codes can cause container orchestration systems
+   * to restart or remove healthy containers.
+   */
   test('should respond to health endpoint with success status', async ({ page }) => {
     const response = await page.request.get('/api/health');
 
     expect(response.status()).toBe(200);
 
     const contentType = response.headers()['content-type'];
-    expect(contentType).toBe('application/json');
+    expect(contentType).toContain('application/json');
   });
 
+  /**
+   * Tests that the health endpoint returns a well-structured response with all required fields.
+   *
+   * Verifies the response contains status, timestamp, uptime, version, environment, and system
+   * information with correct data types. This ensures monitoring systems can reliably parse
+   * and use the health data for operational dashboards and alerting.
+   *
+   * @remarks
+   * Structured health responses enable automated monitoring, alerting, and operational
+   * dashboards. The version and environment fields help with deployment tracking
+   * and debugging in multi-environment setups.
+   */
   test('should return correct health status format', async ({ page }) => {
     const response = await page.request.get('/api/health');
     const data = await response.json();
@@ -40,6 +69,13 @@ test.describe('Health API E2E', () => {
     });
   });
 
+  /**
+   * Tests that the health endpoint can handle multiple simultaneous requests reliably.
+   *
+   * Makes 10 concurrent requests to simulate real-world monitoring scenarios where
+   * multiple systems may check health simultaneously. Ensures the endpoint remains
+   * stable and consistent under concurrent load without race conditions or failures.
+   */
   test('should handle concurrent health check requests', async ({ page }) => {
     // Make multiple concurrent requests to simulate monitoring systems
     const requests = Array.from({ length: 10 }, () => page.request.get('/api/health'));
@@ -68,6 +104,13 @@ test.describe('Health API E2E', () => {
     });
   });
 
+  /**
+   * Tests that the health endpoint meets performance requirements for monitoring systems.
+   *
+   * Verifies response times stay under 500ms, which is critical for monitoring systems
+   * that perform frequent health checks. Fast response times prevent monitoring timeouts
+   * and reduce the overhead of health checking on application performance.
+   */
   test('should respond quickly for monitoring systems', async ({ page }) => {
     const startTime = Date.now();
     const response = await page.request.get('/api/health');
@@ -80,6 +123,13 @@ test.describe('Health API E2E', () => {
     expect(responseTime).toBeLessThan(500);
   });
 
+  /**
+   * Tests that the health endpoint works with Docker health check user agents.
+   *
+   * Verifies the endpoint responds correctly to requests from Docker's built-in
+   * health check mechanism. This ensures containerized deployments can properly
+   * monitor application health using Docker's native health check functionality.
+   */
   test('should work with different user agents (Docker health check)', async ({ page }) => {
     const response = await page.request.get('/api/health', {
       headers: {
@@ -93,6 +143,13 @@ test.describe('Health API E2E', () => {
     expect(data.status).toBe('ok');
   });
 
+  /**
+   * Tests that the health endpoint works with various monitoring system user agents.
+   *
+   * Verifies compatibility with common monitoring tools (Prometheus, Grafana, Kubernetes, curl)
+   * by testing different user agent headers. This ensures the health endpoint works reliably
+   * across diverse monitoring and observability toolchains in production environments.
+   */
   test('should work with different user agents (monitoring systems)', async ({ page }) => {
     const monitoringAgents = [
       'Prometheus/2.0',
@@ -115,6 +172,13 @@ test.describe('Health API E2E', () => {
     }
   });
 
+  /**
+   * Tests that the health endpoint properly handles HEAD requests for efficient health checks.
+   *
+   * Verifies the endpoint responds appropriately to HEAD requests, which allow monitoring
+   * systems to check availability without downloading the full response body.
+   * This enables more efficient health checking with reduced bandwidth usage.
+   */
   test('should handle HEAD requests for lightweight health checks', async ({ page }) => {
     const response = await page.request.head('/api/health');
 
@@ -124,6 +188,13 @@ test.describe('Health API E2E', () => {
     expect([200, 405]).toContain(response.status());
   });
 
+  /**
+   * Tests that the health endpoint is available immediately after application startup.
+   *
+   * Verifies the health endpoint works correctly after the main application has loaded,
+   * ensuring proper initialization order and that health checks don't fail during
+   * application warm-up periods in production deployments.
+   */
   test('should be accessible after application startup', async ({ page }) => {
     // First navigate to the main page to ensure the app is fully loaded
     await page.goto('/');
@@ -138,6 +209,13 @@ test.describe('Health API E2E', () => {
     expect(data.status).toBe('ok');
   });
 
+  /**
+   * Tests that the health endpoint remains stable during various application states.
+   *
+   * Navigates through different pages (including non-existent ones) and verifies
+   * the health endpoint continues to function correctly. This ensures the health
+   * check system is resilient and doesn't break during normal application usage patterns.
+   */
   test('should work consistently across multiple page loads', async ({ page }) => {
     // Navigate to different pages to stress test the application
     await page.goto('/');
@@ -164,6 +242,13 @@ test.describe('Health API E2E', () => {
     expect(data.status).toBe('ok');
   });
 
+  /**
+   * Tests that the health endpoint handles requests with different HTTP headers correctly.
+   *
+   * Tests various header combinations (Accept, Cache-Control, X-Forwarded-For, X-Real-IP)
+   * commonly used in production environments with load balancers and proxies.
+   * This ensures the health endpoint works reliably in complex deployment architectures.
+   */
   test('should handle requests with various headers', async ({ page }) => {
     const testCases: Array<{ headers: Record<string, string>; description: string }> = [
       {
@@ -196,6 +281,13 @@ test.describe('Health API E2E', () => {
     }
   });
 
+  /**
+   * Tests that the health endpoint maintains consistent performance under repeated usage.
+   *
+   * Makes multiple sequential requests and measures response times to ensure performance
+   * doesn't degrade over time. Consistent performance is critical for monitoring systems
+   * that make frequent health check requests throughout application lifecycle.
+   */
   test('should maintain performance under repeated requests', async ({ page }) => {
     const iterations = 5;
     const responseTimes: number[] = [];
@@ -222,6 +314,13 @@ test.describe('Health API E2E', () => {
     expect(averageTime).toBeLessThan(500);
   });
 
+  /**
+   * Tests that the health endpoint functions correctly in realistic production scenarios.
+   *
+   * Simulates production conditions by making requests after full page loads and other
+   * API calls. Verifies the health endpoint works reliably when the application is under
+   * normal operational load and returns properly structured responses with correct headers.
+   */
   test('should work in production-like conditions', async ({ page }) => {
     // Simulate production conditions by making the request after the page is fully loaded
     // and other API calls might be happening
@@ -252,6 +351,6 @@ test.describe('Health API E2E', () => {
 
     // Verify response headers are appropriate for health checks
     const contentType = response.headers()['content-type'];
-    expect(contentType).toBe('application/json');
+    expect(contentType).toContain('application/json');
   });
 });

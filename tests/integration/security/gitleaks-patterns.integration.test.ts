@@ -1,7 +1,9 @@
 /**
- * Gitleaksパターンテスト
+ * Gitleaks Secret Scanning Pattern Tests
  *
- * 改善されたシークレットスキャニングパターンが正しく動作することを検証
+ * Integration tests that verify improved secret scanning patterns work correctly
+ * in the .gitleaks.toml configuration. These tests ensure that secret detection
+ * rules properly identify sensitive data while avoiding false positives.
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -16,26 +18,40 @@ describe('Gitleaks Secret Scanning Patterns', () => {
     gitleaksContent = readFileSync(gitleaksPath, 'utf-8');
   });
 
-  describe('環境変数参照パターンの検証', () => {
-    it('Docker Compose環境変数展開パターンが含まれている', () => {
-      // LOG_IP_HASH_SECRET関連
+  /**
+   * Test suite for validating environment variable reference patterns.
+   *
+   * These tests verify that the Gitleaks configuration correctly identifies
+   * environment variable patterns used in Docker Compose and other deployment
+   * configurations to prevent accidental exposure of sensitive values.
+   */
+  describe('Environment Variable Reference Pattern Validation', () => {
+    /**
+     * Tests that Docker Compose environment variable expansion patterns are included in Gitleaks config.
+     *
+     * Verifies that the .gitleaks.toml file contains proper regex patterns to detect
+     * Docker Compose variable expansion syntax (${VARIABLE_NAME}) for sensitive
+     * environment variables like secrets, passwords, and API keys.
+     */
+    it('should include Docker Compose environment variable expansion patterns', () => {
+      // LOG_IP_HASH_SECRET patterns
       expect(gitleaksContent).toContain('\\$\\{LOG_IP_HASH_SECRET\\}');
       expect(gitleaksContent).toContain('LOG_IP_HASH_SECRET=\\$\\{.*\\}');
 
-      // JWT_SECRET関連
+      // JWT_SECRET patterns
       expect(gitleaksContent).toContain('\\$\\{JWT_SECRET\\}');
       expect(gitleaksContent).toContain('JWT_SECRET=\\$\\{.*\\}');
 
-      // LOKI認証関連
+      // LOKI authentication patterns
       expect(gitleaksContent).toContain('\\$\\{LOKI_PASSWORD\\}');
       expect(gitleaksContent).toContain('\\$\\{LOKI_USERNAME\\}');
 
-      // GRAFANA認証関連
+      // GRAFANA authentication patterns
       expect(gitleaksContent).toContain('\\$\\{GRAFANA_ADMIN_PASSWORD\\}');
       expect(gitleaksContent).toContain('GRAFANA_ADMIN_PASSWORD=\\$\\{.*\\}');
     });
 
-    it('JavaScript環境変数参照パターンが含まれている', () => {
+    it('should include JavaScript environment variable reference patterns', () => {
       expect(gitleaksContent).toContain('process\\.env\\.LOG_IP_HASH_SECRET');
       expect(gitleaksContent).toContain('process\\.env\\.JWT_SECRET');
       expect(gitleaksContent).toContain('process\\.env\\.LOKI_PASSWORD');
@@ -43,25 +59,25 @@ describe('Gitleaks Secret Scanning Patterns', () => {
     });
   });
 
-  describe('パターンの厳密性検証', () => {
-    it('変数名のみのマッチを避ける厳密なパターンを使用している', () => {
-      // より厳密なパターンを使用していることを確認
-      // プレーンな変数名のみのパターンは使用していない
+  describe('Pattern Strictness Validation', () => {
+    it('should use strict patterns that avoid matching variable names only', () => {
+      // Verify that more strict patterns are used
+      // Plain variable name only patterns are not used
       expect(gitleaksContent).not.toContain("'''LOG_IP_HASH_SECRET''',");
       expect(gitleaksContent).not.toContain("'''JWT_SECRET''',");
       expect(gitleaksContent).not.toContain("'''GRAFANA_ADMIN_PASSWORD''',");
     });
 
-    it('エスケープされた特殊文字を使用している', () => {
-      // 正規表現の特殊文字が適切にエスケープされている
+    it('should use escaped special characters', () => {
+      // Regular expression special characters are properly escaped
       expect(gitleaksContent).toContain('\\$\\{'); // ${
       expect(gitleaksContent).toContain('\\}'); // }
       expect(gitleaksContent).toContain('\\.'); // .
     });
   });
 
-  describe('セキュリティホワイトリストの検証', () => {
-    it('共通の例外パターンが含まれている', () => {
+  describe('Security Whitelist Validation', () => {
+    it('should include common exception patterns', () => {
       expect(gitleaksContent).toContain('example\\.com');
       expect(gitleaksContent).toContain('localhost');
       expect(gitleaksContent).toContain('127\\.0\\.0\\.1');
@@ -69,38 +85,38 @@ describe('Gitleaks Secret Scanning Patterns', () => {
       expect(gitleaksContent).toContain('password123');
     });
 
-    it('テストファイルが除外されている', () => {
+    it('should exclude test files', () => {
       expect(gitleaksContent).toContain('tests?\\/.*');
       expect(gitleaksContent).toContain('.*\\.test\\.(js|ts|jsx|tsx)$');
       expect(gitleaksContent).toContain('.*\\.spec\\.(js|ts|jsx|tsx)$');
     });
   });
 
-  describe('設定の一貫性検証', () => {
-    it('基本設定が正しく設定されている', () => {
+  describe('Configuration Consistency Validation', () => {
+    it('should have basic configuration set correctly', () => {
       expect(gitleaksContent).toContain('title = "Gitleaks Configuration"');
       expect(gitleaksContent).toContain('useDefault = true');
     });
 
-    it('すべての重要なルールが定義されている', () => {
-      // AWS関連
+    it('should have all important rules defined', () => {
+      // AWS related
       expect(gitleaksContent).toContain('id = "aws-access-key"');
       expect(gitleaksContent).toContain('id = "aws-secret-key"');
 
-      // GitHub関連
+      // GitHub related
       expect(gitleaksContent).toContain('id = "github-pat"');
 
-      // パスワード関連
+      // Password related
       expect(gitleaksContent).toContain('id = "generic-password"');
       expect(gitleaksContent).toContain('id = "env-password"');
     });
   });
 });
 
-describe('Gitleaksパターンのシミュレーションテスト', () => {
-  describe('許可されるべきパターン', () => {
+describe('Gitleaks Pattern Simulation Tests', () => {
+  describe('Patterns That Should Be Allowed', () => {
     const allowedPatterns = [
-      // 環境変数参照
+      // Environment variable references
       'process.env.LOG_IP_HASH_SECRET',
       'process.env.JWT_SECRET',
       '${LOG_IP_HASH_SECRET}',
@@ -108,45 +124,45 @@ describe('Gitleaksパターンのシミュレーションテスト', () => {
       'LOG_IP_HASH_SECRET=${SOME_VAR}',
       '${GRAFANA_ADMIN_PASSWORD:-changeme123!}',
 
-      // 設定例
+      // Configuration examples
       'password123',
       'changeme',
       'example.com',
       'localhost',
       'your_api_key',
 
-      // Redis例
+      // Redis examples
       'redis://localhost:6379',
       'redis://new-host:6379',
     ];
 
-    it.each(allowedPatterns)('パターン "%s" は許可される', (pattern) => {
+    it.each(allowedPatterns)('pattern "%s" should be allowed', (pattern) => {
       // このテストは実際のgitleaksツールを使用しないため、
       // パターンの存在確認のみ行う
       expect(pattern).toBeTruthy();
     });
   });
 
-  describe('検出されるべきパターン', () => {
+  describe('Patterns That Should Be Detected', () => {
     const secretPatterns = [
-      // 実際のシークレット（テスト用のダミー値）
+      // Actual secrets (dummy values for testing)
       'LOG_IP_HASH_SECRET=actual-secret-value-here',
       'JWT_SECRET=real-jwt-secret-key',
       'password=supersecret123',
       'api_key=sk-abcd1234567890',
 
-      // AWS キー
+      // AWS keys
       'AKIAIOSFODNN7EXAMPLE',
       'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
 
-      // GitHub トークン
+      // GitHub token
       'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 
-      // API キー
+      // API key
       'AIzaSyDaGmWKa4JsXZ-HjGw7_FLYXxxxxxxxx',
     ];
 
-    it.each(secretPatterns)('パターン "%s" は検出される', (pattern) => {
+    it.each(secretPatterns)('pattern "%s" should be detected', (pattern) => {
       // このテストは実際のgitleaksツールを使用しないため、
       // パターンの形式確認のみ行う
       expect(pattern).toBeTruthy();

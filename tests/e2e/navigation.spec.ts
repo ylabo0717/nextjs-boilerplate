@@ -1,11 +1,11 @@
 /**
- * Playwright test framework for end-to-end testing
+ * Navigation Testing Suite
+ *
+ * End-to-end tests for application navigation system including links,
+ * routing, and scroll behavior across different user interaction scenarios.
  */
-import { test, expect } from '@playwright/test';
 
-/**
- * Test constants for UI interactions, scroll positions, and test data
- */
+import { test, expect } from '@playwright/test';
 import { UI_WAIT_TIMES, SCROLL_POSITIONS, TEST_DATA } from '../constants/test-constants';
 
 /**
@@ -18,6 +18,19 @@ test.describe('Navigation', () => {
     await page.goto('/');
   });
 
+  /**
+   * Tests that external links have proper security attributes for safe navigation.
+   *
+   * Verifies that all external links (`target="_blank"`) include the `rel="noopener noreferrer"`
+   * attribute to prevent security vulnerabilities like tabnabbing attacks and to avoid
+   * sharing the referrer information with external sites.
+   *
+   * @example
+   * ```html
+   * <!-- Secure external link -->
+   * <a href="https://example.com" target="_blank" rel="noopener noreferrer">External Link</a>
+   * ```
+   */
   test('should load external links with correct attributes', async ({ page }) => {
     // Get all external links
     const externalLinks = page.locator('a[target="_blank"]');
@@ -33,6 +46,13 @@ test.describe('Navigation', () => {
     }
   });
 
+  /**
+   * Tests that the application handles non-existent routes with appropriate responses.
+   *
+   * Verifies that navigating to a non-existent page returns either a 200 status
+   * (for client-side routing) or 404 status (for server-side rendering), ensuring
+   * the application doesn't crash on invalid routes and provides proper error handling.
+   */
   test('should handle 404 pages gracefully', async ({ page }) => {
     // Navigate to a non-existent page
     const response = await page.goto('/non-existent-page');
@@ -42,7 +62,27 @@ test.describe('Navigation', () => {
     expect([200, 404]).toContain(response?.status());
   });
 
-  test('should maintain scroll position on navigation', async ({ page }) => {
+  /**
+   * Tests that the application properly handles page scrolling functionality.
+   *
+   * Creates dynamic scrollable content and verifies that scrolling functions work correctly.
+   * This ensures the application provides good user experience with proper scroll handling
+   * and doesn't break scrolling functionality during content updates.
+   *
+   * @example
+   * ```typescript
+   * // Dynamic content creation for scroll testing
+   * await page.evaluate(() => {
+   *   const main = document.querySelector('main');
+   *   for (let i = 0; i < 50; i++) {
+   *     const div = document.createElement('div');
+   *     div.textContent = `Content ${i}`;
+   *     main.appendChild(div);
+   *   }
+   * });
+   * ```
+   */
+  test('should handle page scrolling correctly', async ({ page }) => {
     // Add more content to make page scrollable
     await page.evaluate(
       ({ contentCount, elementHeight }) => {

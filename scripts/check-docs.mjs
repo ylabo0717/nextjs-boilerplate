@@ -49,7 +49,7 @@ let output = '';
 
 try {
   output = execSync(
-    'pnpm typedoc --emit none --validation.notDocumented true --validation.notExported true --validation.invalidLink true 2>&1',
+    'pnpm typedoc --options config/typedoc.json --emit none --validation.notDocumented true --validation.notExported true --validation.invalidLink true 2>&1',
     {
       encoding: 'utf8',
       maxBuffer: 1024 * 1024 * 10, // 10MB buffer

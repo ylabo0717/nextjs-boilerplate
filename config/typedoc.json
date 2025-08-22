@@ -1,23 +1,23 @@
 {
   "$schema": "https://typedoc.org/schema.json",
   "name": "Next.js Boilerplate Documentation",
-  "entryPoints": ["src/**/*.ts", "src/**/*.tsx"],
+  "entryPoints": ["../src/**/*.ts", "../src/**/*.tsx"],
   "exclude": [
-    "src/**/*.test.ts",
-    "src/**/*.test.tsx",
-    "src/**/*.spec.ts",
-    "src/**/*.spec.tsx",
-    "src/components/ui/**/*", // shadcn/ui components - third-party code
-    "tests/**/*",
-    "scripts/**/*"
+    "../src/**/*.test.ts",
+    "../src/**/*.test.tsx",
+    "../src/**/*.spec.ts",
+    "../src/**/*.spec.tsx",
+    "../src/components/ui/**/*", // shadcn/ui components - third-party code
+    "../tests/**/*",
+    "../scripts/**/*"
   ],
-  "out": "docs/api",
+  "out": "../docs/api",
   "theme": "default",
   "includeVersion": true,
   "excludePrivate": false,
   "excludeProtected": false,
   "excludeExternals": true,
-  "readme": "README.md",
+  "readme": "../README.md",
   "categorizeByGroup": false,
   "defaultCategory": "Other",
   "categoryOrder": ["Components", "Utils", "Types", "Constants", "Other"],

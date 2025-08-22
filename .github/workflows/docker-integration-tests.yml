@@ -10,7 +10,7 @@ on:
       - 'pnpm-lock.yaml'
       - 'vitest.*.config.ts'
       - 'docker/**'
-      - 'docker-compose.test.yml'
+      - 'docker/compose/docker-compose.test.yml'
       - '.github/workflows/docker-integration-tests.yml'
       - '.github/actions/setup-docker-test-env/**'
       - '.github/actions/docker-cleanup/**'
@@ -23,7 +23,7 @@ on:
       - 'pnpm-lock.yaml'
       - 'vitest.*.config.ts'
       - 'docker/**'
-      - 'docker-compose.test.yml'
+      - 'docker/compose/docker-compose.test.yml'
       - '.github/workflows/docker-integration-tests.yml'
       - '.github/actions/setup-docker-test-env/**'
       - '.github/actions/docker-cleanup/**'
@@ -57,12 +57,12 @@ jobs:
       - name: Build test image
         run: |
           echo "🔨 Building Docker test image for integration tests..."
-          docker compose -f docker-compose.test.yml build app-test
+          docker compose -f docker/compose/docker-compose.test.yml build app-test
 
       - name: Run Integration Tests in Docker
         run: |
           echo "🧪 Running integration tests with Testcontainers in Docker environment..."
-          docker compose -f docker-compose.test.yml run --rm \
+          docker compose -f docker/compose/docker-compose.test.yml run --rm \
             -e TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal \
             -e DOCKER_HOST=unix:///var/run/docker.sock \
             -e SKIP_LOKI_TESTS=true \
@@ -84,7 +84,7 @@ jobs:
         uses: ./.github/actions/docker-cleanup
         with:
           cleanup-level: 'full'
-          compose-file: 'docker-compose.test.yml'
+          compose-file: 'docker/compose/docker-compose.test.yml'
           preserve-cache: 'true'
 
       - name: Post test summary

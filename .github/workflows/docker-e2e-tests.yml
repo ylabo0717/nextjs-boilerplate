@@ -10,7 +10,7 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'docker/**'
-      - 'docker-compose.test.yml'
+      - 'docker/compose/docker-compose.test.yml'
       - '.github/workflows/docker-e2e-tests.yml'
       - '.github/actions/setup-docker-test-env/**'
       - '.github/actions/docker-cleanup/**'
@@ -23,7 +23,7 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'docker/**'
-      - 'docker-compose.test.yml'
+      - 'docker/compose/docker-compose.test.yml'
       - '.github/workflows/docker-e2e-tests.yml'
       - '.github/actions/setup-docker-test-env/**'
       - '.github/actions/docker-cleanup/**'
@@ -57,10 +57,10 @@ jobs:
       - name: Build and start application
         run: |
           echo "🔨 Building application image..."
-          docker compose -f docker-compose.test.yml build app-server
+          docker compose -f docker/compose/docker-compose.test.yml build app-server
 
           echo "🚀 Starting application server..."
-          docker compose -f docker-compose.test.yml up -d app-server
+          docker compose -f docker/compose/docker-compose.test.yml up -d app-server
 
           echo "⏳ Waiting for application to be ready..."
           for i in {1..30}; do
@@ -75,7 +75,7 @@ jobs:
       - name: Verify application status
         run: |
           echo "🔍 Checking application status..."
-          docker compose -f docker-compose.test.yml ps
+          docker compose -f docker/compose/docker-compose.test.yml ps
           curl -s http://localhost:3000/api/health || true
 
   docker-e2e-tests:
@@ -102,18 +102,18 @@ jobs:
       - name: Build E2E test image
         run: |
           echo "🔨 Building Docker E2E test image..."
-          docker compose -f docker-compose.test.yml build playwright
+          docker compose -f docker/compose/docker-compose.test.yml build playwright
 
       - name: Install Playwright browsers
         run: |
           echo "📦 Installing Playwright browsers in Docker..."
-          docker compose -f docker-compose.test.yml run --rm --user root playwright \
+          docker compose -f docker/compose/docker-compose.test.yml run --rm --user root playwright \
             pnpm playwright install --with-deps ${{ matrix.browser }}
 
       - name: Run E2E Tests
         run: |
           echo "🧪 Running E2E tests with ${{ matrix.browser }}..."
-          docker compose -f docker-compose.test.yml run --rm \
+          docker compose -f docker/compose/docker-compose.test.yml run --rm \
             -e BASE_URL=http://app-server:3000 \
             -e PLAYWRIGHT_SKIP_WEBSERVER=true \
             playwright pnpm playwright test \
@@ -155,7 +155,7 @@ jobs:
         uses: ./.github/actions/docker-cleanup
         with:
           cleanup-level: 'full'
-          compose-file: 'docker-compose.test.yml'
+          compose-file: 'docker/compose/docker-compose.test.yml'
           preserve-cache: 'false'
 
       - name: Post E2E test summary

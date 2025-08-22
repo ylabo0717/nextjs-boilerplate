@@ -50,10 +50,10 @@ This project uses an integrated environment variable system that separates commo
 
 ```bash
 # Development environment
-docker compose --env-file .env.base --env-file .env.dev up
+docker compose -f docker/compose/docker-compose.yml --env-file .env.base --env-file .env.dev up
 
 # Production environment
-docker compose -f docker-compose.prod.yml --env-file .env.base --env-file .env.prod up -d
+docker compose -f docker/compose/docker-compose.prod.yml --env-file .env.base --env-file .env.prod up -d
 
 # Test environment (environment variables are automatically loaded)
 pnpm test

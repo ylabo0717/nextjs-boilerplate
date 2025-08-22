@@ -14,7 +14,7 @@ services:
   # ==============================================================================
   app-test:
     build:
-      context: .
+      context: ../..
       dockerfile: docker/app/Dockerfile.test
     environment:
       - NODE_ENV=test
@@ -38,7 +38,7 @@ services:
   # ==============================================================================
   app-integration:
     build:
-      context: .
+      context: ../..
       dockerfile: docker/app/Dockerfile.test
     environment:
       - NODE_ENV=test
@@ -69,7 +69,7 @@ services:
   # ==============================================================================
   app-server:
     build:
-      context: .
+      context: ../..
       dockerfile: docker/app/Dockerfile.test
     environment:
       - NODE_ENV=test
@@ -94,7 +94,7 @@ services:
   # ==============================================================================
   playwright:
     build:
-      context: .
+      context: ../..
       dockerfile: docker/app/Dockerfile.e2e
     environment:
       - CI=true
@@ -119,7 +119,7 @@ services:
   # ==============================================================================
   all-tests:
     build:
-      context: .
+      context: ../..
       dockerfile: docker/app/Dockerfile.e2e
     environment:
       - NODE_ENV=test

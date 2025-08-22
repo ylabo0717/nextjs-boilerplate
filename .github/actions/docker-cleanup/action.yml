@@ -10,7 +10,7 @@ inputs:
   compose-file:
     description: 'Docker Compose file to clean up'
     required: false
-    default: 'docker-compose.yml'
+    default: 'docker/compose/docker-compose.yml'
   preserve-cache:
     description: 'Preserve Docker build cache'
     required: false

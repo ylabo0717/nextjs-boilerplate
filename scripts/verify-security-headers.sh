@@ -101,7 +101,7 @@ main() {
         echo -e "${RED}❌ サービスにアクセスできません: $PROXY_URL${NC}"
         echo ""
         echo "以下のコマンドでサービスを開始してください:"
-        echo "docker compose -f docker-compose.prod.yml --env-file .env.base --env-file .env.prod up -d"
+        echo "docker compose -f docker/compose/docker-compose.prod.yml --env-file .env.base --env-file .env.prod up -d"
         exit 1
     fi
     

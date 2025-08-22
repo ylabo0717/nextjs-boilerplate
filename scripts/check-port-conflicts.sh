@@ -18,7 +18,7 @@ NC='\033[0m' # No Color
 
 # Default test ports
 DEFAULT_TEST_PORTS=(3000 4318 5432 9090)
-COMPOSE_FILE="docker-compose.test.yml"
+COMPOSE_FILE="docker/compose/docker-compose.test.yml"
 
 # Function to display usage
 usage() {
@@ -26,7 +26,7 @@ usage() {
 Usage: $0 [OPTIONS]
 
 Options:
-    -f, --compose-file FILE     Specify docker-compose file (default: docker-compose.test.yml)
+    -f, --compose-file FILE     Specify docker-compose file (default: docker/compose/docker-compose.test.yml)
     -p, --ports PORT1,PORT2     Specify additional ports to check (comma-separated)
     --auto-resolve             Automatically stop conflicting containers
     --remove-orphans           Remove orphan containers before starting

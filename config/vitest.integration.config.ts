@@ -7,17 +7,12 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    setupFiles: ['./vitest.setup.ts'],
-    // 統合テストも含むため、常にglobalSetupを適用
-    globalSetup: ['./tests/setup/vitest-global-setup.ts'],
+    setupFiles: ['./config/vitest.setup.ts'],
+    globalSetup: ['./tests/setup/vitest-global-setup.ts'], // Enable for integration tests
     css: true,
     globals: true,
     passWithNoTests: true,
-    include: [
-      'tests/unit/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-      'tests/integration/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-      'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-    ],
+    include: ['tests/integration/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
@@ -25,9 +20,10 @@ export default defineConfig({
       '**/.{idea,git,cache,output,temp}/**',
       '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
       '**/tests/e2e/**', // Exclude Playwright E2E tests
+      '**/tests/unit/**', // Exclude unit tests from integration runs
     ],
     alias: {
-      '@': fileURLToPath(new URL('./src/', import.meta.url)),
+      '@': fileURLToPath(new URL('../src/', import.meta.url)),
     },
     coverage: {
       provider: 'v8',
@@ -68,7 +64,7 @@ export default defineConfig({
         'vitest.setup.*',
       ],
       reporter: ['text', 'html', 'lcov', 'json-summary'],
-      reportsDirectory: './coverage',
+      reportsDirectory: './coverage/integration',
     },
   },
 });

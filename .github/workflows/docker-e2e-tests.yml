@@ -117,7 +117,7 @@ jobs:
             -e BASE_URL=http://app-server:3000 \
             -e PLAYWRIGHT_SKIP_WEBSERVER=true \
             playwright pnpm playwright test \
-            --config=playwright.docker.config.ts \
+            --config=config/playwright.docker.config.ts \
             --project=${{ matrix.browser }}
 
       - name: Upload test results

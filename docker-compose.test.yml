@@ -29,7 +29,7 @@ services:
       # テスト結果とカバレッジレポートの出力
       - ./coverage:/app/coverage
       - ./test-results:/app/test-results
-    command: ['npx', 'vitest', '--run', '--config', 'vitest.test.config.ts']
+    command: ['npx', 'vitest', '--run', '--config', 'config/vitest.test.config.ts']
     networks:
       - test-network
 
@@ -58,7 +58,7 @@ services:
       # テスト結果とカバレッジレポートの出力
       - ./coverage:/app/coverage
       - ./test-results:/app/test-results
-    command: ['npx', 'vitest', '--run', '--config', 'vitest.integration.docker.config.ts']
+    command: ['npx', 'vitest', '--run', '--config', 'config/vitest.integration.docker.config.ts']
     networks:
       - test-network
     depends_on:
@@ -107,7 +107,7 @@ services:
       - ./test-results:/app/test-results
       - ./playwright-report:/app/playwright-report
     # Docker専用設定を使用してE2Eテストを実行
-    command: ['npx', 'playwright', 'test', '--config=playwright.docker.config.ts']
+    command: ['npx', 'playwright', 'test', '--config=config/playwright.docker.config.ts']
     depends_on:
       app-server:
         condition: service_healthy
@@ -138,7 +138,11 @@ services:
       - ./test-results:/app/test-results
       - ./playwright-report:/app/playwright-report
     command:
-      ['sh', '-c', 'pnpm test:unit && npx playwright test --config=playwright.docker.config.ts']
+      [
+        'sh',
+        '-c',
+        'pnpm test:unit && npx playwright test --config=config/playwright.docker.config.ts',
+      ]
     depends_on:
       app-server:
         condition: service_healthy

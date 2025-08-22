@@ -7,23 +7,25 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    setupFiles: ['./vitest.setup.ts'],
-    globalSetup: ['./tests/setup/vitest-global-setup.ts'], // Enable for integration tests
+    setupFiles: ['./config/vitest.setup.ts'],
     css: true,
     globals: true,
     passWithNoTests: true,
-    include: ['tests/integration/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    include: [
+      'tests/unit/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+      'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+    ],
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
       '**/cypress/**',
       '**/.{idea,git,cache,output,temp}/**',
       '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
-      '**/tests/e2e/**', // Exclude Playwright E2E tests
-      '**/tests/unit/**', // Exclude unit tests from integration runs
+      '**/tests/e2e/**',
+      '**/tests/integration/**',
     ],
     alias: {
-      '@': fileURLToPath(new URL('./src/', import.meta.url)),
+      '@': fileURLToPath(new URL('../src/', import.meta.url)),
     },
     coverage: {
       provider: 'v8',
@@ -46,7 +48,6 @@ export default defineConfig({
         'node_modules/**',
         '.next/**',
         'coverage/**',
-        // Exclude specific App Router files that don't need coverage
         'src/app/**/layout.tsx',
         'src/app/**/page.tsx',
         'src/app/**/loading.tsx',
@@ -55,7 +56,6 @@ export default defineConfig({
         'src/app/**/template.tsx',
         'src/app/**/global-error.tsx',
         'src/app/**/*.css',
-        // Exclude UI components (shadcn/ui and layout components typically don't need testing)
         'src/components/ui/**',
         'src/components/layout/**',
         'src/types/**',
@@ -64,7 +64,7 @@ export default defineConfig({
         'vitest.setup.*',
       ],
       reporter: ['text', 'html', 'lcov', 'json-summary'],
-      reportsDirectory: './coverage/integration',
+      reportsDirectory: './coverage',
     },
   },
 });

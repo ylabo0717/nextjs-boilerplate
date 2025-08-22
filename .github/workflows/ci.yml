@@ -373,7 +373,7 @@ jobs:
         run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
 
       - name: Run Playwright tests
-        run: pnpm exec playwright test --project=${{ matrix.browser }}
+        run: pnpm exec playwright test --config=config/playwright.config.ts --project=${{ matrix.browser }}
         env:
           CI: true
 

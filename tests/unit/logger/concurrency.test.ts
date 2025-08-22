@@ -30,9 +30,9 @@ describe('並行処理とRequestID重複検証', () => {
     expect(requestIds.size).toBe(concurrentRequests);
     expect(results).toHaveLength(concurrentRequests);
 
-    // IDフォーマット検証（req_タイムスタンプ_ランダム文字列）
+    // IDフォーマット検証（req_UUID形式）
     results.forEach((id) => {
-      expect(id).toMatch(/^req_\d+_[a-z0-9]{6}$/);
+      expect(id).toMatch(/^req_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     });
   });
 

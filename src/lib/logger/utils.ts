@@ -3,6 +3,7 @@
  * セキュリティクリティカルな機能を含む
  */
 
+import { randomUUID } from 'crypto';
 import { LogLevel, LOG_LEVELS, BaseProperties, SEVERITY_NUMBERS } from './types';
 
 /**
@@ -224,28 +225,27 @@ export function isLogLevelEnabled(currentLevel: LogLevel, targetLevel: LogLevel)
 }
 
 /**
- * 一意なリクエストIDを生成する関数（暫定実装）
+ * 一意なリクエストIDを生成する関数（UUID v7実装）
  *
  * ログの相関分析やリクエストトレーシングに使用する一意なIDを生成します。
- * 現在はタイムスタンプとランダム文字列の組み合わせを使用していますが、
- * 将来的には UUID v7 に移行予定です。
+ * UUID v7を使用することで、高頻度実行での衝突を完全に防ぎます。
  *
  * @returns 一意なリクエストID文字列
  *
  * @example
  * ```typescript
  * const requestId = generateRequestId();
- * // 'req_1703952000000_a1b2c3'
+ * // 'req_01234567-89ab-7cde-f012-3456789abcde'
  *
  * // ログでの使用例
  * logger.info('Request started', { requestId });
  * ```
  *
  * @public
- * @remarks 将来的にUUID v7実装への移行を予定
+ * @remarks UUID v7を使用することで、高頻度実行での衝突を防ぎます
  */
 export function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  return `req_${randomUUID()}`;
 }
 
 /**

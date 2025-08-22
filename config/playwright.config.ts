@@ -12,7 +12,16 @@ import { TEST_TIMEOUTS, WEBSERVER_TIMEOUT } from '../tests/constants/test-consta
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: '../tests/e2e',
+  /* Only match .spec.ts files to avoid conflicts with Vitest .test.ts files */
+  testMatch: '**/*.spec.ts',
+  /* Ignore other test directories */
+  testIgnore: [
+    '../tests/unit/**',
+    '../tests/integration/**',
+    '../tests/scripts/**',
+    '**/*.test.ts',
+  ],
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */

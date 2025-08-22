@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    setupFiles: ['./config/vitest.setup.ts'],
+    setupFiles: ['./vitest.setup.ts'],
     // globalSetup removed for unit tests - they should use mocks only
     css: true,
     globals: true,

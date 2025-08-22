@@ -7,8 +7,8 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    setupFiles: ['./config/vitest.setup.ts'],
-    globalSetup: ['./tests/setup/vitest-global-setup.ts'], // Enable for Docker integration tests
+    setupFiles: ['./vitest.setup.ts'],
+    globalSetup: ['../tests/setup/vitest-global-setup.ts'], // Enable for Docker integration tests
     css: true,
     globals: true,
     passWithNoTests: true,

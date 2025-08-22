@@ -7,9 +7,9 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    setupFiles: ['./vitest.setup.ts'],
+    setupFiles: ['./config/vitest.setup.ts'],
     // 統合テストも含むため、常にglobalSetupを適用
-    globalSetup: ['../tests/setup/vitest-global-setup.ts'],
+    globalSetup: ['./tests/setup/vitest-global-setup.ts'],
     css: true,
     globals: true,
     passWithNoTests: true,

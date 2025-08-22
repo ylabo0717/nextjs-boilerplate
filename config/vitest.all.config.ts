@@ -7,12 +7,15 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    setupFiles: ['./vitest.setup.ts'],
+    setupFiles: ['./config/vitest.setup.ts'],
+    // 統合テストも含むため、常にglobalSetupを適用
+    globalSetup: ['./tests/setup/vitest-global-setup.ts'],
     css: true,
     globals: true,
     passWithNoTests: true,
     include: [
       'tests/unit/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+      'tests/integration/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
     ],
     exclude: [
@@ -21,11 +24,10 @@ export default defineConfig({
       '**/cypress/**',
       '**/.{idea,git,cache,output,temp}/**',
       '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
-      '**/tests/e2e/**',
-      '**/tests/integration/**',
+      '**/tests/e2e/**', // Exclude Playwright E2E tests
     ],
     alias: {
-      '@': fileURLToPath(new URL('./src/', import.meta.url)),
+      '@': fileURLToPath(new URL('../src/', import.meta.url)),
     },
     coverage: {
       provider: 'v8',
@@ -48,6 +50,7 @@ export default defineConfig({
         'node_modules/**',
         '.next/**',
         'coverage/**',
+        // Exclude specific App Router files that don't need coverage
         'src/app/**/layout.tsx',
         'src/app/**/page.tsx',
         'src/app/**/loading.tsx',
@@ -56,6 +59,7 @@ export default defineConfig({
         'src/app/**/template.tsx',
         'src/app/**/global-error.tsx',
         'src/app/**/*.css',
+        // Exclude UI components (shadcn/ui and layout components typically don't need testing)
         'src/components/ui/**',
         'src/components/layout/**',
         'src/types/**',

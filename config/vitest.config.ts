@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    setupFiles: ['./vitest.setup.ts'],
+    setupFiles: ['./config/vitest.setup.ts'],
     // globalSetup removed for unit tests - they should use mocks only
     css: true,
     globals: true,
@@ -26,7 +26,7 @@ export default defineConfig({
       '**/tests/integration/**', // Exclude integration tests from unit runs
     ],
     alias: {
-      '@': fileURLToPath(new URL('./src/', import.meta.url)),
+      '@': fileURLToPath(new URL('../src/', import.meta.url)),
     },
     coverage: {
       provider: 'v8',

@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    setupFiles: ['./vitest.setup.ts'],
+    setupFiles: ['./config/vitest.setup.ts'],
     globalSetup: ['./tests/setup/vitest-global-setup.ts'], // Enable for Docker integration tests
     css: true,
     globals: true,
@@ -24,7 +24,7 @@ export default defineConfig({
       '**/tests/unit/**',
     ],
     alias: {
-      '@': fileURLToPath(new URL('./src/', import.meta.url)),
+      '@': fileURLToPath(new URL('../src/', import.meta.url)),
     },
     coverage: {
       provider: 'v8',

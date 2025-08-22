@@ -29,7 +29,7 @@ test.describe('Home Page', () => {
      * Verify the page title matches the expected application name.
      * This ensures the Next.js app is correctly configured and the metadata
      * is properly set in the layout component.
-     * 
+     *
      * @remarks
      * Note: This test uses a fixed string 'Next.js Boilerplate'. If the project
      * name changes, this test will need to be updated. Consider using a constant

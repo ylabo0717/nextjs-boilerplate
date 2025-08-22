@@ -109,13 +109,13 @@ jobs:
             # Run with pattern if specified
             if [[ -n "$PATTERN" ]]; then
               echo "Running tests with pattern: $PATTERN"
-              pnpm exec playwright test --project=${{ matrix.browser }} "$PATTERN"
+              pnpm exec playwright test --config=config/playwright.config.ts --project=${{ matrix.browser }} "$PATTERN"
             else
-              pnpm exec playwright test --project=${{ matrix.browser }}
+              pnpm exec playwright test --config=config/playwright.config.ts --project=${{ matrix.browser }}
             fi
           else
             # Regular scheduled run
-            pnpm exec playwright test --project=${{ matrix.browser }}
+            pnpm exec playwright test --config=config/playwright.config.ts --project=${{ matrix.browser }}
           fi
         env:
           CI: true

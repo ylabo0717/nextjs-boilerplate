@@ -14,7 +14,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
-    "test": "pnpm test:unit && pnpm test:integration && playwright test",
+    "test": "pnpm test:unit && pnpm test:integration && playwright test --config=config/playwright.config.ts",
     "test:unit": "vitest --run --config config/vitest.config.ts",
     "test:integration": "vitest --run --config config/vitest.integration.config.ts",
     "test:coverage": "vitest --run --coverage --config config/vitest.all.config.ts",

@@ -1,9 +1,9 @@
 /**
- * クライアントサイドLogger実装（純粋関数型）
- * ブラウザ環境での軽量ログ処理とコンソール統合
- *
- * アーキテクチャ原則に従った純粋関数ファーストの実装。
- * ステートレスで予測可能、テスタブルなログシステムを提供。
+ * Client-side logger implementation (pure functional approach)
+ * 
+ * Lightweight logging for browser environments with console integration.
+ * Follows architecture principles with pure-function-first implementation,
+ * providing stateless, predictable, and testable logging system.
  */
 
 import { incrementLogCounter, incrementErrorCounter } from './metrics';
@@ -13,10 +13,11 @@ import { getClientLogLevel, createBaseProperties, serializeError } from './utils
 import type { Logger, LogArgument, LogLevel } from './types';
 
 /**
- * ブラウザコンソールスタイル定義
+ * Browser console style definitions
  *
- * 各ログレベルに対応するCSS設定。
- * ブラウザコンソールでの視覚的区別に使用。
+ * CSS configuration for each log level to provide visual
+ * differentiation in browser console. Enhances debugging
+ * experience through color-coded log levels.
  *
  * @internal
  */

@@ -1,16 +1,17 @@
 /**
- * Pinoベースサーバーサイドロガー実装
+ * Pino-based server-side logger implementation
  *
- * 高性能・構造化ログと統合セキュリティ機能を提供するサーバーサイドロガー。
- * Next.js 15 + Pino v9 による最適化されたログシステム。
+ * High-performance structured logger with integrated security features
+ * for server-side environments. Optimized logging system using
+ * Next.js 15 + Pino v9 for production-grade performance.
  *
- * 主要機能:
- * - 高性能な構造化ログ出力
- * - 自動セキュリティサニタイゼーション
- * - 機密情報の自動Redaction
- * - AsyncLocalStorage連携コンテキスト管理
- * - OpenTelemetry準拠のメタデータ
- * - 環境別Transport最適化
+ * Key features:
+ * - High-performance structured log output
+ * - Automatic security sanitization
+ * - Automatic redaction of sensitive information
+ * - AsyncLocalStorage-integrated context management
+ * - OpenTelemetry-compliant metadata
+ * - Environment-specific transport optimization
  */ import pino from 'pino';
 
 import { loggerContextManager } from './context';
@@ -21,13 +22,14 @@ import { getLogLevelFromEnv, createBaseProperties, REDACT_PATHS, serializeError 
 import type { Logger, LogArgument } from './types';
 
 /**
- * Pinoベースサーバーロガーの作成
+ * Create Pino-based server logger
  *
- * 本番環境向けに最適化されたPinoロガーインスタンスを作成。
- * セキュリティ機能、パフォーマンス最適化、構造化ログ機能を統合。
+ * Creates optimized Pino logger instance for production environments.
+ * Integrates security features, performance optimization, and structured
+ * logging capabilities for enterprise-grade server logging.
  *
- * 設定される機能:
- * - 環境変数ベースのログレベル制御
+ * Configured features:
+ * - Environment variable-based log level control
  * - ISO 8601準拠のタイムスタンプ
  * - 機密情報の自動Redaction
  * - カスタムシリアライザー（エラー、リクエスト、レスポンス）

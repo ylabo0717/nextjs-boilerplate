@@ -19,8 +19,8 @@ import {
 import { Input } from '@/components/ui/input';
 
 const formSchema = z.object({
-  email: z.string().email('有効なメールアドレスを入力してください'),
-  name: z.string().min(2, '名前は2文字以上で入力してください'),
+  email: z.string().email('Please enter a valid email address'),
+  name: z.string().min(2, 'Name must be at least 2 characters long'),
 });
 
 /**
@@ -40,8 +40,8 @@ export default function ExamplePage() {
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    toast.success('フォームが送信されました', {
-      description: `名前: ${values.name}, メール: ${values.email}`,
+    toast.success('Form submitted successfully', {
+      description: `Name: ${values.name}, Email: ${values.email}`,
     });
   };
 
@@ -57,8 +57,8 @@ export default function ExamplePage() {
       >
         <Card>
           <CardHeader>
-            <CardTitle>サンプルフォーム</CardTitle>
-            <CardDescription>React Hook Form + Zod を使用したフォームの例</CardDescription>
+            <CardTitle>Sample Form</CardTitle>
+            <CardDescription>Example form using React Hook Form + Zod validation</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -68,9 +68,9 @@ export default function ExamplePage() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>名前</FormLabel>
+                      <FormLabel>Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="山田太郎" {...field} />
+                        <Input placeholder="Taro Yamada" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -81,16 +81,16 @@ export default function ExamplePage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>メールアドレス</FormLabel>
+                      <FormLabel>Email Address</FormLabel>
                       <FormControl>
                         <Input type="email" placeholder="example@email.com" {...field} />
                       </FormControl>
-                      <FormDescription>連絡先のメールアドレスを入力してください</FormDescription>
+                      <FormDescription>Please enter your contact email address</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <Button type="submit">送信</Button>
+                <Button type="submit">Submit</Button>
               </form>
             </Form>
           </CardContent>
@@ -98,22 +98,22 @@ export default function ExamplePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>ボタンコンポーネント</CardTitle>
-            <CardDescription>shadcn/ui のボタンバリエーション</CardDescription>
+            <CardTitle>Button Components</CardTitle>
+            <CardDescription>shadcn/ui button variations showcase</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2">
-              <Button>デフォルト</Button>
-              <Button variant="secondary">セカンダリ</Button>
-              <Button variant="destructive">削除</Button>
-              <Button variant="outline">アウトライン</Button>
-              <Button variant="ghost">ゴースト</Button>
-              <Button variant="link">リンク</Button>
+              <Button>Default</Button>
+              <Button variant="secondary">Secondary</Button>
+              <Button variant="destructive">Delete</Button>
+              <Button variant="outline">Outline</Button>
+              <Button variant="ghost">Ghost</Button>
+              <Button variant="link">Link</Button>
             </div>
             <div className="flex gap-2">
-              <Button size="sm">小サイズ</Button>
-              <Button size="default">標準</Button>
-              <Button size="lg">大サイズ</Button>
+              <Button size="sm">Small</Button>
+              <Button size="default">Default</Button>
+              <Button size="lg">Large</Button>
             </div>
           </CardContent>
         </Card>

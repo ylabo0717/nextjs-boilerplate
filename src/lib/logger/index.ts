@@ -1,9 +1,12 @@
 /**
- * 構造化ログシステム統合エクスポート
- * Client/Server双方対応の統一インターフェース
+ * Structured logging system integration exports
+ * 
+ * Provides unified interface for both client and server environments.
+ * Centralizes logger configuration and environment detection to ensure
+ * consistent logging behavior across different runtime contexts.
  */
 
-// 各環境のLoggerを静的にインポート
+// Static imports for environment-specific loggers
 import { clientLoggerWrapper, clientLoggerHelpers } from './client';
 import { loggerContextManager, createContextualLoggerCompat } from './context';
 import { errorHandler } from './error-handler';
@@ -13,7 +16,7 @@ import { serverLoggerWrapper, serverLoggerHelpers } from './server';
 import type { LokiTransportConfig } from './loki-transport';
 import type { Logger, LogArgument, LogLevel, LoggerContext } from './types';
 
-// 型定義とインターフェース
+// Type definitions and interfaces
 export type {
   Logger,
   LogLevel,
@@ -23,7 +26,7 @@ export type {
   SanitizedLogEntry,
 } from './types';
 
-// コア機能
+// Core functionality
 export {
   sanitizeLogEntry,
   sanitizeControlCharacters,
@@ -44,7 +47,7 @@ export {
   REDACT_PATHS,
 } from './utils';
 
-// コンテキスト管理
+// Context management
 export {
   runWithLoggerContext,
   getLoggerContext,
@@ -53,7 +56,7 @@ export {
   loggerContextManager,
 } from './context';
 
-// タイマーコンテキスト統合
+// Timer context integration
 export {
   setTimeoutWithContext,
   setIntervalWithContext,
@@ -62,7 +65,7 @@ export {
 } from './timer-context';
 export type { ContextualTimerHandle } from './timer-context';
 
-// API Route トレーシング統合
+// API Route tracing integration
 export {
   withAPIRouteTracing,
   createTracedAPIClient,
@@ -75,13 +78,13 @@ export type {
   CreateAPIRouteSpanOptions,
 } from './api-route-tracing';
 
-// サーバーサイドLogger
+// Server-side logger
 export { serverLogger, serverLoggerWrapper, serverLoggerHelpers } from './server';
 
-// クライアントサイドLogger
+// Client-side logger
 export { clientLogger, clientLoggerWrapper, clientLoggerHelpers } from './client';
 
-// Middleware統合
+// Middleware integration
 export {
   createRequestContext,
   logRequestStart,
@@ -93,7 +96,7 @@ export {
   middlewareLoggerHelpers,
 } from './middleware';
 
-// Loki統合
+// Loki integration
 export {
   LokiClient,
   LokiTransport,
@@ -115,34 +118,41 @@ export type {
 
 export type { LokiTransportConfig, LokiTransportStats } from './loki-transport';
 
-// エラーハンドリング
+// Error handling
 export { errorHandler, errorHandlerUtils } from './error-handler';
 
 export type { ErrorCategory, ErrorContext, StructuredError } from './error-handler';
 
 /**
- * 環境判定関数
- * サーバー/クライアント環境を判定する純粋関数
+ * Environment detection function
+ * 
+ * Pure function that determines the current runtime environment.
+ * This is essential for selecting the appropriate logger implementation
+ * based on whether code is running in Node.js, Edge Runtime, or browser.
  */
 function detectEnvironment(): 'server' | 'client' | 'edge' {
-  // サーバーサイド判定
+  // Server-side detection
   if (typeof window === 'undefined') {
     try {
-      // Node.js環境でPinoが利用可能かテスト
-      // この時点でserverLoggerWrapperがアクセス可能なら Node.js
+      // Test if Pino is available in Node.js environment
+      // If serverLoggerWrapper is accessible at this point, we're in Node.js
       return 'server';
     } catch {
-      // Edge Runtime等でPinoが使用できない場合
+      // Edge Runtime or other environments where Pino is not available
       return 'edge';
     }
   } else {
-    // ブラウザ環境
+    // Browser environment
     return 'client';
   }
 }
 
 /**
- * 環境に応じた適切なLoggerを作成する純粋関数
+ * Creates appropriate logger based on environment
+ * 
+ * Pure function that returns the correct logger implementation
+ * based on the detected runtime environment. This ensures
+ * optimal logging performance for each context.
  */
 function createAppropriateLogger(environment: 'server' | 'client' | 'edge'): Logger {
   switch (environment) {
@@ -155,14 +165,20 @@ function createAppropriateLogger(environment: 'server' | 'client' | 'edge'): Log
 }
 
 /**
- * 環境自動判定Logger
- * サーバー/クライアント環境を自動判定して適切なLoggerを返す
+ * Environment-aware logger instance
+ * 
+ * Automatically detects server/client environment and returns
+ * the appropriate logger. This is the main logger export that
+ * should be used throughout the application.
  */
 export const logger = createAppropriateLogger(detectEnvironment());
 
 /**
- * 統合Logger初期化関数
- * アプリケーション起動時に呼び出す
+ * Initialize integrated logger system
+ * 
+ * Should be called during application startup. Sets up global error handlers,
+ * configures Loki transport if enabled, and establishes initial logging context.
+ * This centralized initialization ensures consistent logging behavior.
  */
 export function initializeLogger(
   options: {
@@ -179,12 +195,12 @@ export function initializeLogger(
     lokiConfig,
   } = options;
 
-  // グローバルエラーハンドラーの設定
+  // Set up global error handlers
   if (enableGlobalErrorHandlers) {
     setupGlobalErrorHandlers();
   }
 
-  // Loki トランスポートの初期化（非同期だが初期化は妨げない）
+  // Initialize Loki transport (async but doesn't block initialization)
   if (enableLoki) {
     const config = lokiConfig || createLokiConfigFromEnv();
     initializeLokiTransport(config).catch((error) => {
@@ -192,11 +208,11 @@ export function initializeLogger(
     });
   }
 
-  // 初期コンテキストの設定
+  // Set up initial context
   if (Object.keys(context).length > 0) {
-    // Note: これはサーバーサイドでのみ有効
+    // Note: This is only effective on server-side
     if (typeof window === 'undefined') {
-      // contextを適切な型にキャスト（部分的なLoggerContextとして扱う）
+      // Cast context to appropriate type (treat as partial LoggerContext)
       const loggerContext = {
         requestId: (context.requestId as string) || 'init',
         ...context,
@@ -213,19 +229,23 @@ export function initializeLogger(
 }
 
 /**
- * グローバルエラーハンドラーの設定
+ * Set up global error handlers
+ * 
+ * Configures uncaught exception and unhandled rejection handlers
+ * for both Node.js and browser environments. This ensures that
+ * all errors are properly logged and handled consistently.
  */
 function setupGlobalErrorHandlers(): void {
-  // 静的にインポートしたerrorHandlerを使用
+  // Use statically imported errorHandler
 
   if (typeof window === 'undefined') {
-    // Node.js環境
+    // Node.js environment
     process.on('uncaughtException', (error: Error) => {
       errorHandler.handleUncaughtException(error, {
         timestamp: new Date().toISOString(),
       });
 
-      // アプリケーションを適切に終了
+      // Gracefully terminate the application
       process.exit(1);
     });
 
@@ -235,7 +255,7 @@ function setupGlobalErrorHandlers(): void {
       });
     });
   } else {
-    // ブラウザ環境
+    // Browser environment
     window.addEventListener('error', (event) => {
       errorHandler.handle(event.error, {
         path: window.location.pathname,
@@ -260,15 +280,20 @@ function setupGlobalErrorHandlers(): void {
 }
 
 /**
- * コンテキスト付きLogger取得
+ * Get logger with context
+ * 
+ * Creates a logger instance with attached context information.
+ * Context is handled differently between server and client environments
+ * due to their different execution models.
+ * 
  * @internal
  */
 export function getLoggerWithContext(context: Record<string, unknown>): Logger {
   if (typeof window === 'undefined') {
-    // サーバーサイド
+    // Server-side
     return createContextualLoggerCompat(logger, context);
   } else {
-    // クライアントサイド（コンテキストは個別に付与）
+    // Client-side (context is attached individually)
     return {
       trace: (message: string, ...args: LogArgument[]) => logger.trace(message, context, ...args),
       debug: (message: string, ...args: LogArgument[]) => logger.debug(message, context, ...args),
@@ -282,7 +307,11 @@ export function getLoggerWithContext(context: Record<string, unknown>): Logger {
 }
 
 /**
- * 統合パフォーマンス測定
+ * Integrated performance measurement
+ * 
+ * Measures function execution time using the appropriate logger helper
+ * based on the current environment. Provides consistent performance
+ * tracking across server and client contexts.
  */
 export function measurePerformance<T>(
   name: string,
@@ -290,16 +319,20 @@ export function measurePerformance<T>(
   _context: Record<string, unknown> = {}
 ): T {
   if (typeof window === 'undefined') {
-    // サーバーサイド
+    // Server-side
     return serverLoggerHelpers.measurePerformance(name, fn);
   } else {
-    // クライアントサイド
+    // Client-side
     return clientLoggerHelpers.measurePerformance(name, fn);
   }
 }
 
 /**
- * 統合非同期パフォーマンス測定
+ * Integrated async performance measurement
+ * 
+ * Measures asynchronous function execution time with fallback handling
+ * for environments that don't support async measurement. Ensures
+ * consistent performance tracking for Promise-based operations.
  */
 export async function measurePerformanceAsync<T>(
   name: string,
@@ -307,45 +340,58 @@ export async function measurePerformanceAsync<T>(
   _context: Record<string, unknown> = {}
 ): Promise<T> {
   if (typeof window === 'undefined') {
-    // サーバーサイド
+    // Server-side
     return (
       serverLoggerHelpers.measurePerformanceAsync?.(name, fn) ??
       Promise.resolve(serverLoggerHelpers.measurePerformance(name, () => fn()))
     );
   } else {
-    // クライアントサイド - measurePerformanceAsyncが存在しない場合は同期版を使用
+    // Client-side - use sync version if measurePerformanceAsync doesn't exist
     return Promise.resolve(clientLoggerHelpers.measurePerformance(name, () => fn()));
   }
 }
 /**
- * 統合ユーザーアクションログ
+ * Integrated user action logging
+ * 
+ * Logs user actions with consistent formatting across environments.
+ * This is essential for tracking user behavior and debugging
+ * user-reported issues in both server and client contexts.
  */
 export function logUserAction(action: string, details: Record<string, unknown> = {}): void {
   if (typeof window === 'undefined') {
-    // サーバーサイド
+    // Server-side
     serverLoggerHelpers.logUserAction(action, details);
   } else {
-    // クライアントサイド
+    // Client-side
     clientLoggerHelpers.logUserAction(action, details);
   }
 }
 
 /**
- * 統合エラーログ
+ * Integrated error logging
+ * 
+ * Provides unified error handling across environments using the
+ * appropriate error handler for each context. Server-side uses
+ * the structured error handler while client-side uses helper functions.
+ * 
  * @internal
  */
 export function logError(error: Error | unknown, context: Record<string, unknown> = {}): void {
   if (typeof window === 'undefined') {
-    // サーバーサイド - 既存のerrorHandlerオブジェクトを使用
+    // Server-side - use existing errorHandler object
     errorHandler.handle(error, context);
   } else {
-    // クライアントサイド
+    // Client-side
     clientLoggerHelpers.logError(error, context);
   }
 }
 
 /**
- * デバッグ用Logger情報表示
+ * Debug logger information display
+ * 
+ * Outputs detailed logger configuration and runtime information
+ * for debugging purposes. Helps identify environment-specific
+ * logging issues and configuration problems.
  */
 export function debugLogger(): void {
   const info = {
@@ -362,5 +408,5 @@ export function debugLogger(): void {
   logger.debug('Logger debug information', info);
 }
 
-// デフォルトエクスポート
+// Default export
 export default logger;

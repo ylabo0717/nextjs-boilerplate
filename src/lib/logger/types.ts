@@ -1,40 +1,48 @@
 /**
- * 構造化ログシステム型定義
- * Next.js 15 + Pino ベースの高性能ログシステム
+ * Structured logging system type definitions
+ * 
+ * High-performance logging system based on Next.js 15 + Pino.
+ * Provides type-safe interfaces for structured logging with
+ * OpenTelemetry compliance and performance optimization.
  */
 
 /**
- * ログレベル定義配列
+ * Log level definition array
  *
- * OpenTelemetry仕様に準拠したログレベル定義。
- * traceが最も詳細で、fatalが最も重要なレベル。
+ * OpenTelemetry-compliant log level definitions.
+ * 'trace' is the most detailed level, 'fatal' is the most critical.
+ * These levels follow industry standards for consistent log filtering
+ * and monitoring integration.
  *
  * @public
  */
 export const LOG_LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
 
 /**
- * ログレベル型定義
+ * Log level type definition
  *
- * LOG_LEVELS配列から派生した型安全なログレベル。
- * パフォーマンスと安全性を両立する型定義。
+ * Type-safe log level derived from LOG_LEVELS array.
+ * This ensures compile-time validation of log levels while
+ * maintaining runtime performance. Provides both safety
+ * and optimal performance characteristics.
  *
  * @public
  */
 export type LogLevel = (typeof LOG_LEVELS)[number];
 
 /**
- * ログ引数型定義
+ * Log argument type definition
  *
- * ログメソッドで受け入れ可能な引数の型。
- * JSON.stringifyで安全にシリアライズ可能な値のみ許可。
+ * Defines acceptable argument types for log methods.
+ * Only values that can be safely serialized by JSON.stringify are allowed.
+ * This constraint ensures reliable log transmission and storage.
  *
- * - string: 文字列メッセージやID
- * - number: 数値データや統計情報
- * - boolean: フラグや状態値
- * - Record\<string, unknown\>: 構造化データ
- * - Error: エラーオブジェクト（自動的にシリアライズ）
- * - null/undefined: 存在しない値の表現
+ * - string: Text messages and identifiers
+ * - number: Numeric data and statistics
+ * - boolean: Flags and state values
+ * - Record<string, unknown>: Structured data objects
+ * - Error: Error objects (automatically serialized)
+ * - null/undefined: Representation of absent values
  *
  * @public
  */
@@ -48,98 +56,112 @@ export type LogArgument =
   | undefined;
 
 /**
- * 統一Loggerインターフェース
+ * Unified Logger interface
  *
- * サーバー（Pino）とクライアント（Console）の両環境で
- * 統一されたロガーAPIを提供。構造化ログとパフォーマンス
- * 最適化を実現。
+ * Provides consistent logger API for both server (Pino) and client (Console)
+ * environments. Enables structured logging and performance optimization
+ * across different runtime contexts.
  *
- * すべてのログメソッドは非同期でスレッドセーフ。
- * 本番環境では自動的にログレベルフィルタリングを実行。
+ * All log methods are asynchronous and thread-safe by design.
+ * Production environments automatically apply log level filtering
+ * for optimal performance and security.
  *
  * @public
  */
 export interface Logger {
   /**
-   * トレースレベルログ出力
+   * Trace level log output
    *
-   * 最も詳細なデバッグ情報。開発環境でのみ推奨。
+   * Most detailed debugging information. Recommended for development
+   * environments only due to potential performance impact and verbosity.
+   * Use for fine-grained execution flow tracking.
    *
-   * @param message - ログメッセージ
-   * @param args - 追加のログデータ
+   * @param message - Log message
+   * @param args - Additional log data
    *
    * @public
    */
   trace(message: string, ...args: LogArgument[]): void;
 
   /**
-   * デバッグレベルログ出力
+   * Debug level log output
    *
-   * 開発・ステージング環境での詳細情報。
+   * Detailed information for development and staging environments.
+   * Includes variable states, function parameters, and intermediate
+   * processing results for troubleshooting.
    *
-   * @param message - ログメッセージ
-   * @param args - 追加のログデータ
+   * @param message - Log message
+   * @param args - Additional log data
    *
    * @public
    */
   debug(message: string, ...args: LogArgument[]): void;
 
   /**
-   * 情報レベルログ出力
+   * Info level log output
    *
-   * 一般的な情報ログ。本番環境でも安全。
+   * General informational logs safe for production environments.
+   * Used for application flow milestones, configuration changes,
+   * and important business events.
    *
-   * @param message - ログメッセージ
-   * @param args - 追加のログデータ
+   * @param message - Log message
+   * @param args - Additional log data
    *
    * @public
    */
   info(message: string, ...args: LogArgument[]): void;
 
   /**
-   * 警告レベルログ出力
+   * Warning level log output
    *
-   * 潜在的な問題やパフォーマンス警告。
+   * Potential issues and performance warnings that don't prevent
+   * normal operation but may indicate problems requiring attention.
+   * Used for deprecated features, suboptimal performance, etc.
    *
-   * @param message - ログメッセージ
-   * @param args - 追加のログデータ
+   * @param message - Log message
+   * @param args - Additional log data
    *
    * @public
    */
   warn(message: string, ...args: LogArgument[]): void;
 
   /**
-   * エラーレベルログ出力
+   * Error level log output
    *
-   * 処理継続可能なエラー情報。
+   * Recoverable error information that allows continued processing.
+   * Used for handled exceptions, validation failures, and other
+   * errors that don't crash the application.
    *
-   * @param message - ログメッセージ
-   * @param args - 追加のログデータ
+   * @param message - Log message
+   * @param args - Additional log data
    *
    * @public
    */
   error(message: string, ...args: LogArgument[]): void;
 
   /**
-   * 致命的レベルログ出力
+   * Fatal level log output
    *
-   * アプリケーション停止を要する重大エラー。
+   * Critical errors requiring application termination.
+   * Used for unrecoverable system failures, security breaches,
+   * or corruption that prevents safe operation.
    *
-   * @param message - ログメッセージ
-   * @param args - 追加のログデータ
+   * @param message - Log message
+   * @param args - Additional log data
    *
    * @public
    */
   fatal(message: string, ...args: LogArgument[]): void;
 
   /**
-   * ログレベル有効性チェック
+   * Log level enabled check
    *
-   * 指定されたログレベルが現在の設定で出力されるか確認。
-   * パフォーマンス最適化に使用。
+   * Verifies whether the specified log level would be output
+   * with current configuration. This enables performance optimization
+   * by avoiding expensive log preparation for disabled levels.
    *
-   * @param level - チェックするログレベル
-   * @returns ログレベルが有効な場合true
+   * @param level - Log level to check
+   * @returns true if log level is enabled
    *
    * @public
    */
@@ -147,55 +169,60 @@ export interface Logger {
 }
 
 /**
- * ロガーコンテキスト定義
+ * Logger context definition
  *
- * 🚨 高リスク対応: Child Logger Context定義
+ * 🚨 High-Risk Response: Child Logger Context Definition
  *
- * 分散トレーシングとコンテキスト追跡のための
- * 構造化データ。OpenTelemetry準拠のトレース情報と
- * アプリケーション固有のコンテキストを統合。
+ * Structured data for distributed tracing and context tracking.
+ * Integrates OpenTelemetry-compliant trace information with
+ * application-specific context for comprehensive observability.
  *
- * GDPR準拠のため、個人識別情報（PII）は事前にハッシュ化
- * または仮名化して格納する必要がある。
+ * For GDPR compliance, Personally Identifiable Information (PII)
+ * must be hashed or pseudonymized before storage. This design
+ * supports privacy-by-design logging architectures.
  *
  * @public
  */
 export interface LoggerContext extends Record<string, unknown> {
   /**
-   * リクエスト固有ID
+   * Request-specific identifier
    *
-   * 単一HTTPリクエストまたはタスクを追跡するための一意識別子。
-   * UUID v4形式を推奨。
+   * Unique identifier for tracking a single HTTP request or task.
+   * UUID v4 format is recommended for uniqueness and collision
+   * resistance in distributed systems.
    *
    * @public
    */
   requestId: string;
 
   /**
-   * 分散トレースID
+   * Distributed trace identifier
    *
-   * OpenTelemetry準拠のトレース識別子。
-   * マイクロサービス間のリクエスト追跡に使用。
+   * OpenTelemetry-compliant trace identifier for tracking
+   * requests across microservice boundaries. Essential for
+   * distributed system observability and debugging.
    *
    * @public
    */
   traceId?: string;
 
   /**
-   * スパンID
+   * Span identifier
    *
-   * トレース内の特定操作を示すスパン識別子。
-   * パフォーマンス分析とボトルネック特定に使用。
+   * Identifies specific operations within a trace.
+   * Critical for performance analysis and bottleneck
+   * identification in distributed request flows.
    *
    * @public
    */
   spanId?: string;
 
   /**
-   * ユーザーID
+   * User identifier
    *
-   * 認証済みユーザーの識別子。GDPR準拠のため
-   * ハッシュ化または仮名化された値を使用。
+   * Authenticated user identifier. For GDPR compliance,
+   * use hashed or pseudonymized values rather than raw
+   * personal identifiers.
    *
    * @public
    */

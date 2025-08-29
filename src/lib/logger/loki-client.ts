@@ -202,23 +202,23 @@ export class LokiClient {
   private readonly buffer: BufferedLogEntry[] = [];
 
   /**
-   * 自動フラッシュタイマー（内部使用）
+   * Auto flush timer (internal use)
    *
    * @internal
    */
   private flushTimer: NodeJS.Timeout | null = null;
 
   /**
-   * シャットダウン状態フラグ（内部使用）
+   * Shutdown state flag (internal use)
    *
    * @internal
    */
   private isShutdown = false;
 
   /**
-   * Loki クライアントを作成
+   * Create Loki client
    *
-   * @param config - クライアント設定
+   * @param config - Client configuration
    */
   constructor(config: LokiClientConfig) {
     this.config = {
@@ -236,12 +236,12 @@ export class LokiClient {
   }
 
   /**
-   * 単一ログエントリを Loki に送信
+   * Send single log entry to Loki
    *
-   * @param level - ログレベル
-   * @param message - ログメッセージ
-   * @param labels - 追加ラベル
-   * @param metadata - 構造化メタデータ
+   * @param level - Log level
+   * @param message - Log message
+   * @param labels - Additional labels
+   * @param metadata - Structured metadata
    * @returns Promise that resolves when log is sent or buffered
    *
    * @public
@@ -279,9 +279,9 @@ export class LokiClient {
   }
 
   /**
-   * 複数ログエントリを Loki に送信
+   * Send multiple log entries to Loki
    *
-   * @param logs - ログエントリ配列
+   * @param logs - Array of log entries
    * @returns Promise that resolves when all logs are sent or buffered
    *
    * @public
@@ -328,11 +328,11 @@ export class LokiClient {
   }
 
   /**
-   * ログエラーのヘルパーメソッド
+   * Helper method for logging errors
    *
-   * @param error - エラーオブジェクト
-   * @param context - エラーコンテキスト
-   * @param labels - 追加ラベル
+   * @param error - Error object
+   * @param context - Error context
+   * @param labels - Additional labels
    * @returns Promise that resolves when error log is sent or buffered
    *
    * @public
@@ -358,7 +358,7 @@ export class LokiClient {
   }
 
   /**
-   * バッファリングされたログを即座に送信
+   * Immediately send buffered logs
    *
    * @returns Promise that resolves when all buffered logs are sent
    *
@@ -381,7 +381,7 @@ export class LokiClient {
   }
 
   /**
-   * クライアントをシャットダウンしてリソースをクリーンアップ
+   * Shutdown client and cleanup resources
    *
    * @returns Promise that resolves when shutdown is complete
    *
@@ -399,9 +399,9 @@ export class LokiClient {
   }
 
   /**
-   * ラベルによってログをグループ化してストリームを作成
+   * Group logs by labels to create streams
    *
-   * @param logs - ログエントリ配列
+   * @param logs - Array of log entries
    * @returns Grouped log streams
    *
    * @internal
@@ -431,9 +431,9 @@ export class LokiClient {
   }
 
   /**
-   * ペイロードを Loki に送信（リトライロジック付き）
+   * Send payload to Loki (with retry logic)
    *
-   * @param payload - 送信するペイロード
+   * @param payload - Payload to send
    * @returns Promise that resolves when payload is sent successfully
    *
    * @internal
@@ -466,10 +466,10 @@ export class LokiClient {
   }
 
   /**
-   * HTTP リクエストを実行
+   * Execute HTTP request
    *
-   * @param url - リクエスト URL
-   * @param payload - リクエストペイロード
+   * @param url - Request URL
+   * @param payload - Request payload
    * @returns Promise that resolves to response
    *
    * @internal
@@ -480,7 +480,7 @@ export class LokiClient {
       'User-Agent': 'nextjs-boilerplate-loki-client/1.0.0',
     };
 
-    // 認証ヘッダーの設定
+    // Configure authentication headers
     if (this.config.auth) {
       const credentials = btoa(`${this.config.auth.username}:${this.config.auth.password}`);
       headers['Authorization'] = `Basic ${credentials}`;
@@ -488,14 +488,14 @@ export class LokiClient {
       headers['Authorization'] = `Bearer ${this.config.apiKey}`;
     }
 
-    // マルチテナント対応
+    // Multi-tenant support
     if (this.config.tenantId) {
       headers['X-Scope-OrgID'] = this.config.tenantId;
     }
 
     const body = JSON.stringify(payload);
 
-    // 圧縮の設定
+    // Configure compression
     if (this.config.compression && body.length > 1024) {
       headers['Content-Encoding'] = 'gzip';
       // Note: In a real implementation, you would compress the body here
@@ -524,12 +524,12 @@ export class LokiClient {
   }
 
   /**
-   * フラッシュタイマーを開始
+   * Start flush timer
    *
    * @internal
    */
   private startFlushTimer(): void {
-    // テスト環境ではタイマーを開始しない
+    // Don't start timer in test environment
     if (process.env.NODE_ENV === 'test') {
       return;
     }
@@ -549,15 +549,15 @@ export class LokiClient {
   }
 
   /**
-   * 指定された時間だけ待機
+   * Wait for the specified time
    *
-   * @param ms - 待機時間（ミリ秒）
+   * @param ms - Wait time in milliseconds
    * @returns Promise that resolves after the delay
    *
    * @internal
    */
   private delay(ms: number): Promise<void> {
-    // テスト環境では即座に解決
+    // Resolve immediately in test environment
     if (process.env.NODE_ENV === 'test') {
       return Promise.resolve();
     }
@@ -565,7 +565,7 @@ export class LokiClient {
   }
 
   /**
-   * クライアント設定を取得
+   * Get client configuration
    *
    * @returns Client configuration (for debugging/monitoring)
    *
@@ -576,7 +576,7 @@ export class LokiClient {
   }
 
   /**
-   * クライアント統計情報を取得
+   * Get client statistics
    *
    * @returns Client statistics
    *
@@ -596,9 +596,9 @@ export class LokiClient {
 }
 
 /**
- * 基本設定の検証
+ * Validate basic configuration
  *
- * @param config - 検証する設定
+ * @param config - Configuration to validate
  * @throws Error if basic configuration is invalid
  *
  * @internal
@@ -616,9 +616,9 @@ function validateBasicConfig(config: LokiClientConfig): void {
 }
 
 /**
- * タイムアウト設定の検証
+ * Validate timeout configuration
  *
- * @param config - 検証する設定
+ * @param config - Configuration to validate
  * @throws Error if timeout configuration is invalid
  *
  * @internal
@@ -630,9 +630,9 @@ function validateTimeoutConfig(config: LokiClientConfig): void {
 }
 
 /**
- * バッチ設定の検証
+ * Validate batch configuration
  *
- * @param config - 検証する設定
+ * @param config - Configuration to validate
  * @throws Error if batch configuration is invalid
  *
  * @internal
@@ -648,9 +648,9 @@ function validateBatchConfig(config: LokiClientConfig): void {
 }
 
 /**
- * リトライ設定の検証
+ * Validate retry configuration
  *
- * @param config - 検証する設定
+ * @param config - Configuration to validate
  * @throws Error if retry configuration is invalid
  *
  * @internal
@@ -666,9 +666,9 @@ function validateRetryConfig(config: LokiClientConfig): void {
 }
 
 /**
- * 接続性の検証
+ * Validate connectivity
  *
- * @param config - 検証する設定
+ * @param config - Configuration to validate
  * @throws Error if connectivity test fails
  *
  * @internal
@@ -696,11 +696,11 @@ async function validateConnectivity(config: LokiClientConfig): Promise<void> {
 }
 
 /**
- * Loki クライアント設定の検証
+ * Validate Loki client configuration
  *
- * 設定の妥当性を検証し、オプションで接続性テストを実行します。
+ * Validates configuration validity and optionally runs connectivity tests.
  *
- * @param config - 検証する設定
+ * @param config - Configuration to validate
  * @returns Promise that resolves if configuration is valid
  * @throws Error if configuration is invalid
  *
@@ -716,9 +716,9 @@ export async function validateLokiConfig(config: LokiClientConfig): Promise<void
 }
 
 /**
- * デフォルト Loki クライアント設定を作成
+ * Create default Loki client configuration
  *
- * @param overrides - 設定のオーバーライド
+ * @param overrides - Configuration overrides
  * @returns Default configuration with overrides applied
  *
  * @public

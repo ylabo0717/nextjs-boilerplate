@@ -1,6 +1,6 @@
 /**
- * 構造化ログユーティリティ関数
- * セキュリティクリティカルな機能を含む
+ * Structured log utility functions
+ * Contains security-critical functionality
  */
 
 import { randomUUID } from 'node:crypto';
@@ -8,25 +8,25 @@ import { randomUUID } from 'node:crypto';
 import { LogLevel, LOG_LEVELS, BaseProperties, SEVERITY_NUMBERS } from './types';
 
 /**
- * デフォルトログレベル
+ * Default log level
  */
 export const DEFAULT_LOG_LEVEL: LogLevel = 'info';
 
 /**
- * 環境変数からログレベルを取得する関数
+ * Function to get log level from environment variables
  *
- * 環境変数 LOG_LEVEL を読み取り、有効なログレベルを返します。
- * 無効な値または未設定の場合はデフォルトログレベルを返します。
+ * Reads the LOG_LEVEL environment variable and returns a valid log level.
+ * Returns default log level if invalid value or not set.
  *
- * @returns 有効なログレベル値
+ * @returns Valid log level value
  *
  * @example
  * ```typescript
- * // LOG_LEVEL=debug の場合
+ * // When LOG_LEVEL=debug
  * const level = getLogLevelFromEnv(); // 'debug'
  *
- * // LOG_LEVEL が未設定または無効の場合
- * const level = getLogLevelFromEnv(); // 'info' (デフォルト)
+ * // When LOG_LEVEL is not set or invalid
+ * const level = getLogLevelFromEnv(); // 'info' (default)
  * ```
  *
  * @public
@@ -42,49 +42,49 @@ export function getLogLevelFromEnv(): LogLevel {
 }
 
 /**
- * クライアントサイドで適切なログレベルを取得する関数
+ * Function to get appropriate log level for client-side
  *
- * サーバーサイドとクライアントサイドの環境に応じて適切なログレベルを決定します。
- * クライアントサイドでは NEXT_PUBLIC_LOG_LEVEL 環境変数を使用し、
- * サーバーサイドでは通常の LOG_LEVEL 環境変数を使用します。
+ * Determines appropriate log level based on server-side and client-side environments.
+ * Uses NEXT_PUBLIC_LOG_LEVEL environment variable on client-side,
+ * and normal LOG_LEVEL environment variable on server-side.
  *
- * @returns クライアント環境に適したログレベル
+ * @returns Log level suitable for client environment
  *
  * @example
  * ```typescript
- * // ブラウザ環境での使用
- * const clientLevel = getClientLogLevel(); // NEXT_PUBLIC_LOG_LEVEL から取得
+ * // Usage in browser environment
+ * const clientLevel = getClientLogLevel(); // Gets from NEXT_PUBLIC_LOG_LEVEL
  *
- * // サーバーサイドでの使用
- * const serverLevel = getClientLogLevel(); // LOG_LEVEL から取得
+ * // Usage on server-side
+ * const serverLevel = getClientLogLevel(); // Gets from LOG_LEVEL
  * ```
  *
  * @public
  */
 export function getClientLogLevel(): LogLevel {
   if (typeof window === 'undefined') {
-    // サーバーサイドでは環境変数から取得
+    // Get from environment variables on server-side
     return getLogLevelFromEnv();
   }
 
-  // ブラウザ環境では NEXT_PUBLIC_ プレフィックス付きの環境変数を使用
+  // Use environment variable with NEXT_PUBLIC_ prefix in browser environment
   const envLevel = process.env.NEXT_PUBLIC_LOG_LEVEL?.toLowerCase();
 
   if (envLevel && LOG_LEVELS.includes(envLevel as LogLevel)) {
     return envLevel as LogLevel;
   }
 
-  // 開発環境では詳細ログ、本番環境ではデフォルト
+  // Detailed logs in development environment, default in production environment
   return process.env.NODE_ENV === 'development' ? 'debug' : DEFAULT_LOG_LEVEL;
 }
 
 /**
- * 構造化ログのベースプロパティを生成する関数
+ * Function to generate base properties for structured logging
  *
- * すべてのログエントリに含まれる共通のベースプロパティを生成します。
- * アプリケーション名、環境、プロセスID、バージョン情報などが含まれます。
+ * Generates common base properties included in all log entries.
+ * Includes application name, environment, process ID, version information, etc.
  *
- * @returns 構造化ログのベースプロパティオブジェクト
+ * @returns Structured log base properties object
  *
  * @example
  * ```typescript
@@ -111,21 +111,21 @@ export function createBaseProperties(): BaseProperties {
 }
 
 /**
- * ログから機密情報をマスクするためのパス定義
+ * Path definitions for masking sensitive information from logs
  *
- * セキュリティクリティカルな情報を含む可能性があるオブジェクトパスのリストです。
- * これらのパスにマッチするデータは自動的に '[REDACTED]' に置換されます。
- * 認証情報、個人情報（PII）、機密ビジネス情報が含まれます。
+ * List of object paths that may contain security-critical information.
+ * Data matching these paths is automatically replaced with '[REDACTED]'.
+ * Includes authentication information, personal information (PII), and confidential business information.
  *
  * @example
  * ```typescript
- * // 以下のデータがログに含まれる場合
+ * // When the following data is included in logs
  * const userData = {
  *   user: { email: 'user@example.com', name: 'John' },
  *   password: 'secret123'
  * };
  *
- * // REDACT_PATHS により以下のように変換される
+ * // Transformed as follows by REDACT_PATHS
  * // {
  * //   user: { email: '[REDACTED]', name: 'John' },
  * //   password: '[REDACTED]'
@@ -135,7 +135,7 @@ export function createBaseProperties(): BaseProperties {
  * @public
  */
 export const REDACT_PATHS = [
-  // 認証情報
+  // Authentication information
   'password',
   'token',
   'authorization',
@@ -149,13 +149,13 @@ export const REDACT_PATHS = [
   '*.secret',
   '*.key',
 
-  // HTTPヘッダー
+  // HTTP headers
   'req.headers.authorization',
   'req.headers.cookie',
   'req.headers["x-api-key"]',
   'res.headers["set-cookie"]',
 
-  // 個人情報（PII）
+  // Personal information (PII)
   'user.email',
   'user.phone',
   'user.ssn',
@@ -169,7 +169,7 @@ export const REDACT_PATHS = [
   'ssn',
   'credit_card',
 
-  // 機密ビジネス情報
+  // Confidential business information
   'payment.card_number',
   'payment.cvv',
   'bank.account_number',
@@ -179,13 +179,13 @@ export const REDACT_PATHS = [
 ];
 
 /**
- * ログレベルを対応する数値に変換する関数
+ * Function to convert log level to corresponding numeric value
  *
- * OpenTelemetry の SeverityNumber 仕様に基づいてログレベルを数値に変換します。
- * この数値はログレベルの重要度比較やフィルタリングに使用されます。
+ * Converts log level to numeric value based on OpenTelemetry SeverityNumber specification.
+ * This numeric value is used for log level importance comparison and filtering.
  *
- * @param level - 変換するログレベル
- * @returns ログレベルに対応する数値（SeverityNumber）
+ * @param level - Log level to convert
+ * @returns Numeric value corresponding to log level (SeverityNumber)
  *
  * @example
  * ```typescript
@@ -202,21 +202,21 @@ export function getLogLevelValue(level: LogLevel): number {
 }
 
 /**
- * 指定されたログレベルが現在の設定で有効かどうかを判定する関数
+ * Function to determine if specified log level is enabled with current settings
  *
- * 現在のログレベル設定に基づいて、対象のログレベルが出力対象かどうかを判定します。
- * より高い重要度のログレベルのみが有効として判定されます。
+ * Determines whether target log level is subject to output based on current log level settings.
+ * Only log levels with higher importance are determined as enabled.
  *
- * @param currentLevel - 現在設定されているログレベル
- * @param targetLevel - 判定対象のログレベル
- * @returns 対象ログレベルが有効な場合 true、無効な場合 false
+ * @param currentLevel - Currently configured log level
+ * @param targetLevel - Log level to be determined
+ * @returns true if target log level is enabled, false if disabled
  *
  * @example
  * ```typescript
- * // 現在のレベルが 'info' の場合
- * isLogLevelEnabled('info', 'error'); // true (error は info より重要)
- * isLogLevelEnabled('info', 'debug'); // false (debug は info より軽微)
- * isLogLevelEnabled('info', 'info');  // true (同レベル)
+ * // When current level is 'info'
+ * isLogLevelEnabled('info', 'error'); // true (error is more important than info)
+ * isLogLevelEnabled('info', 'debug'); // false (debug is less important than info)
+ * isLogLevelEnabled('info', 'info');  // true (same level)
  * ```
  *
  * @public
@@ -226,43 +226,43 @@ export function isLogLevelEnabled(currentLevel: LogLevel, targetLevel: LogLevel)
 }
 
 /**
- * 一意なリクエストIDを生成する関数（UUID v7実装）
+ * Function to generate unique request ID (UUID v7 implementation)
  *
- * ログの相関分析やリクエストトレーシングに使用する一意なIDを生成します。
- * UUID v7を使用することで、高頻度実行での衝突を完全に防ぎます。
+ * Generates unique ID for log correlation analysis and request tracing.
+ * Using UUID v7 completely prevents collisions in high-frequency execution.
  *
- * @returns 一意なリクエストID文字列
+ * @returns Unique request ID string
  *
  * @example
  * ```typescript
  * const requestId = generateRequestId();
  * // 'req_01234567-89ab-7cde-f012-3456789abcde'
  *
- * // ログでの使用例
+ * // Usage example in logs
  * logger.info('Request started', { requestId });
  * ```
  *
  * @public
- * @remarks UUID v7を使用することで、高頻度実行での衝突を防ぎます
+ * @remarks Using UUID v7 prevents collisions in high-frequency execution
  */
 export function generateRequestId(): string {
   return `req_${randomUUID()}`;
 }
 
 /**
- * Edge Runtime環境検出（純粋関数）
+ * Edge Runtime environment detection (pure function)
  *
- * Vercel Edge Runtime環境かどうかを検出します。
- * グローバル変数 EdgeRuntime の存在をチェックして判定します。
+ * Detects whether it's Vercel Edge Runtime environment.
+ * Determined by checking the existence of global variable EdgeRuntime.
  *
- * @returns Edge Runtime環境の場合true
+ * @returns true if Edge Runtime environment
  *
  * @example
  * ```typescript
  * if (isEdgeRuntime()) {
- *   // Edge Runtime対応のコード
+ *   // Edge Runtime compatible code
  * } else {
- *   // Node.js環境のコード
+ *   // Node.js environment code
  * }
  * ```
  *
@@ -270,7 +270,7 @@ export function generateRequestId(): string {
  */
 export function isEdgeRuntime(): boolean {
   try {
-    // EdgeRuntimeグローバル変数の存在チェック
+    // Check existence of EdgeRuntime global variable
     return typeof (globalThis as { EdgeRuntime?: unknown }).EdgeRuntime === 'string';
   } catch {
     return false;
@@ -278,27 +278,27 @@ export function isEdgeRuntime(): boolean {
 }
 
 /**
- * 実行環境のタイプを検出（純粋関数）
+ * Detect runtime environment type (pure function)
  *
- * 現在の実行環境のタイプを識別します。
- * Edge Runtime、Node.js、ブラウザ環境を区別します。
+ * Identifies the type of current runtime environment.
+ * Distinguishes between Edge Runtime, Node.js, and browser environments.
  *
- * @returns 実行環境のタイプ
+ * @returns Runtime environment type
  *
  * @public
  */
 export function detectRuntimeEnvironment(): 'edge' | 'nodejs' | 'browser' {
-  // Edge Runtime環境
+  // Edge Runtime environment
   if (isEdgeRuntime()) {
     return 'edge';
   }
 
-  // Node.js環境（サーバーサイド）
+  // Node.js environment (server-side)
   if (typeof window === 'undefined' && typeof process !== 'undefined') {
     return 'nodejs';
   }
 
-  // ブラウザ環境
+  // Browser environment
   return 'browser';
 }
 

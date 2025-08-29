@@ -13,14 +13,14 @@ import { serializeError } from './utils';
 import type { LogLevel } from './types';
 
 /**
- * Loki ログストリームのラベル型
+ * Loki log stream label type
  *
  * @public
  */
 export type LokiLabels = Record<string, string>;
 
 /**
- * Loki ログエントリ型
+ * Loki log entry type
  *
  * @public
  */
@@ -34,7 +34,7 @@ export interface LokiLogEntry {
 }
 
 /**
- * Loki ログストリーム型
+ * Loki log stream type
  *
  * @public
  */
@@ -46,7 +46,7 @@ export interface LokiLogStream {
 }
 
 /**
- * Loki Push API ペイロード型
+ * Loki Push API payload type
  *
  * @public
  */
@@ -56,7 +56,7 @@ export interface LokiPushPayload {
 }
 
 /**
- * Loki クライアント設定型
+ * Loki client configuration type
  *
  * @public
  */
@@ -89,7 +89,7 @@ export interface LokiClientConfig {
 }
 
 /**
- * Loki レスポンス型
+ * Loki response type
  *
  * @internal
  */
@@ -100,7 +100,7 @@ interface LokiResponse {
 }
 
 /**
- * バッファリングされたログエントリ型
+ * Buffered log entry type
  *
  * @internal
  */
@@ -110,10 +110,10 @@ interface BufferedLogEntry {
 }
 
 /**
- * Grafana Loki Push API クライアント
+ * Grafana Loki Push API client
  *
- * 構造化ログをGrafana Lokiに効率的に送信するためのクライアント実装。
- * バッチング、リトライロジック、エラーハンドリングを提供。
+ * Client implementation for efficiently sending structured logs to Grafana Loki.
+ * Provides batching, retry logic, and error handling.
  *
  * @example
  * ```typescript
@@ -122,13 +122,13 @@ interface BufferedLogEntry {
  *   defaultLabels: { service: 'my-app', environment: 'production' }
  * });
  *
- * // 単一ログの送信
+ * // Send single log
  * await client.pushLog('info', 'Application started', {
  *   userId: '123',
  *   version: '1.0.0'
  * });
  *
- * // バッチでログを送信
+ * // Send logs in batch
  * await client.pushLogs([
  *   { level: 'info', message: 'User logged in', labels: { action: 'login' } },
  *   { level: 'error', message: 'Failed to connect', labels: { component: 'db' } }
@@ -138,7 +138,7 @@ interface BufferedLogEntry {
  * @public
  */
 /**
- * 内部設定型（Required版だがオプショナルフィールドを保持）
+ * Internal configuration type (Required version but retains optional fields)
  *
  * @internal
  */
@@ -149,19 +149,19 @@ type InternalLokiClientConfig = Required<Omit<LokiClientConfig, 'auth' | 'apiKey
 };
 
 /**
- * Grafana Loki Push API クライアント
+ * Grafana Loki Push API client
  *
- * 構造化ログをGrafana Lokiに効率的に送信するためのクライアント実装。
- * バッチング、リトライロジック、エラーハンドリングを提供。
+ * Client implementation for efficiently sending structured logs to Grafana Loki.
+ * Provides batching, retry logic, and error handling.
  *
- * ## クラス実装の理由
+ * ## Reason for class implementation
  *
- * **Pure Functions First原則の例外として、以下の理由でクラス実装を採用:**
- * - **状態管理**: ログバッファ、送信タイマー、接続状態の継続的な管理が必要
- * - **リソース管理**: HTTPクライアント、タイマーの適切なライフサイクル管理
- * - **非同期処理**: バッチ送信、リトライ機能の複雑な状態遷移
- * - **パフォーマンス**: メモリ効率的なバッファリングとコネクション再利用
- * - **エラー回復**: 送信失敗時の状態復旧とバックオフ戦略
+ * **As an exception to the Pure Functions First principle, class implementation is adopted for the following reasons:**
+ * - **State management**: Continuous management of log buffers, transmission timers, and connection states is required
+ * - **Resource management**: Proper lifecycle management of HTTP clients and timers
+ * - **Asynchronous processing**: Complex state transitions for batch transmission and retry functionality
+ * - **Performance**: Memory-efficient buffering and connection reuse
+ * - **Error recovery**: State recovery and backoff strategy when transmission fails
  *
  * @example
  * ```typescript
@@ -170,13 +170,13 @@ type InternalLokiClientConfig = Required<Omit<LokiClientConfig, 'auth' | 'apiKey
  *   defaultLabels: { service: 'my-app', environment: 'production' }
  * });
  *
- * // 単一ログの送信
+ * // Send single log
  * await client.pushLog('info', 'Application started', {
  *   userId: '123',
  *   version: '1.0.0'
  * });
  *
- * // バッチでログを送信
+ * // Send logs in batch
  * await client.pushLogs([
  *   { level: 'info', message: 'User logged in', labels: { action: 'login' } },
  *   { level: 'error', message: 'Failed to connect', labels: { component: 'db' } }
@@ -188,14 +188,14 @@ type InternalLokiClientConfig = Required<Omit<LokiClientConfig, 'auth' | 'apiKey
 
 export class LokiClient {
   /**
-   * クライアント設定（内部使用）
+   * Client configuration (internal use)
    *
    * @internal
    */
   private readonly config: InternalLokiClientConfig;
 
   /**
-   * ログエントリバッファ（内部使用）
+   * Log entry buffer (internal use)
    *
    * @internal
    */

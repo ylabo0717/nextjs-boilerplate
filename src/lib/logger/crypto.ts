@@ -1,36 +1,36 @@
 /**
- * 🚨 高リスク対応: GDPR準拠IPハッシュ化実装
- * 個人識別情報保護のためのHMAC-SHA256暗号化
+ * 🚨 High-risk response: GDPR-compliant IP hashing implementation
+ * HMAC-SHA256 encryption for personal identification information protection
  */
 
 import { randomBytes, createHmac } from 'node:crypto';
 
 /**
- * IP ハッシュ化設定型
+ * IP hashing configuration type
  *
- * HMAC-SHA256 によるIPアドレス暗号化用の設定オブジェクト。
- * 純粋関数の引数として使用される不変設定。
+ * Configuration object for IP address encryption using HMAC-SHA256.
+ * Immutable configuration used as arguments for pure functions.
  *
  * @public
  */
 export type IPHashConfig = {
-  /** HMAC-SHA256用の秘密鍵 */
+  /** Secret key for HMAC-SHA256 */
   readonly secret: string;
 };
 
 /**
- * IP ハッシュ化設定を作成（純粋関数）
+ * Create IP hashing configuration (pure function)
  *
- * 環境変数または自動生成から秘密鍵を取得し、不変設定オブジェクトを生成。
- * 本番環境では環境変数必須、開発環境では自動生成でも動作。
+ * Obtains secret key from environment variables or auto-generation and creates immutable configuration object.
+ * Environment variables are required in production, but auto-generation works in development environment.
  *
- * @returns 不変なIPハッシュ化設定オブジェクト
- * @throws Error 本番環境で環境変数未設定の場合
+ * @returns Immutable IP hashing configuration object
+ * @throws Error When environment variable is not set in production environment
  *
  * @public
  */
 export function createIPHashConfig(): IPHashConfig {
-  // 本番環境では環境変数が必須 - 早期バリデーション
+  // Environment variables are required in production environment - early validation
   if (process.env.NODE_ENV === 'production' && !process.env.LOG_IP_HASH_SECRET) {
     throw new Error(
       'LOG_IP_HASH_SECRET environment variable is required in production environment for GDPR compliance'
@@ -52,50 +52,50 @@ export function createIPHashConfig(): IPHashConfig {
 }
 
 /**
- * 秘密鍵の自動生成（純粋関数）
+ * Automatic secret key generation (pure function)
  *
- * 暗号学的に安全な乱数を使用して32バイトの秘密鍵を生成。
- * 本番環境では使用不可、開発環境専用。
+ * Generates a 32-byte secret key using cryptographically secure random numbers.
+ * Not available in production environment, development environment only.
  *
- * @returns 生成された秘密鍵（Hex形式）
- * @throws Error 本番環境で呼び出された場合
+ * @returns Generated secret key (Hex format)
+ * @throws Error When called in production environment
  *
  * @internal
  */
 function generateSecret(): string {
-  // 本番環境では必ず環境変数を設定する必要がある
+  // Environment variables must be set in production environment
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
       'LOG_IP_HASH_SECRET environment variable is required in production environment for GDPR compliance'
     );
   }
-  // 静的にインポートしたrandomBytesを使用
+  // Use statically imported randomBytes
   return randomBytes(32).toString('hex');
 }
 
 /**
- * IPv6 アドレスの正規化（純粋関数）
+ * IPv6 address normalization (pure function)
  *
- * IPv6 アドレス表記の統一化と特殊ケースの処理。
- * ハッシュ化前の前処理として使用。
+ * Unifies IPv6 address notation and handles special cases.
+ * Used as preprocessing before hashing.
  *
- * 正規化ルール:
- * - IPv4-mapped IPv6 (::ffff:x.x.x.x) → IPv4部分抽出
+ * Normalization rules:
+ * - IPv4-mapped IPv6 (::ffff:x.x.x.x) → Extract IPv4 part
  * - IPv6 localhost (::1) → 127.0.0.1
- * - その他 → 前後空白除去
+ * - Others → Remove leading/trailing whitespace
  *
- * @param ip - 正規化対象のIPアドレス
- * @returns 正規化されたIPアドレス
+ * @param ip - IP address to normalize
+ * @returns Normalized IP address
  *
  * @internal
  */
 function normalizeIPv6(ip: string): string {
-  // IPv4-mapped IPv6 の正規化
+  // IPv4-mapped IPv6 normalization
   if (ip.startsWith('::ffff:')) {
-    return ip.substring(7); // IPv4部分のみ抽出
+    return ip.substring(7); // Extract only IPv4 part
   }
 
-  // ローカルホストの正規化
+  // Localhost normalization
   if (ip === '::1') {
     return '127.0.0.1';
   }
@@ -104,19 +104,19 @@ function normalizeIPv6(ip: string): string {
 }
 
 /**
- * GDPR 準拠の IP アドレスハッシュ化（純粋関数）
+ * GDPR-compliant IP address hashing (pure function)
  *
- * HMAC-SHA256(ip + salt) により不可逆的にハッシュ化。
- * 個人識別情報保護とログ分析の両立を実現。
+ * Irreversibly hashes using HMAC-SHA256(ip + salt).
+ * Achieves both personal identification information protection and log analysis.
  *
- * 処理フロー:
- * 1. IPv6 アドレスの正規化
- * 2. HMAC-SHA256 による不可逆ハッシュ化
- * 3. Hex 形式での結果出力
+ * Processing flow:
+ * 1. IPv6 address normalization
+ * 2. Irreversible hashing using HMAC-SHA256
+ * 3. Output results in Hex format
  *
- * @param config - IP ハッシュ化設定
- * @param ipAddress - ハッシュ化対象のIPアドレス
- * @returns ハッシュ化されたIP（Hex形式）、無効な場合は'ip_invalid'または'ip_hash_error'
+ * @param config - IP hashing configuration
+ * @param ipAddress - IP address to hash
+ * @returns Hashed IP (Hex format), 'ip_invalid' or 'ip_hash_error' if invalid
  *
  * @public
  */
@@ -126,15 +126,15 @@ export function hashIP(config: IPHashConfig, ipAddress: string): string {
   }
 
   try {
-    // IPv6 正規化
+    // IPv6 normalization
     const normalizedIP = normalizeIPv6(ipAddress);
 
-    // HMAC-SHA256 でハッシュ化
+    // Hash with HMAC-SHA256
     const hmac = createHmac('sha256', config.secret);
     hmac.update(normalizedIP);
     const hash = hmac.digest('hex');
 
-    // セキュリティと可読性のバランス（最初8文字のみ使用）
+    // Balance between security and readability (use only first 8 characters)
     return `ip_${hash.substring(0, 8)}`;
   } catch (error) {
     console.error('Failed to hash IP address:', error);
@@ -143,30 +143,30 @@ export function hashIP(config: IPHashConfig, ipAddress: string): string {
 }
 
 /**
- * シークレットキーの妥当性チェック（純粋関数）
+ * Secret key validity check (pure function)
  *
- * 設定されたシークレットキーが暗号学的要件を満たすか検証。
- * 最低128ビット（32文字）の長さを要求。
+ * Verifies whether the configured secret key meets cryptographic requirements.
+ * Requires a minimum length of 128 bits (32 characters).
  *
- * @param config - IP ハッシュ化設定
- * @returns シークレットキーが有効な場合true
+ * @param config - IP hashing configuration
+ * @returns true if secret key is valid
  *
  * @public
  */
 export function validateIPHashSecret(config: IPHashConfig): boolean {
-  // 最低32文字（128bit）の要件チェック
+  // Minimum 32 characters (128bit) requirement check
   return config.secret.length >= 32;
 }
 
 /**
- * テスト用の設定作成（純粋関数）
+ * Create configuration for testing (pure function)
  *
- * ユニットテスト環境でのみ使用可能な固定設定作成。
- * テスト間での状態クリアに使用。
+ * Creates fixed configuration available only in unit test environments.
+ * Used for state clearing between tests.
  *
- * @param secret - テスト用秘密鍵（オプション）
- * @returns テスト用設定オブジェクト
- * @throws Error テスト環境以外で呼び出された場合
+ * @param secret - Test secret key (optional)
+ * @returns Test configuration object
+ * @throws Error When called outside test environment
  *
  * @public
  */
@@ -183,39 +183,39 @@ export function createTestIPHashConfig(
 }
 
 // ===================================================================
-// デフォルトインスタンスとヘルパー関数（後方互換性）
+// Default instances and helper functions (backward compatibility)
 // ===================================================================
 
 /**
- * デフォルト IP ハッシュ化設定
+ * Default IP hashing configuration
  *
- * アプリケーション全体で使用されるデフォルト設定。
- * 一度だけ作成され、以降は immutable として使用。
+ * Default configuration used throughout the application.
+ * Created only once and used as immutable thereafter.
  *
  * @public
  */
 export const defaultIPHashConfig = createIPHashConfig();
 
 /**
- * IP ハッシュ化ユーティリティ関数（後方互換性）
+ * IP hashing utility function (backward compatibility)
  *
- * デフォルト設定を使用した便利なエイリアス。
- * 既存コードとの互換性のために提供。
+ * Convenient alias using default configuration.
+ * Provided for compatibility with existing code.
  *
- * @param ipAddress - ハッシュ化対象のIPアドレス
- * @returns ハッシュ化されたIP
+ * @param ipAddress - IP address to hash
+ * @returns Hashed IP
  *
  * @public
  */
 export const hashIPWithDefault = (ipAddress: string) => hashIP(defaultIPHashConfig, ipAddress);
 
 /**
- * バリデーション関数（後方互換性）
+ * Validation function (backward compatibility)
  *
- * デフォルト設定を使用したシークレットキー妥当性チェック。
- * 既存コードとの互換性のために提供。
+ * Secret key validity check using default configuration.
+ * Provided for compatibility with existing code.
  *
- * @returns シークレットキーが有効な場合true
+ * @returns true if secret key is valid
  *
  * @public
  */

@@ -34,13 +34,13 @@ const baseProperties = createBaseProperties();
  *
  * Configured features:
  * - Environment variable-based log level control
- * - ISO 8601準拠のタイムスタンプ
- * - 機密情報の自動Redaction
- * - カスタムシリアライザー（エラー、リクエスト、レスポンス）
- * - OpenTelemetry準拠のログフォーマット
- * - ログ出力前のセキュリティサニタイゼーション
+ * - ISO 8601 compliant timestamps
+ * - Automatic redaction of sensitive information
+ * - Custom serializers (error, request, response)
+ * - OpenTelemetry compliant log format
+ * - Security sanitization before log output
  *
- * @returns 設定済みPinoロガーインスタンス
+ * @returns Configured Pino logger instance
  *
  * @internal
  */
@@ -123,19 +123,19 @@ function createServerLogger(): pino.Logger {
 }
 
 /**
- * 環境に応じたTransport設定でLoggerを作成
+ * Create logger with environment-specific transport configuration
  *
- * 実行環境（開発/本番、Next.jsランタイム）に応じて最適な
- * Transportを選択してPinoロガーを初期化。
+ * Initializes Pino with the optimal transport depending on the runtime
+ * (development/production, Next.js runtime).
  *
- * Transport選択ロジック:
- * - 開発環境 && 非Next.jsランタイム: pino-pretty（色付き）
- * - 本番環境 || Next.jsランタイム: 標準出力（JSON）
+ * Transport selection logic:
+ * - Development && non-Next.js runtime: pino-pretty (colored)
+ * - Production || Next.js runtime: standard output (JSON)
  *
- * pino-pretty初期化失敗時は自動的に標準出力にフォールバック。
+ * Automatically falls back to standard output when pino-pretty initialization fails.
  *
- * @param options - Pinoロガーオプション
- * @returns 設定済みPinoロガーインスタンス
+ * @param options - Pino logger options
+ * @returns Configured Pino logger instance
  *
  * @internal
  */
@@ -191,14 +191,14 @@ function createLoggerWithTransport(options: pino.LoggerOptions): pino.Logger {
   return pino(options);
 }
 
-// Serverロガーインスタンスの作成
+// Create server logger instance
 /**
- * サーバーサイドメインロガーインスタンス
+ * Main server-side logger instance
  *
- * アプリケーション全体で使用されるPinoベースロガー。
- * 設定済みのセキュリティ機能とパフォーマンス最適化を含む。
+ * Pino-based logger used across the application.
+ * Includes built-in security features and performance optimizations.
  *
- * 直接使用よりもserverLoggerWrapperの使用を推奨。
+ * Prefer using a higher-level wrapper when available.
  *
  * @public
  */
@@ -239,25 +239,7 @@ function extractErrorType(mergedArgs: Record<string, unknown>): string {
   return 'application_error';
 }
 
-/**
- * 複数引数を適切にマージする関数
- *
- * 🚨 セキュリティ強化: 引数の自動サニタイズ
- *
- * ログメソッドに渡される複数の引数を統一的な構造に変換。
- * 型に応じた適切な処理とセキュリティサニタイゼーションを適用。
- *
- * 処理ルール:
- * - Error オブジェクト: errキーでserializeError適用
- * - Object型: サニタイズ後にマージ、サイズ制限適用
- * - その他: args配列にプリミティブ値として格納
- * - null/undefined: スキップ
- *
- * @param args - ログメソッドの引数配列
- * @returns 統一された構造化データ
- *
- * @internal
- */
+// (Removed duplicate non-English doc; see following English JSDoc)
 /**
  * Function to properly merge multiple arguments
  *

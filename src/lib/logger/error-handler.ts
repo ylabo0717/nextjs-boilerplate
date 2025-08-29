@@ -324,7 +324,7 @@ export function classifyError(
  *
  * @param error - Error instance to classify
  * @param context - Error context information
- * @returns 判定された構造化エラー
+ * @returns Determined structured error
  *
  * @internal
  */
@@ -778,15 +778,15 @@ export function handleApiError(
 }
 
 /**
- * React Components用エラーハンドラー（純粋関数 + 制御された副作用）
+ * Error handler for React components (pure function + controlled side effects)
  *
- * React ErrorBoundaryでの使用に特化したエラー処理。
- * ユーザー向けメッセージと再試行フラグを返す。
+ * Specialized for use with React ErrorBoundary.
+ * Returns a user-facing message and retry flag.
  *
- * @param config - エラーハンドラー設定
- * @param error - 処理対象のエラー
- * @param context - エラーコンテキスト情報
- * @returns コンポーネント向けエラー情報
+ * @param config - Error handler configuration
+ * @param error - Error to process
+ * @param context - Error context information
+ * @returns Error information for components
  *
  * @public
  */
@@ -795,11 +795,11 @@ export function handleComponentError(
   error: Error | unknown,
   context: ErrorContext = {}
 ): {
-  /** ユーザー向けエラーメッセージ */
+  /** User-facing error message */
   userMessage: string;
-  /** 再試行推奨フラグ */
+  /** Retry recommended flag */
   shouldRetry: boolean;
-  /** エラー識別ID */
+  /** Error identifier */
   errorId: string;
 } {
   const structuredError = handleError(config, error, context);
@@ -812,11 +812,11 @@ export function handleComponentError(
 }
 
 /**
- * Promise rejection用グローバルハンドラー（純粋関数 + 制御された副作用）
+ * Global handler for unhandled Promise rejections (pure function + controlled side effects)
  *
- * @param config - エラーハンドラー設定
- * @param reason - 拒否理由
- * @param context - エラーコンテキスト情報
+ * @param config - Error handler configuration
+ * @param reason - Rejection reason
+ * @param context - Error context information
  *
  * @public
  */
@@ -835,11 +835,11 @@ export function handleUnhandledRejection(
 }
 
 /**
- * 未捕捉例外用グローバルハンドラー（純粋関数 + 制御された副作用）
+ * Global handler for uncaught exceptions (pure function + controlled side effects)
  *
- * @param config - エラーハンドラー設定
- * @param error - 処理対象のエラー
- * @param context - エラーコンテキスト情報
+ * @param config - Error handler configuration
+ * @param error - Error to process
+ * @param context - Error context information
  *
  * @public
  */
@@ -858,22 +858,21 @@ export function handleUncaughtException(
 }
 
 // ===================================================================
-// デフォルトインスタンスとヘルパー関数（後方互換性）
+// Default instance and helper functions (backward compatibility)
 // ===================================================================
 
 /**
- * デフォルト エラーハンドラー設定
+ * Default error handler configuration
  *
- * アプリケーション全体で使用されるデフォルト設定。
- * 一度だけ作成され、以降は immutable として使用。
+ * Default configuration used across the entire application.
+ * Created once and treated as immutable thereafter.
  *
  * @public
  */
 export const defaultErrorHandlerConfig = createDefaultErrorHandlerConfig();
 
 /**
- * 純粋関数ファクトリーパターンでデフォルトエラーハンドラー設定を作成
- * 循環インポートを避けるため遅延評価を実装
+ * Create default error handler config via factory (lazy evaluation to avoid circular imports)
  */
 function createDefaultErrorHandlerConfig(): () => ErrorHandlerConfig {
   let _config: ErrorHandlerConfig | null = null;
@@ -885,7 +884,7 @@ function createDefaultErrorHandlerConfig(): () => ErrorHandlerConfig {
         const { serverLoggerWrapper } = require('./server') as typeof import('./server');
         _config = createErrorHandlerConfig(serverLoggerWrapper);
       } catch {
-        // server モジュールが利用できない場合は client logger をフォールバックとして使用
+        // If the server module isn't available, fall back to the client logger
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { clientLoggerWrapper } = require('./client') as typeof import('./client');
         _config = createErrorHandlerConfig(clientLoggerWrapper);
@@ -896,10 +895,10 @@ function createDefaultErrorHandlerConfig(): () => ErrorHandlerConfig {
 }
 
 /**
- * デフォルトエラーハンドラー（後方互換性）
+ * Backward-compatible default error handler
  *
- * 既存コードとの互換性のためのオブジェクト型インターフェース。
- * 純粋関数を既存のメソッド呼び出しパターンでラップ。
+ * Object-style interface for compatibility with existing code.
+ * Wraps pure functions in the legacy method-call pattern.
  *
  * @public
  */
@@ -921,13 +920,13 @@ export const errorHandler = {
 };
 
 /**
- * エラーハンドリング用ユーティリティ関数（純粋関数版に更新）
+ * Utility functions for error handling (updated to pure-function style)
  *
  * @public
  */
 export const errorHandlerUtils = {
   /**
-   * Async関数のエラーキャッチ装飾（純粋関数版）
+   * Decorator to catch errors of async functions (pure-function variant)
    */
   withErrorHandling: <T extends unknown[], R>(
     config: ErrorHandlerConfig,
@@ -945,7 +944,7 @@ export const errorHandlerUtils = {
   },
 
   /**
-   * Try-catch付きの安全な実行（純粋関数版）
+   * Safe execution with try/catch (pure-function variant)
    */
   safeExecute: async <T>(
     config: ErrorHandlerConfig,
@@ -962,7 +961,7 @@ export const errorHandlerUtils = {
   },
 
   /**
-   * エラーバウンダリ用のReactコンポーネントヘルパー（純粋関数版）
+   * React Error Boundary helper (pure-function variant)
    */
   createErrorBoundaryHandler: (config: ErrorHandlerConfig) => {
     return (error: Error, errorInfo: { componentStack: string }) => {
@@ -976,7 +975,7 @@ export const errorHandlerUtils = {
   },
 
   /**
-   * Next.js API Routes用の統一エラーハンドラー（純粋関数版）
+   * Unified error handler for Next.js API Routes (pure-function variant)
    */
   createApiHandler: (config: ErrorHandlerConfig) => {
     return (error: Error | unknown, context: Record<string, unknown> = {}) => {
@@ -992,10 +991,10 @@ export const errorHandlerUtils = {
 };
 
 /**
- * 後方互換性用のデフォルトエクスポート
+ * Default export for backward compatibility
  *
- * 既存コードとの互換性のため errorHandler オブジェクトをデフォルトとしてエクスポート。
- * 新しいコードでは純粋関数形式の使用を推奨。
+ * Exports the errorHandler object as the default for compatibility with existing code.
+ * Prefer using the pure-function style in new code.
  *
  * @public
  */

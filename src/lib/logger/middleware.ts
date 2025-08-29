@@ -193,10 +193,7 @@ export function logRequestEnd(
 }
 
 /**
- * セキュリティイベントログ
- */
-/**
- * セキュリティイベントログ
+ * Security event log
  */
 export function logSecurityEvent(
   request: NextRequest,
@@ -312,10 +309,7 @@ export function logRateLimit(
 }
 
 /**
- * リダイレクトログ
- */
-/**
- * リダイレクトログ
+ * Redirect log
  */
 export function logRedirect(
   request: NextRequest,

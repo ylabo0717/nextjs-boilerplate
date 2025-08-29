@@ -8,46 +8,46 @@
 import { metrics } from '@opentelemetry/api';
 
 /**
- * Enhanced Metrics インターフェース
+ * Enhanced Metrics interface
  *
- * Phase Cで追加された高度なメトリクス収集機能を定義するインターフェースです。
- * OpenTelemetryメーターを使用してカウンター、ゲージ、ヒストグラムを管理します。
+ * Interface defining advanced metrics collection features added in Phase C.
+ * Manages counters, gauges, and histograms using OpenTelemetry meters.
  *
  * @public
  */
 export interface EnhancedMetrics {
-  /** リモート設定の取得回数 */
+  /** Number of remote configuration fetches */
   config_fetch_total: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
-  /** リモート設定取得の所要時間分布 */
+  /** Remote configuration fetch duration distribution */
   config_fetch_duration: ReturnType<ReturnType<typeof metrics.getMeter>['createHistogram']>;
-  /** 設定キャッシュのヒット回数 */
+  /** Configuration cache hit count */
   config_cache_hits: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
-  /** 設定バリデーションエラー回数 */
+  /** Configuration validation error count */
   config_validation_errors: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
 
-  /** レート制限の決定回数（許可/拒否） */
+  /** Rate limit decision count (allowed/denied) */
   rate_limit_decisions: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
-  /** レート制限の現在のトークン数 */
+  /** Current rate limit token count */
   rate_limit_tokens: ReturnType<ReturnType<typeof metrics.getMeter>['createGauge']>;
-  /** レート制限のバックオフ時間分布 */
+  /** Rate limit backoff time distribution */
   rate_limit_backoff_time: ReturnType<ReturnType<typeof metrics.getMeter>['createHistogram']>;
-  /** レート制限の現在のサンプリング率 */
+  /** Current rate limit sampling rate */
   rate_limit_sampling_rate: ReturnType<ReturnType<typeof metrics.getMeter>['createGauge']>;
 
-  /** KVストレージの操作総数 */
+  /** Total KV storage operations */
   kv_operations_total: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
-  /** KVストレージ操作の所要時間分布 */
+  /** KV storage operation duration distribution */
   kv_operation_duration: ReturnType<ReturnType<typeof metrics.getMeter>['createHistogram']>;
-  /** KVストレージの接続状態（1=接続、0=切断） */
+  /** KV storage connection status (1=connected, 0=disconnected) */
   kv_connection_status: ReturnType<ReturnType<typeof metrics.getMeter>['createGauge']>;
-  /** KVストレージ操作のエラー回数 */
+  /** KV storage operation error count */
   kv_operation_errors: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
 
-  /** Admin APIへのリクエスト総数 */
+  /** Total Admin API requests */
   admin_api_requests: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
-  /** Admin API認証失敗回数 */
+  /** Admin API authentication failure count */
   admin_api_auth_failures: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
-  /** Admin APIレート制限ヒット回数 */
+  /** Admin API rate limit hit count */
   admin_api_rate_limits: ReturnType<ReturnType<typeof metrics.getMeter>['createCounter']>;
 }
 
@@ -67,19 +67,19 @@ const metricsCounters = {
 let isInitialized = false;
 
 /**
- * Phase 3 拡張メトリクスを初期化する関数
+ * Function to initialize Phase 3 enhanced metrics
  *
- * リモート設定、レートリミット、KVストレージ、Admin APIの
- * 操作監視のための詳細なメトリクスを初期化します。
- * すでに初期化済みの場合は既存のインスタンスを返します。
+ * Initializes detailed metrics for monitoring remote configuration,
+ * rate limiting, KV storage, and Admin API operations.
+ * Returns existing instance if already initialized.
  *
- * @returns 初期化されたEnhancedMetricsインスタンス
- * @throws Error - メトリクスの初期化に失敗した場合
+ * @returns Initialized EnhancedMetrics instance
+ * @throws Error - When metrics initialization fails
  *
  * @example
  * ```typescript
  * const metrics = initializePhase3Metrics();
- * // コンソールに '✅ Enhanced Metrics initialized successfully' が表示される
+ * // Console displays '✅ Enhanced Metrics initialized successfully'
  * ```
  *
  * @public
@@ -184,9 +184,9 @@ export function initializePhase3Metrics(): EnhancedMetrics {
 }
 
 /**
- * 初期化済みのPhase 3メトリクスインスタンスを取得する関数
+ * Function to get initialized Phase 3 metrics instance
  *
- * @returns 初期化済みのEnhancedMetricsインスタンスまたはnull
+ * @returns Initialized EnhancedMetrics instance or null
  *
  * @example
  * ```typescript
@@ -203,9 +203,9 @@ export function getPhase3Metrics(): EnhancedMetrics | null {
 }
 
 /**
- * Phase 3メトリクスが初期化済みかどうかをチェックする関数
+ * Function to check if Phase 3 metrics are initialized
  *
- * @returns 初期化済みの場合true、そうでない場合false
+ * @returns true if initialized, false otherwise
  *
  * @example
  * ```typescript
@@ -221,21 +221,21 @@ export function isPhase3MetricsInitialized(): boolean {
 }
 
 /**
- * リモート設定取得のメトリクスを記録する関数
+ * Function to record remote configuration fetch metrics
  *
- * 設定取得のソース、結果、期間をメトリクスとして記録します。
- * 内部カウンターとOpenTelemetryメトリクスの両方を更新します。
+ * Records configuration fetch source, result, and duration as metrics.
+ * Updates both internal counters and OpenTelemetry metrics.
  *
- * @param source - 設定の取得先（remote, cache, default, fallback）
- * @param result - 取得結果（success, error）
- * @param duration - 取得にかかった時間（ミリ秒）（オプション）
+ * @param source - Configuration fetch source (remote, cache, default, fallback)
+ * @param result - Fetch result (success, error)
+ * @param duration - Time taken for fetch (milliseconds) (optional)
  *
  * @example
  * ```typescript
- * // 成功したリモート取得を記録
+ * // Record successful remote fetch
  * recordConfigFetchMetrics('remote', 'success', 150);
  *
- * // キャッシュヒットを記録
+ * // Record cache hit
  * recordConfigFetchMetrics('cache', 'success', 5);
  * ```
  *
@@ -273,10 +273,10 @@ export function recordConfigFetchMetrics(
 }
 
 /**
- * 設定バリデーションエラーメトリクスを記録する関数
+ * Function to record configuration validation error metrics
  *
- * @param errorType - エラーの種類
- * @param errorMessage - エラーメッセージ（オプション）
+ * @param errorType - Error type
+ * @param errorMessage - Error message (optional)
  * @public
  */
 export function recordConfigValidationError(errorType: string, errorMessage?: string): void {
@@ -300,11 +300,11 @@ export function recordConfigValidationError(errorType: string, errorMessage?: st
 }
 
 /**
- * 設定更新メトリクスを記録する関数
+ * Function to record configuration update metrics
  *
- * @param source - 更新の発生源
- * @param oldVersion - 更新前のバージョン
- * @param newVersion - 更新後のバージョン
+ * @param source - Update source
+ * @param oldVersion - Version before update
+ * @param newVersion - Version after update
  * @public
  */
 export function recordConfigUpdateMetrics(
@@ -334,22 +334,22 @@ export function recordConfigUpdateMetrics(
 }
 
 /**
- * レートリミットのメトリクスを記録する関数
+ * Function to record rate limit metrics
  *
- * レートリミットのヒットやリセットをメトリクスとして記録します。
- * 内部カウンターとOpenTelemetryメトリクスの両方を更新します。
+ * Records rate limit hits and resets as metrics.
+ * Updates both internal counters and OpenTelemetry metrics.
  *
- * @param clientId - クライアント識別子
- * @param endpoint - 対象エンドポイント
- * @param action - アクションタイプ（hit, reset）
- * @param reason - アクションの理由
+ * @param clientId - Client identifier
+ * @param endpoint - Target endpoint
+ * @param action - Action type (hit, reset)
+ * @param reason - Reason for action
  *
  * @example
  * ```typescript
- * // レートリミットヒットを記録
+ * // Record rate limit hit
  * recordRateLimitMetrics('client123', '/api/logs', 'hit', 'token_exhausted');
  *
- * // レートリミットリセットを記録
+ * // Record rate limit reset
  * recordRateLimitMetrics('client123', '/api/logs', 'reset', 'manual_reset');
  * ```
  *
@@ -386,22 +386,22 @@ export function recordRateLimitMetrics(
 }
 
 /**
- * KVストレージのメトリクスを記録する関数
+ * Function to record KV storage metrics
  *
- * Redis、Edge Config、メモリストレージの操作をメトリクスとして記録します。
- * 操作の種類、結果、期間、エラー情報を追跡します。
+ * Records Redis, Edge Config, and memory storage operations as metrics.
+ * Tracks operation type, result, duration, and error information.
  *
- * @param storageType - ストレージタイプ（redis, edge-config, memory）
- * @param operation - 操作名（get, set, deleteなど）
- * @param result - 操作結果（success, error）
- * @param duration - 操作にかかった時間（ミリ秒）（オプション）
+ * @param storageType - Storage type (redis, edge-config, memory)
+ * @param operation - Operation name (get, set, delete, etc.)
+ * @param result - Operation result (success, error)
+ * @param duration - Time taken for operation (milliseconds) (optional)
  *
  * @example
  * ```typescript
- * // RedisのGET操作成功を記録
+ * // Record successful Redis GET operation
  * recordKVMetrics('redis', 'get', 'success', 25);
  *
- * // Edge Configのエラーを記録
+ * // Record Edge Config error
  * recordKVMetrics('edge-config', 'set', 'error');
  * ```
  *
@@ -451,10 +451,10 @@ export function recordKVMetrics(
 }
 
 /**
- * KVストレージの接続状態メトリクスを記録する関数
+ * Function to record KV storage connection status metrics
  *
- * @param connected - 接続状態（true=接続、false=切断）
- * @param storageType - ストレージタイプ
+ * @param connected - Connection status (true=connected, false=disconnected)
+ * @param storageType - Storage type
  * @public
  */
 export function recordKVConnectionStatus(
@@ -477,12 +477,12 @@ export function recordKVConnectionStatus(
 }
 
 /**
- * Admin APIメトリクスを記録する関数
+ * Function to record Admin API metrics
  *
- * @param method - HTTPメソッド
- * @param endpoint - APIエンドポイント
- * @param statusCode - HTTPステータスコード
- * @param _duration - 処理時間（ミリ秒）（現在未使用）
+ * @param method - HTTP method
+ * @param endpoint - API endpoint
+ * @param statusCode - HTTP status code
+ * @param _duration - Processing time (milliseconds) (currently unused)
  * @public
  */
 export function recordAdminAPIMetrics(
@@ -529,18 +529,18 @@ export function recordAdminAPIMetrics(
 }
 
 /**
- * Phase 3メトリクスの現在のスナップショットを取得する関数
+ * Function to get current snapshot of Phase 3 metrics
  *
- * 内部カウンターの現在値を取得し、タイムスタンプ付きの読み取り専用オブジェクトとして返します。
- * メトリクスが初期化されていない場合は、すべてゼロの値を返します。
+ * Gets current values of internal counters and returns them as a timestamped read-only object.
+ * Returns all zero values if metrics are not initialized.
  *
- * @returns 現在のメトリクス値とタイムスタンプを含む読み取り専用オブジェクト
+ * @returns Read-only object containing current metrics values and timestamp
  *
  * @example
  * ```typescript
  * const snapshot = getPhase3MetricsSnapshot();
- * console.log(`設定取得回数: ${snapshot.config_fetch_total}`);
- * console.log(`スナップショット取得時刻: ${snapshot.timestamp}`);
+ * console.log(`Configuration fetches: ${snapshot.config_fetch_total}`);
+ * console.log(`Snapshot timestamp: ${snapshot.timestamp}`);
  * ```
  *
  * @public
@@ -588,10 +588,10 @@ export function getPhase3MetricsSnapshot(): {
 }
 
 /**
- * Phase 3メトリクスをリセットする関数
+ * Function to reset Phase 3 metrics
  *
- * すべてのメトリクスインスタンスと内部カウンターを初期化します。
- * テスト環境で使用されることが多い関数です。
+ * Initializes all metrics instances and internal counters.
+ * Often used in test environments.
  *
  * @public
  */
@@ -612,27 +612,27 @@ export function resetPhase3Metrics(): void {
 }
 
 /**
- * 操作をメトリクスでラップして実行するユーティリティ関数
+ * Utility function to wrap and execute operations with metrics
  *
- * 指定された操作を実行し、成功または失敗に応じて自動的にメトリクスを記録します。
- * 実行時間も自動的に計測され、メトリクスに含まれます。
+ * Executes specified operations and automatically records metrics based on success or failure.
+ * Execution time is also automatically measured and included in metrics.
  *
- * @typeParam T - 関数の戻り値の型
- * @param operation - 操作名（メトリクスのラベルとして使用）
- * @param category - メトリクスカテゴリ（config, rate_limit, kv, admin_api）
- * @param fn - 実行する非同期関数
- * @returns 元の関数の戻り値をラップしたPromise
+ * @typeParam T - Type of function return value
+ * @param operation - Operation name (used as metrics label)
+ * @param category - Metrics category (config, rate_limit, kv, admin_api)
+ * @param fn - Asynchronous function to execute
+ * @returns Promise wrapping the original function's return value
  *
  * @example
  * ```typescript
- * // 設定取得操作をメトリクス付きで実行
+ * // Execute configuration fetch operation with metrics
  * const config = await withMetrics(
  *   'fetchRemoteConfig',
  *   'config',
  *   () => fetchConfigFromRemote()
  * );
  *
- * // KV操作をメトリクス付きで実行
+ * // Execute KV operation with metrics
  * const value = await withMetrics(
  *   'getValue',
  *   'kv',
@@ -710,12 +710,12 @@ function processKVOperation(data: Record<string, unknown>): void {
 }
 
 /**
- * バッチメトリクス記録関数
+ * Batch metrics recording function
  *
- * 複数の操作のメトリクスを一括で記録します。
- * 効率的な一括処理により、パフォーマンスを向上させます。
+ * Records metrics for multiple operations in batch.
+ * Improves performance through efficient batch processing.
  *
- * @param operations - 記録する操作の配列
+ * @param operations - Array of operations to record
  * @public
  */
 export function recordBatchMetrics(

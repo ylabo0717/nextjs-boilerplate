@@ -1,6 +1,6 @@
 /**
- * Next.js Middleware統合ロガー
- * Edge Runtime対応のリクエスト追跡とログ機能
+ * Next.js Middleware integrated logger
+ * Request tracking and logging functionality compatible with Edge Runtime
  */
 
 import type { NextRequest, NextResponse } from 'next/server';
@@ -13,49 +13,49 @@ import { generateRequestId, serializeError } from './utils';
 import type { LoggerContext } from './types';
 
 /**
- * Middleware用ログエントリ型定義
+ * Log entry type definition for Middleware
  *
  * @internal
  */
 export interface MiddlewareLogEntry {
-  /** リクエスト固有の識別子 */
+  /** Request-specific identifier */
   requestId: string;
-  /** HTTPメソッド */
+  /** HTTP method */
   method: string;
-  /** リクエストURL */
+  /** Request URL */
   url: string;
-  /** ユーザーエージェント文字列 */
+  /** User agent string */
   userAgent?: string;
-  /** ハッシュ化されたIPアドレス */
+  /** Hashed IP address */
   hashedIP: string;
-  /** タイムスタンプ（ISO 8601形式） */
+  /** Timestamp in ISO 8601 format */
   timestamp: string;
-  /** リクエスト処理時間（ミリ秒） */
+  /** Request processing time in milliseconds */
   duration?: number;
-  /** HTTPステータスコード */
+  /** HTTP status code */
   status?: number;
-  /** エラー情報 */
+  /** Error information */
   error?: Record<string, unknown>;
-  /** イベント名 */
+  /** Event name */
   event_name: string;
-  /** イベントカテゴリ */
+  /** Event category */
   event_category: 'middleware_event' | 'security_event' | 'error_event';
-  /** イベント属性 */
+  /** Event attributes */
   event_attributes?: Record<string, unknown>;
 }
 
 /**
- * Edge Runtime対応の軽量ロガー
- * Node.js固有機能を使用しない実装
+ * Lightweight logger compatible with Edge Runtime
+ * Implementation that does not use Node.js-specific features
  */
 /**
- * Edge Runtime用ログ出力（純粋関数 + 制御された副作用）
+ * Log output for Edge Runtime (pure function + controlled side effects)
  *
- * Edge Runtimeの制約に対応した軽量ログ出力。
- * console APIのみを使用し、Node.js固有機能を使用しない実装。
+ * Lightweight log output compatible with Edge Runtime constraints.
+ * Implementation using only console API without Node.js-specific features.
  *
- * @param level - ログレベル
- * @param entry - ログエントリ
+ * @param level - Log level
+ * @param entry - Log entry
  *
  * @public
  */
@@ -63,7 +63,7 @@ export function logForEdgeRuntime(
   level: 'info' | 'warn' | 'error',
   entry: MiddlewareLogEntry
 ): void {
-  // サニタイズ処理
+  // Sanitization processing
   const sanitized = sanitizeLogEntry(
     `${entry.event_name}: ${entry.method} ${entry.url}`,
     limitObjectSize(entry, 5, 30)
@@ -91,7 +91,7 @@ export function logForEdgeRuntime(
     }
   }
 
-  // Edge Runtimeでは console のみ使用可能
+  // Only console is available in Edge Runtime
   const logData = {
     level,
     timestamp: entry.timestamp,
@@ -114,19 +114,16 @@ export function logForEdgeRuntime(
 }
 
 /**
- * リクエスト追跡用のコンテキスト生成
- */
-/**
- * リクエスト追跡用のコンテキスト生成
+ * Generate context for request tracking
  */
 export function createRequestContext(request: NextRequest): LoggerContext {
   const requestId = generateRequestId();
-  // Next.js 15でrequest.ipが利用可能、存在しない場合は'unknown'を使用
-  // 型安全にipプロパティをチェック
+  // request.ip is available in Next.js 15, use 'unknown' if not available
+  // Type-safely check ip property
   const ip = 'ip' in request ? (request as { ip?: string }).ip || 'unknown' : 'unknown';
 
-  // 純粋関数形式でIPハッシュ化を実行
-  // デフォルト設定を使用（後方互換性エイリアス）
+  // Execute IP hashing in pure function form
+  // Use default configuration (backward compatibility alias)
   const hashedIP = hashIPWithDefault(ip);
 
   return {
@@ -140,10 +137,7 @@ export function createRequestContext(request: NextRequest): LoggerContext {
 }
 
 /**
- * リクエスト開始ログ
- */
-/**
- * リクエスト開始ログ
+ * Request start log
  */
 export function logRequestStart(request: NextRequest, context: LoggerContext): void {
   const entry: MiddlewareLogEntry = {
@@ -165,10 +159,7 @@ export function logRequestStart(request: NextRequest, context: LoggerContext): v
 }
 
 /**
- * リクエスト終了ログ
- */
-/**
- * リクエスト終了ログ
+ * Request end log
  */
 export function logRequestEnd(
   request: NextRequest,
@@ -233,10 +224,7 @@ export function logSecurityEvent(
 }
 
 /**
- * Middlewareエラーログ
- */
-/**
- * Middlewareエラーログ
+ * Middleware error log
  */
 export function logMiddlewareError(
   request: NextRequest,
@@ -265,7 +253,7 @@ export function logMiddlewareError(
 }
 
 /**
- * ヘッダーのサニタイズ（機密情報の除去）
+ * Sanitize headers (remove sensitive information)
  */
 function sanitizeHeaders(headers: Headers): Record<string, string> {
   const sanitized: Record<string, string> = {};
@@ -280,10 +268,10 @@ function sanitizeHeaders(headers: Headers): Record<string, string> {
   headers.forEach((value, key) => {
     const lowerKey = key.toLowerCase();
     if (sensitiveHeaders.has(lowerKey)) {
-      // 型安全な方法でプロパティを設定
+      // Set property in type-safe manner
       Object.assign(sanitized, { [key]: '[REDACTED]' });
     } else {
-      // 型安全な方法でプロパティを設定
+      // Set property in type-safe manner
       Object.assign(sanitized, { [key]: value });
     }
   });
@@ -292,10 +280,7 @@ function sanitizeHeaders(headers: Headers): Record<string, string> {
 }
 
 /**
- * レート制限ログ
- */
-/**
- * レート制限ログ
+ * Rate limit log
  */
 export function logRateLimit(
   request: NextRequest,
@@ -359,11 +344,11 @@ export function logRedirect(
 }
 
 /**
- * Middleware統合用のヘルパー関数
+ * Helper functions for Middleware integration
  */
 export const middlewareLoggerHelpers = {
   /**
-   * リクエスト全体のログ装飾
+   * Log decoration for entire request
    */
   wrapRequest: async (
     request: NextRequest,
@@ -372,29 +357,29 @@ export const middlewareLoggerHelpers = {
     const startTime = Date.now();
     const context = createRequestContext(request);
 
-    // リクエスト開始ログ
+    // Request start log
     logRequestStart(request, context);
 
     try {
-      // ハンドラー実行
+      // Execute handler
       const response = await handler(request, context);
 
-      // リクエスト終了ログ
+      // Request end log
       logRequestEnd(request, response, context, startTime);
 
-      // レスポンスヘッダーにリクエストIDを追加
+      // Add request ID to response headers
       response.headers.set('x-request-id', context.requestId);
 
       return response;
     } catch (error) {
-      // エラーログ
+      // Error log
       logMiddlewareError(request, context, error);
       throw error;
     }
   },
 
   /**
-   * セキュリティチェック付きラッパー
+   * Wrapper with security checks
    */
   withSecurity: (
     request: NextRequest,
@@ -407,12 +392,12 @@ export const middlewareLoggerHelpers = {
   ): void => {
     const { checkUserAgent = true, checkReferer = false, logSuspiciousActivity = true } = checks;
 
-    // User-Agentチェック
+    // User-Agent check
     if (checkUserAgent && !context.userAgent) {
       logSecurityEvent(request, context, 'missing_user_agent');
     }
 
-    // Refererチェック
+    // Referer check
     if (checkReferer) {
       const referer = request.headers.get('referer');
       if (!referer) {
@@ -420,11 +405,11 @@ export const middlewareLoggerHelpers = {
       }
     }
 
-    // 疑わしいアクティビティの検出
+    // Detect suspicious activity
     if (logSuspiciousActivity) {
       const path = new URL(request.url).pathname;
 
-      // 一般的な攻撃パターンの検出
+      // Detect common attack patterns
       const suspiciousPatterns = [
         /\.\.\//, // Path traversal
         /<script/i, // XSS attempt

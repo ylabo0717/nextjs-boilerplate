@@ -303,29 +303,28 @@ export function detectRuntimeEnvironment(): 'edge' | 'nodejs' | 'browser' {
 }
 
 /**
- * Edge Runtime対応コンテキストストレージ
+ * Edge Runtime compatible context storage
  *
- * AsyncLocalStorageが使用できないEdge Runtime環境で
- * リクエストスコープのコンテキスト管理を提供します。
- * WeakMapとPromise chaining を使用して実装します。
+ * Provides request-scoped context management in Edge Runtime environments
+ * where AsyncLocalStorage is not available.
+ * Implemented using WeakMap and Promise chaining.
  *
- * ## クラス実装の理由
+ * ## Reasons for Class Implementation
  *
- * **Pure Functions First原則の例外として、以下の理由でクラス実装を採用:**
- * - **状態管理**: WeakMapによるオブジェクト関連付けと現在コンテキストの管理
- * - **環境制約**: Edge Runtime環境でのAsyncLocalStorage代替実装
- * - **ライフサイクル**: リクエストスコープでのコンテキスト継承と自動クリーンアップ
- * - **メモリ効率**: WeakMapによるガベージコレクション対応のメモリ管理
- * - **型安全性**: ジェネリック型パラメータでの型安全なコンテキスト管理
+ * **As an exception to Pure Functions First principle, adopting class implementation for the following reasons:**
+ * - **State Management**: Object association and current context management through WeakMap
+ * - **Environment Constraints**: Alternative AsyncLocalStorage implementation for Edge Runtime environments
+ * - **Lifecycle**: Context inheritance and automatic cleanup in request scope
+ * - **Memory Efficiency**: Garbage collection-aware memory management through WeakMap
+ * - **Type Safety**: Type-safe context management with generic type parameters
  *
  * @internal
  */
 class EdgeContextStorage<T> {
-  private contextMap = new WeakMap<object, T>();
   private currentContext: T | null = null;
 
   /**
-   * コンテキストを設定してコールバックを実行
+   * Execute callback with specified context
    */
   run(context: T, callback: () => void): void;
   run<R>(context: T, callback: () => R): R;
@@ -341,14 +340,14 @@ class EdgeContextStorage<T> {
   }
 
   /**
-   * 現在のコンテキストを取得
+   * Get current context
    */
   getStore(): T | undefined {
     return this.currentContext ?? undefined;
   }
 
   /**
-   * オブジェクトにコンテキストを関連付け
+   * Bind context to object
    */
   bind<Args extends unknown[]>(fn: (...args: Args) => void, context?: T): (...args: Args) => void {
     const boundContext = context ?? this.currentContext;
@@ -363,44 +362,45 @@ class EdgeContextStorage<T> {
 }
 
 /**
- * 環境対応AsyncLocalStorage互換インターフェース
+ * Environment-compatible AsyncLocalStorage interface
  *
- * Edge Runtime環境では EdgeContextStorage を、
- * Node.js環境では AsyncLocalStorage を使用します。
+ * Uses EdgeContextStorage in Edge Runtime environments,
+ * and AsyncLocalStorage in Node.js environments.
  *
  * @internal
  */
 export interface CompatibleStorage<T> {
   /**
-   * 指定されたコンテキストでコールバック関数を実行します
-   * @param store - 設定するコンテキスト値
-   * @param callback - 実行するコールバック関数
-   * @returns コールバック関数の戻り値
+   * Execute callback function with specified context
+   * @param store - Context value to set
+   * @param callback - Callback function to execute
+   * @returns Return value of callback function
    */
   run<R>(store: T, callback: () => R): R;
 
   /**
-   * 現在のコンテキスト値を取得します
-   * @returns 現在のコンテキスト値、設定されていない場合はundefined
+   * Get current context value
+   * @returns Current context value, or undefined if not set
    */
   getStore(): T | undefined;
 
   /**
-   * 関数を指定されたコンテキストでバインドします
-   * @param fn - バインドする関数
-   * @param context - バインドするコンテキスト値（省略時は現在のコンテキスト）
-   * @returns バインドされた関数
+   * Bind function with specified context
+   * @param fn - Function to bind
+   * @param context - Context value to bind (defaults to current context if omitted)
+   * @returns Bound function
    */
   bind<Args extends unknown[]>(fn: (...args: Args) => void, context?: T): (...args: Args) => void;
 }
 
 /**
- * 環境対応ストレージファクトリー（純粋関数）
+ * Environment-compatible storage factory (pure function)
  *
- * 実行環境に応じて適切なコンテキストストレージを作成します。
- * Edge Runtime環境では独自実装、Node.js環境ではAsyncLocalStorageを使用します。
+ * Creates appropriate context storage based on runtime environment.
+ * Uses custom implementation in Edge Runtime environments,
+ * and AsyncLocalStorage in Node.js environments.
  *
- * @returns 環境対応ストレージインスタンス
+ * @returns Environment-compatible storage instance
  *
  * @public
  */
@@ -408,7 +408,7 @@ export function createCompatibleStorage<T>(): CompatibleStorage<T> {
   const runtime = detectRuntimeEnvironment();
 
   if (runtime === 'edge') {
-    // Edge Runtime環境: 独自実装を使用
+    // Edge Runtime environment: Use custom implementation
     const edgeStorage = new EdgeContextStorage<T>();
     return {
       run: edgeStorage.run.bind(edgeStorage),
@@ -416,7 +416,7 @@ export function createCompatibleStorage<T>(): CompatibleStorage<T> {
       bind: edgeStorage.bind.bind(edgeStorage),
     };
   } else {
-    // Node.js環境: AsyncLocalStorageを使用
+    // Node.js environment: Use AsyncLocalStorage
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { AsyncLocalStorage } = require('node:async_hooks');
@@ -437,7 +437,7 @@ export function createCompatibleStorage<T>(): CompatibleStorage<T> {
         },
       };
     } catch {
-      // フォールバック: Edge実装を使用
+      // Fallback: Use Edge implementation
       const fallbackStorage = new EdgeContextStorage<T>();
       return {
         run: fallbackStorage.run.bind(fallbackStorage),
@@ -449,18 +449,18 @@ export function createCompatibleStorage<T>(): CompatibleStorage<T> {
 }
 
 /**
- * エラーオブジェクトを構造化ログに適した形式にシリアライズする関数
+ * Function to serialize error objects into structured log format
  *
- * Error オブジェクトや任意の値を JSON シリアライズ可能な形式に変換します。
- * Error オブジェクトの場合は name、message、stack、cause を抽出し、
- * その他の値の場合は安全な文字列表現に変換します。
+ * Converts Error objects or arbitrary values into JSON-serializable format.
+ * For Error objects, extracts name, message, stack, and cause properties.
+ * For other values, converts to safe string representation.
  *
- * @param error - シリアライズするエラーオブジェクトまたは任意の値
- * @returns JSON シリアライズ可能なエラー情報オブジェクト
+ * @param error - Error object or arbitrary value to serialize
+ * @returns JSON-serializable error information object
  *
  * @example
  * ```typescript
- * // Error オブジェクトの場合
+ * // For Error objects
  * const err = new Error('Something went wrong');
  * const serialized = serializeError(err);
  * // {
@@ -470,7 +470,7 @@ export function createCompatibleStorage<T>(): CompatibleStorage<T> {
  * //   cause: undefined
  * // }
  *
- * // 文字列の場合
+ * // For string values
  * const serialized = serializeError('Custom error');
  * // {
  * //   message: 'Custom error',

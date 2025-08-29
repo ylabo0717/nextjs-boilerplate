@@ -229,30 +229,30 @@ export interface LoggerContext extends Record<string, unknown> {
   userId?: string;
 
   /**
-   * セッションID
+   * Session ID
    *
-   * ユーザーセッションの追跡用ID。
-   * セキュリティ分析とユーザー行動分析に使用。
+   * ID for tracking user sessions.
+   * Used for security analysis and user behavior analysis.
    *
    * @public
    */
   sessionId?: string;
 
   /**
-   * イベント名
+   * Event name
    *
-   * 構造化ログ用のイベント識別子。
-   * メトリクス集計とアラート設定に使用。
+   * Event identifier for structured logging.
+   * Used for metrics aggregation and alert configuration.
    *
    * @public
    */
   event_name?: string;
 
   /**
-   * イベントカテゴリ
+   * Event category
    *
-   * ログイベントの分類。監視とアラートの
-   * 自動化に使用される事前定義カテゴリ。
+   * Classification of log events. Predefined categories
+   * used for automation of monitoring and alerts.
    *
    * @public
    */
@@ -260,20 +260,20 @@ export interface LoggerContext extends Record<string, unknown> {
 }
 
 /**
- * ログミドルウェア設定
+ * Logging middleware configuration
  *
- * HTTPリクエスト/レスポンスのログ記録動作を制御。
- * セキュリティとパフォーマンスのバランスを考慮した
- * 細かな設定が可能。
+ * Control HTTP request/response logging behavior.
+ * Fine-grained configuration is possible considering
+ * the balance between security and performance.
  *
  * @public
  */
 export interface LoggingMiddlewareOptions {
   /**
-   * HTTPヘッダーログ記録フラグ
+   * HTTP header logging flag
    *
-   * trueの場合、リクエスト・レスポンスヘッダーを記録。
-   * 機密情報が含まれる可能性があるため注意が必要。
+   * When true, record request and response headers.
+   * Caution required as sensitive information may be included.
    *
    * @defaultValue false
    * @public
@@ -281,10 +281,10 @@ export interface LoggingMiddlewareOptions {
   logHeaders?: boolean;
 
   /**
-   * HTTPボディログ記録フラグ
+   * HTTP body logging flag
    *
-   * trueの場合、リクエスト・レスポンスボディを記録。
-   * 大量データや機密情報の記録に注意。
+   * When true, record request and response body.
+   * Be careful with recording large data or sensitive information.
    *
    * @defaultValue false
    * @public
@@ -292,30 +292,30 @@ export interface LoggingMiddlewareOptions {
   logBody?: boolean;
 
   /**
-   * ログメッセージラベル設定
+   * Log message label configuration
    *
-   * 各フェーズで使用するログメッセージをカスタマイズ。
-   * 国際化や詳細レベル調整に使用。
+   * Customize log messages used in each phase.
+   * Used for internationalization and detail level adjustment.
    *
    * @public
    */
   labels?: {
     /**
-     * リクエスト開始時のラベル
+     * Label at request start
      * @defaultValue "Request started"
      * @public
      */
     start?: string;
 
     /**
-     * リクエスト成功時のラベル
+     * Label on successful request
      * @defaultValue "Request completed"
      * @public
      */
     success?: string;
 
     /**
-     * リクエストエラー時のラベル
+     * Label on request error
      * @defaultValue "Request failed"
      * @public
      */
@@ -324,59 +324,59 @@ export interface LoggingMiddlewareOptions {
 }
 
 /**
- * ベースプロパティ設定
+ * Base properties configuration
  *
- * すべてのログエントリに自動付与される基本情報。
- * アプリケーションの識別と環境管理に使用。
+ * Basic information automatically assigned to all log entries.
+ * Used for application identification and environment management.
  *
  * @public
  */
 export interface BaseProperties {
   /**
-   * アプリケーション名
+   * Application name
    *
-   * ログを生成したアプリケーションの識別子。
-   * マイクロサービス環境でのログ分離に使用。
+   * Identifier of the application that generated the log.
+   * Used for log separation in microservice environments.
    *
    * @public
    */
   app: string;
 
   /**
-   * 実行環境
+   * Runtime environment
    *
-   * development/staging/productionなどの環境識別子。
-   * 環境別ログフィルタリングに使用。
+   * Environment identifier such as development/staging/production.
+   * Used for environment-specific log filtering.
    *
    * @public
    */
   env: string;
 
   /**
-   * プロセスID
+   * Process ID
    *
-   * Node.jsプロセスの一意識別子。
-   * デバッグとパフォーマンス分析に使用。
+   * Unique identifier of Node.js process.
+   * Used for debugging and performance analysis.
    *
    * @public
    */
   pid: number;
 
   /**
-   * アプリケーションバージョン
+   * Application version
    *
-   * デプロイ済みアプリケーションのバージョン情報。
-   * リリース追跡と障害分析に使用。
+   * Version information of deployed application.
+   * Used for release tracking and failure analysis.
    *
    * @public
    */
   version?: string;
 
   /**
-   * ログスキーマバージョン
+   * Log schema version
    *
-   * 構造化ログフォーマットのバージョン。
-   * ログパーサーとの互換性保証に使用。
+   * Version of structured log format.
+   * Used to ensure compatibility with log parsers.
    *
    * @public
    */
@@ -384,49 +384,49 @@ export interface BaseProperties {
 }
 
 /**
- * OpenTelemetry準拠重要度数値
+ * OpenTelemetry compliant severity numbers
  *
- * ⚠️ 中リスク対応: OpenTelemetry Logs準拠のseverity_number
+ * ⚠️ Medium risk response: severity_number compliant with OpenTelemetry Logs
  *
- * RFC 5424 Syslogプロトコルに基づく数値重要度。
- * ログ集約システムでの自動分類と監視アラートに使用。
+ * Numeric severity based on RFC 5424 Syslog protocol.
+ * Used for automatic classification and monitoring alerts in log aggregation systems.
  *
- * 数値が大きいほど重要度が高く、21（fatal）が最高レベル。
- * 外部ログシステムとの互換性を保証。
+ * Higher numbers indicate higher severity, with 21 (fatal) being the highest level.
+ * Ensures compatibility with external log systems.
  *
  * @public
  */
 export const SEVERITY_NUMBERS = {
-  /** トレースレベル：詳細デバッグ情報（重要度: 1） */
+  /** Trace level: Detailed debug information (severity: 1) */
   trace: 1,
-  /** デバッグレベル：開発時情報（重要度: 5） */
+  /** Debug level: Development information (severity: 5) */
   debug: 5,
-  /** 情報レベル：一般情報（重要度: 9） */
+  /** Info level: General information (severity: 9) */
   info: 9,
-  /** 警告レベル：注意が必要（重要度: 13） */
+  /** Warn level: Requires attention (severity: 13) */
   warn: 13,
-  /** エラーレベル：処理可能エラー（重要度: 17） */
+  /** Error level: Recoverable errors (severity: 17) */
   error: 17,
-  /** 致命的レベル：システム停止エラー（重要度: 21） */
+  /** Fatal level: System stopping errors (severity: 21) */
   fatal: 21,
 } as const;
 
 /**
- * 構造化イベント定義
+ * Structured event definition
  *
- * ビジネスロジックやユーザー操作の構造化された記録。
- * メトリクス収集、ユーザー行動分析、セキュリティ監視に使用。
+ * Structured records of business logic and user operations.
+ * Used for metrics collection, user behavior analysis, and security monitoring.
  *
- * OpenTelemetry Eventsモデルに準拠した設計。
+ * Design compliant with OpenTelemetry Events model.
  *
  * @public
  */
 export interface StructuredEvent {
   /**
-   * イベント名
+   * Event name
    *
-   * 発生したイベントの一意識別子。
-   * メトリクス集計のキーとして使用。
+   * Unique identifier of the occurred event.
+   * Used as key for metrics aggregation.
    *
    * @example "user_login", "payment_completed", "api_error"
    * @public
@@ -434,20 +434,20 @@ export interface StructuredEvent {
   event_name: string;
 
   /**
-   * イベントカテゴリ
+   * Event category
    *
-   * イベントの分類カテゴリ。監視アラートと
-   * ダッシュボードでの自動グループ化に使用。
+   * Classification category of events. Used for monitoring alerts
+   * and automatic grouping in dashboards.
    *
    * @public
    */
   event_category: 'user_action' | 'system_event' | 'error_event' | 'security_event';
 
   /**
-   * イベント属性
+   * Event attributes
    *
-   * イベント固有の詳細データ。
-   * 分析とデバッグのための構造化情報。
+   * Event-specific detailed data.
+   * Structured information for analysis and debugging.
    *
    * @public
    */
@@ -455,22 +455,22 @@ export interface StructuredEvent {
 }
 
 /**
- * ログエントリ基本構造
+ * Log entry basic structure
  *
- * 構造化ログシステムで生成される標準ログエントリ。
- * OpenTelemetry Logs Data Modelに準拠した設計。
+ * Standard log entries generated by structured logging system.
+ * Design compliant with OpenTelemetry Logs Data Model.
  *
- * すべてのログエントリに共通して含まれる必須フィールドと
- * 拡張可能な動的プロパティを定義。
+ * Defines required fields common to all log entries and
+ * extensible dynamic properties.
  *
  * @public
  */
 export interface LogEntry {
   /**
-   * ログ生成タイムスタンプ
+   * Log generation timestamp
    *
-   * ISO 8601形式のUTC時刻文字列。
-   * 時系列分析と相関分析に使用。
+   * UTC time string in ISO 8601 format.
+   * Used for time series analysis and correlation analysis.
    *
    * @example "2024-01-15T10:30:45.123Z"
    * @public
@@ -478,50 +478,50 @@ export interface LogEntry {
   timestamp: string;
 
   /**
-   * ログレベル
+   * Log level
    *
-   * trace/debug/info/warn/error/fatalのいずれか。
-   * ログフィルタリングと重要度判定に使用。
+   * One of trace/debug/info/warn/error/fatal.
+   * Used for log filtering and severity determination.
    *
    * @public
    */
   level: LogLevel;
 
   /**
-   * OpenTelemetry重要度数値
+   * OpenTelemetry severity number
    *
-   * RFC 5424準拠の数値重要度。
-   * 外部システムとの互換性確保に使用。
+   * Numeric severity compliant with RFC 5424.
+   * Used to ensure compatibility with external systems.
    *
    * @public
    */
   severity_number: number;
 
   /**
-   * ログメッセージ
+   * Log message
    *
-   * 人間が読める形式のメッセージ文字列。
-   * 検索とアラート設定の主要フィールド。
+   * Human-readable message string.
+   * Primary field for search and alert configuration.
    *
    * @public
    */
   message: string;
 
   /**
-   * ログスキーマバージョン
+   * Log schema version
    *
-   * 構造化ログフォーマットのバージョン。
-   * パーサー互換性の保証に使用。
+   * Version of structured log format.
+   * Used to ensure parser compatibility.
    *
    * @public
    */
   log_schema_version: string;
 
   /**
-   * 動的プロパティ
+   * Dynamic properties
    *
-   * ログエントリ固有の追加情報。
-   * コンテキストデータや詳細分析データを格納。
+   * Additional information specific to log entry.
+   * Stores context data and detailed analysis data.
    *
    * @public
    */
@@ -529,32 +529,32 @@ export interface LogEntry {
 }
 
 /**
- * サニタイズ済みログエントリ
+ * Sanitized log entry
  *
- * セキュリティサニタイゼーション処理後のログデータ。
- * ログインジェクション攻撃を防止し、安全な出力を保証。
+ * Log data after security sanitization processing.
+ * Prevents log injection attacks and ensures safe output.
  *
- * XSS、SQLインジェクション、制御文字攻撃から保護された
- * クリーンなログデータを表現。
+ * Represents clean log data protected from XSS,
+ * SQL injection, and control character attacks.
  *
  * @public
  */
 export interface SanitizedLogEntry {
   /**
-   * サニタイズ済みメッセージ
+   * Sanitized message
    *
-   * 危険な制御文字、特殊文字が除去されたメッセージ。
-   * コンソール出力とファイル出力で安全に使用可能。
+   * Message with dangerous control characters and special characters removed.
+   * Safe to use in console output and file output.
    *
    * @public
    */
   message: string;
 
   /**
-   * サニタイズ済み追加データ
+   * Sanitized additional data
    *
-   * オプションの構造化データ。
-   * 再帰的にサニタイズ処理が適用済み。
+   * Optional structured data.
+   * Recursively sanitized processing has been applied.
    *
    * @public
    */

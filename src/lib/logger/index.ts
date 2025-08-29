@@ -1,6 +1,6 @@
 /**
  * Structured logging system integration exports
- * 
+ *
  * Provides unified interface for both client and server environments.
  * Centralizes logger configuration and environment detection to ensure
  * consistent logging behavior across different runtime contexts.
@@ -125,7 +125,7 @@ export type { ErrorCategory, ErrorContext, StructuredError } from './error-handl
 
 /**
  * Environment detection function
- * 
+ *
  * Pure function that determines the current runtime environment.
  * This is essential for selecting the appropriate logger implementation
  * based on whether code is running in Node.js, Edge Runtime, or browser.
@@ -149,7 +149,7 @@ function detectEnvironment(): 'server' | 'client' | 'edge' {
 
 /**
  * Creates appropriate logger based on environment
- * 
+ *
  * Pure function that returns the correct logger implementation
  * based on the detected runtime environment. This ensures
  * optimal logging performance for each context.
@@ -166,7 +166,7 @@ function createAppropriateLogger(environment: 'server' | 'client' | 'edge'): Log
 
 /**
  * Environment-aware logger instance
- * 
+ *
  * Automatically detects server/client environment and returns
  * the appropriate logger. This is the main logger export that
  * should be used throughout the application.
@@ -175,7 +175,7 @@ export const logger = createAppropriateLogger(detectEnvironment());
 
 /**
  * Initialize integrated logger system
- * 
+ *
  * Should be called during application startup. Sets up global error handlers,
  * configures Loki transport if enabled, and establishes initial logging context.
  * This centralized initialization ensures consistent logging behavior.
@@ -230,7 +230,7 @@ export function initializeLogger(
 
 /**
  * Set up global error handlers
- * 
+ *
  * Configures uncaught exception and unhandled rejection handlers
  * for both Node.js and browser environments. This ensures that
  * all errors are properly logged and handled consistently.
@@ -281,11 +281,11 @@ function setupGlobalErrorHandlers(): void {
 
 /**
  * Get logger with context
- * 
+ *
  * Creates a logger instance with attached context information.
  * Context is handled differently between server and client environments
  * due to their different execution models.
- * 
+ *
  * @internal
  */
 export function getLoggerWithContext(context: Record<string, unknown>): Logger {
@@ -308,7 +308,7 @@ export function getLoggerWithContext(context: Record<string, unknown>): Logger {
 
 /**
  * Integrated performance measurement
- * 
+ *
  * Measures function execution time using the appropriate logger helper
  * based on the current environment. Provides consistent performance
  * tracking across server and client contexts.
@@ -329,7 +329,7 @@ export function measurePerformance<T>(
 
 /**
  * Integrated async performance measurement
- * 
+ *
  * Measures asynchronous function execution time with fallback handling
  * for environments that don't support async measurement. Ensures
  * consistent performance tracking for Promise-based operations.
@@ -352,7 +352,7 @@ export async function measurePerformanceAsync<T>(
 }
 /**
  * Integrated user action logging
- * 
+ *
  * Logs user actions with consistent formatting across environments.
  * This is essential for tracking user behavior and debugging
  * user-reported issues in both server and client contexts.
@@ -369,11 +369,11 @@ export function logUserAction(action: string, details: Record<string, unknown> =
 
 /**
  * Integrated error logging
- * 
+ *
  * Provides unified error handling across environments using the
  * appropriate error handler for each context. Server-side uses
  * the structured error handler while client-side uses helper functions.
- * 
+ *
  * @internal
  */
 export function logError(error: Error | unknown, context: Record<string, unknown> = {}): void {
@@ -388,7 +388,7 @@ export function logError(error: Error | unknown, context: Record<string, unknown
 
 /**
  * Debug logger information display
- * 
+ *
  * Outputs detailed logger configuration and runtime information
  * for debugging purposes. Helps identify environment-specific
  * logging issues and configuration problems.

@@ -1,6 +1,6 @@
 /**
  * Client-side logger implementation (pure functional approach)
- * 
+ *
  * Lightweight logging for browser environments with console integration.
  * Follows architecture principles with pure-function-first implementation,
  * providing stateless, predictable, and testable logging system.

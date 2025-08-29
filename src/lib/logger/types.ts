@@ -1,6 +1,6 @@
 /**
  * Structured logging system type definitions
- * 
+ *
  * High-performance logging system based on Next.js 15 + Pino.
  * Provides type-safe interfaces for structured logging with
  * OpenTelemetry compliance and performance optimization.
@@ -40,7 +40,7 @@ export type LogLevel = (typeof LOG_LEVELS)[number];
  * - string: Text messages and identifiers
  * - number: Numeric data and statistics
  * - boolean: Flags and state values
- * - Record<string, unknown>: Structured data objects
+ * - `Record<string, unknown>`: Structured data objects
  * - Error: Error objects (automatically serialized)
  * - null/undefined: Representation of absent values
  *

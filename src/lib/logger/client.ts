@@ -48,14 +48,6 @@ const LOG_LEVELS = {
 } as const;
 
 /**
- * クライアントLogger設定型
- *
- * ログ動作を制御する不変設定オブジェクト。
- * 純粋関数の引数として使用。
- *
- * @public
- */
-/**
  * Client Logger configuration type
  *
  * Immutable configuration object that controls log behavior.
@@ -70,16 +62,6 @@ export type ClientLoggerConfig = {
   readonly baseProperties: Readonly<Record<string, unknown>>;
 };
 
-/**
- * クライアントLogger設定を作成
- *
- * 環境変数とシステム情報から不変の設定オブジェクトを生成。
- * アプリケーション起動時に一度だけ実行される純粋関数。
- *
- * @returns 不変なLogger設定オブジェクト
- *
- * @public
- */
 /**
  * Create client Logger configuration
  *

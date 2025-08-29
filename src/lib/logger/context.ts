@@ -1,7 +1,7 @@
 /**
- * 🚨 高リスク対応: Child Logger + Edge Runtime対応コンテキスト完全実装
- * リクエストコンテキストの完全管理によるトレース追跡の向上
- * Edge Runtime環境でのAsyncLocalStorage制限に対応
+ * 🚨 High-risk response: Complete implementation of Child Logger + Edge Runtime compatible context
+ * Enhanced trace tracking through complete request context management
+ * Addresses AsyncLocalStorage limitations in Edge Runtime environment
  */
 
 import { sanitizeLogEntry } from './sanitizer';
@@ -12,25 +12,25 @@ import type { Logger, LoggerContext, LogArgument } from './types';
 import type { CompatibleStorage } from './utils';
 
 /**
- * Logger コンテキスト管理設定型
+ * Logger context management configuration type
  *
- * AsyncLocalStorage を使用したコンテキスト管理用の設定オブジェクト。
- * 純粋関数の引数として使用される不変設定。
+ * Configuration object for context management using AsyncLocalStorage.
+ * Immutable configuration used as arguments for pure functions.
  *
  * @public
  */
 export type LoggerContextConfig = {
-  /** 環境対応コンテキスト保存領域（AsyncLocalStorage互換） */
+  /** Environment-compatible context storage area (AsyncLocalStorage compatible) */
   readonly storage: CompatibleStorage<LoggerContext>;
 };
 
 /**
- * Logger コンテキスト設定を作成（純粋関数）
+ * Create Logger context configuration (pure function)
  *
- * AsyncLocalStorage インスタンスを含む不変設定オブジェクトを生成。
- * アプリケーション起動時に一度だけ実行される純粋関数。
+ * Generate immutable configuration object containing AsyncLocalStorage instance.
+ * Pure function executed only once at application startup.
  *
- * @returns 不変なコンテキスト設定オブジェクト
+ * @returns Immutable context configuration object
  *
  * @public
  */
@@ -41,18 +41,18 @@ export function createLoggerContextConfig(): LoggerContextConfig {
 }
 
 /**
- * リクエストコンテキストでの実行（純粋関数 + 制御された副作用）
+ * Execution within request context (pure function + controlled side effects)
  *
- * 指定されたコンテキストで関数を実行。
- * 実行中のすべての同期・非同期処理でコンテキストが自動的に継承される。
+ * Execute function with specified context.
+ * Context is automatically inherited in all synchronous and asynchronous processes during execution.
  *
- * HTTP リクエスト処理のエントリーポイントで使用し、
- * 以降の処理でコンテキスト情報を自動追跡可能。
+ * Used at HTTP request processing entry points,
+ * enabling automatic tracking of context information in subsequent processing.
  *
- * @param config - コンテキスト設定
- * @param context - 設定するコンテキスト情報
- * @param fn - コンテキスト内で実行する関数
- * @returns 関数の実行結果
+ * @param config - Context configuration
+ * @param context - Context information to set
+ * @param fn - Function to execute within context
+ * @returns Function execution result
  *
  * @public
  */
@@ -65,15 +65,15 @@ export function runWithLoggerContext<T>(
 }
 
 /**
- * 現在のコンテキストを取得（純粋関数）
+ * Get current context (pure function)
  *
- * AsyncLocalStorage から現在実行中のコンテキストを取得。
- * コンテキスト外での実行時は undefined を返す。
+ * Get currently executing context from AsyncLocalStorage.
+ * Returns undefined when executed outside context.
  *
- * ミドルウェアや任意の処理でのコンテキスト情報アクセスに使用。
+ * Used for context information access in middleware or arbitrary processing.
  *
- * @param config - コンテキスト設定
- * @returns 現在のコンテキスト情報、または undefined
+ * @param config - Context configuration
+ * @returns Current context information, or undefined
  *
  * @public
  */
@@ -82,17 +82,17 @@ export function getLoggerContext(config: LoggerContextConfig): LoggerContext | u
 }
 
 /**
- * コンテキストの部分的更新（純粋関数）
+ * Partial context update (pure function)
  *
- * 既存のコンテキストとマージして新しいコンテキストを作成。
- * 元のコンテキストは変更せず、不変性を保持。
+ * Create new context by merging with existing context.
+ * Preserves immutability without modifying original context.
  *
- * リクエスト処理中の追加情報（ユーザー ID、セッション情報等）の
- * 段階的追加に使用。
+ * Used for gradual addition of additional information (user ID, session information, etc.)
+ * during request processing.
  *
- * @param config - コンテキスト設定
- * @param updates - 更新するコンテキスト情報
- * @returns マージされた新しいコンテキスト、または undefined
+ * @param config - Context configuration
+ * @param updates - Context information to update
+ * @returns Merged new context, or undefined
  *
  * @public
  */
@@ -109,18 +109,18 @@ export function updateLoggerContext(
 }
 
 /**
- * コンテキスト付き Child Logger の生成（純粋関数）
+ * Generate context-aware Child Logger (pure function)
  *
- * 統一 Logger インターフェース対応の Child Logger 作成。
- * すべてのログ出力に自動的にコンテキスト情報を付与。
+ * Create Child Logger compatible with unified Logger interface.
+ * Automatically adds context information to all log outputs.
  *
- * ベースロガーのメソッドをラップし、コンテキスト情報と
- * セキュリティサニタイゼーションを自動適用。
+ * Wraps base logger methods and automatically applies context information
+ * and security sanitization.
  *
- * @param config - コンテキスト設定
- * @param baseLogger - ベースとなるロガーインスタンス
- * @param _additionalContext - 追加のコンテキスト情報（将来拡張用）
- * @returns コンテキスト付きロガーインスタンス
+ * @param config - Context configuration
+ * @param baseLogger - Base logger instance
+ * @param _additionalContext - Additional context information (for future extension)
+ * @returns Context-aware logger instance
  *
  * @public
  */
@@ -153,31 +153,31 @@ export function createContextualLogger(
 }
 
 /**
- * コンテキスト情報をログエントリに自動付与（純粋関数 + 制御された副作用）
+ * Automatically add context information to log entries (pure function + controlled side effects)
  *
- * ベースロガーのログ関数をラップし、現在のコンテキスト情報と
- * OpenTelemetry 準拠のメタデータを自動付与。
+ * Wrap base logger's log function and automatically add current context information
+ * and OpenTelemetry-compliant metadata.
  *
- * セキュリティサニタイゼーションを適用し、安全なログ出力を保証。
+ * Apply security sanitization to ensure safe log output.
  *
- * @param config - コンテキスト設定
- * @param logFunction - ベースロガーのログ関数
- * @param level - ログレベル
- * @param message - ログメッセージ
- * @param args - 追加のログ引数
+ * @param config - Context configuration
+ * @param logFunction - Base logger's log function
+ * @param level - Log level
+ * @param message - Log message
+ * @param args - Additional log arguments
  *
  * @internal
  */
 function logWithContext(
   config: LoggerContextConfig,
   logFunction: (message: string, ...args: LogArgument[]) => void,
-  level: keyof typeof SEVERITY_NUMBERS,
+  level: string,
   message: string,
   args: readonly LogArgument[]
 ): void {
   const currentContext = getLoggerContext(config);
 
-  // コンテキスト情報を含むログエントリを作成
+  // Create log entry with context information
   const severityNumber = SEVERITY_NUMBERS[level as keyof typeof SEVERITY_NUMBERS];
   const contextData = {
     ...currentContext,
@@ -185,25 +185,25 @@ function logWithContext(
     timestamp: new Date().toISOString(),
   };
 
-  // サニタイズ処理
+  // Sanitize processing
   const sanitized = sanitizeLogEntry(message, contextData);
 
-  // 元の引数と組み合わせて実行
+  // Execute combined with original arguments
   logFunction(sanitized.message, sanitized.data as LogArgument, ...args);
 }
 
 /**
- * ユーザーアクションログ用のヘルパー（純粋関数 + 制御された副作用）
+ * Helper for user action logging (pure function + controlled side effects)
  *
- * ユーザー操作の構造化ログ記録。
- * メトリクス収集、ユーザー行動分析、A/B テスト分析に使用。
+ * Structured log recording of user operations.
+ * Used for metrics collection, user behavior analysis, and A/B test analysis.
  *
- * 自動的に 'user_action' カテゴリとイベント名プレフィックスを付与。
+ * Automatically assigns 'user_action' category and event name prefix.
  *
- * @param config - コンテキスト設定
- * @param baseLogger - ベースロガーインスタンス
- * @param action - ユーザーアクション名
- * @param details - アクション固有の詳細情報
+ * @param config - Context configuration
+ * @param baseLogger - Base logger instance
+ * @param action - User action name
+ * @param details - Action-specific detail information
  *
  * @public
  */
@@ -226,17 +226,17 @@ export function logUserAction(
 }
 
 /**
- * システムイベントログ用のヘルパー（純粋関数 + 制御された副作用）
+ * Helper for system event logging (pure function + controlled side effects)
  *
- * アプリケーション内部イベントの構造化ログ記録。
- * システム監視、パフォーマンス分析、障害検知に使用。
+ * Structured log recording of application internal events.
+ * Used for system monitoring, performance analysis, and fault detection.
  *
- * 自動的に 'system_event' カテゴリとイベント名プレフィックスを付与。
+ * Automatically assigns 'system_event' category and event name prefix.
  *
- * @param config - コンテキスト設定
- * @param baseLogger - ベースロガーインスタンス
- * @param event - システムイベント名
- * @param details - イベント固有の詳細情報
+ * @param config - Context configuration
+ * @param baseLogger - Base logger instance
+ * @param event - System event name
+ * @param details - Event-specific detail information
  *
  * @public
  */
@@ -259,18 +259,18 @@ export function logSystemEvent(
 }
 
 /**
- * セキュリティイベントログ用のヘルパー（純粋関数 + 制御された副作用）
+ * Helper for security event logging (pure function + controlled side effects)
  *
- * セキュリティ関連イベントの高優先度ログ記録。
- * 不正アクセス検知、認証失敗、権限違反などの記録に使用。
+ * High-priority log recording of security-related events.
+ * Used for recording unauthorized access detection, authentication failures, permission violations, etc.
  *
- * 自動的に 'security_event' カテゴリ、'high' 重要度、error レベルで記録。
- * セキュリティ監視システムでの自動アラート対象。
+ * Automatically records with 'security_event' category, 'high' severity, and error level.
+ * Target for automatic alerts in security monitoring systems.
  *
- * @param config - コンテキスト設定
- * @param baseLogger - ベースロガーインスタンス
- * @param event - セキュリティイベント名
- * @param details - イベント固有の詳細情報
+ * @param config - Context configuration
+ * @param baseLogger - Base logger instance
+ * @param event - Security event name
+ * @param details - Event-specific detail information
  *
  * @public
  */
@@ -294,18 +294,18 @@ export function logSecurityEvent(
 }
 
 /**
- * エラーイベントログ用のヘルパー（純粋関数 + 制御された副作用）
+ * Helper for error event logging (pure function + controlled side effects)
  *
- * アプリケーションエラーの構造化ログ記録。
- * Error オブジェクトまたは Unknown 値のエラー情報を統一的に処理。
+ * Structured log recording of application errors.
+ * Unified processing of error information from Error objects or Unknown values.
  *
- * エラー追跡、デバッグ、障害分析に使用。
- * 自動的に 'error_event' カテゴリと error レベルで記録。
+ * Used for error tracking, debugging, and fault analysis.
+ * Automatically records with 'error_event' category and error level.
  *
- * @param config - コンテキスト設定
- * @param baseLogger - ベースロガーインスタンス
- * @param error - エラーオブジェクトまたは値
- * @param context_info - エラー発生時のコンテキスト情報
+ * @param config - Context configuration
+ * @param baseLogger - Base logger instance
+ * @param error - Error object or value
+ * @param context_info - Context information when error occurred
  *
  * @public
  */
@@ -336,18 +336,18 @@ export function logErrorEvent(
 }
 
 /**
- * パフォーマンス測定用のヘルパー（純粋関数 + 制御された副作用）
+ * Helper for performance measurement (pure function + controlled side effects)
  *
- * アプリケーションパフォーマンスメトリクスの構造化ログ記録。
- * 実行時間、処理速度、リソース使用量などの測定値を記録。
+ * Structured log recording of application performance metrics.
+ * Records measurement values such as execution time, processing speed, resource usage, etc.
  *
- * パフォーマンス監視、ボトルネック分析、最適化効果測定に使用。
+ * Used for performance monitoring, bottleneck analysis, and optimization effect measurement.
  *
- * @param config - コンテキスト設定
- * @param baseLogger - ベースロガーインスタンス
- * @param metric - メトリクス名
- * @param value - 測定値
- * @param unit - 測定単位（デフォルト: 'ms'）
+ * @param config - Context configuration
+ * @param baseLogger - Base logger instance
+ * @param metric - Metrics name
+ * @param value - Measured value
+ * @param unit - Measurement unit (default: 'ms')
  *
  * @public
  */
@@ -375,17 +375,17 @@ export function logPerformanceMetric(
 }
 
 /**
- * トレース ID とスパン ID の設定ヘルパー（副作用関数）
+ * Helper for setting trace ID and span ID (side effect function)
  *
- * OpenTelemetry との統合用のトレース情報設定。
- * 分散トレーシングでのリクエスト追跡に使用。
+ * Trace information configuration for integration with OpenTelemetry.
+ * Used for request tracking in distributed tracing.
  *
- * 現在のコンテキストに分散トレース識別子を追加し、
- * マイクロサービス間でのリクエスト追跡を可能にする。
+ * Adds distributed trace identifiers to the current context,
+ * enabling request tracking between microservices.
  *
- * @param config - コンテキスト設定
- * @param traceId - 分散トレース識別子
- * @param spanId - スパン識別子（オプション）
+ * @param config - Context configuration
+ * @param traceId - Distributed trace identifier
+ * @param spanId - Span identifier (optional)
  *
  * @public
  */
@@ -404,15 +404,15 @@ export function setTraceContext(
 }
 
 /**
- * デバッグ用: 現在のコンテキスト情報の表示（純粋関数 + 制御された副作用）
+ * Debug use: Display current context information (pure function + controlled side effects)
  *
- * 開発・デバッグ時のコンテキスト状態確認用。
- * コンテキスト情報の設定と継承が正しく動作しているかの検証に使用。
+ * For context state verification during development and debugging.
+ * Used to verify that context information setting and inheritance are working correctly.
  *
- * 本番環境では使用を避け、開発・ステージング環境でのみ実行推奨。
+ * Avoid use in production environment, recommend execution only in development and staging environments.
  *
- * @param config - コンテキスト設定
- * @param baseLogger - ベースロガーインスタンス
+ * @param config - Context configuration
+ * @param baseLogger - Base logger instance
  *
  * @public
  */
@@ -426,24 +426,24 @@ export function debugLoggerContext(config: LoggerContextConfig, baseLogger: Logg
 }
 
 // ===================================================================
-// デフォルトインスタンスとヘルパー関数（後方互換性）
+// Default instances and helper functions (backward compatibility)
 // ===================================================================
 
 /**
- * デフォルト Logger コンテキスト設定
+ * Default Logger context configuration
  *
- * アプリケーション全体で使用されるデフォルト設定。
- * 一度だけ作成され、以降は immutable として使用。
+ * Default configuration used throughout the application.
+ * Created only once and used as immutable thereafter.
  *
  * @public
  */
 export const defaultLoggerContextConfig = createLoggerContextConfig();
 
 /**
- * デフォルトコンテキストマネージャー（後方互換性）
+ * Default context manager (backward compatibility)
  *
- * 既存コードとの互換性のためのオブジェクト型インターフェース。
- * 純粋関数を既存のメソッド呼び出しパターンでラップ。
+ * Object-type interface for compatibility with existing code.
+ * Wraps pure functions with existing method call patterns.
  *
  * @public
  */
@@ -473,16 +473,16 @@ export const loggerContextManager = {
   debugContext: (baseLogger: Logger) => debugLoggerContext(defaultLoggerContextConfig, baseLogger),
 };
 
-// ユーティリティ関数のエクスポート（後方互換性）
+// Utility function exports (backward compatibility)
 
 /**
- * コンテキスト付き関数実行（後方互換性）
+ * Context-aware function execution (backward compatibility)
  *
- * デフォルト設定を使用した便利なエイリアス。
+ * Convenient alias using default configuration.
  *
- * @param context - 設定するコンテキスト情報
- * @param fn - コンテキスト内で実行する関数
- * @returns 関数の実行結果
+ * @param context - Context information to set
+ * @param fn - Function to execute within context
+ * @returns Function execution result
  *
  * @public
  */
@@ -490,24 +490,24 @@ export const runWithLoggerContextCompat = <T>(context: LoggerContext, fn: () => 
   loggerContextManager.runWithContext(context, fn);
 
 /**
- * 現在のコンテキスト取得（後方互換性）
+ * Get current context (backward compatibility)
  *
- * デフォルト設定を使用した便利なエイリアス。
+ * Convenient alias using default configuration.
  *
- * @returns 現在のコンテキスト情報、またはundefined
+ * @returns Current context information, or undefined
  *
  * @public
  */
 export const getLoggerContextCompat = () => loggerContextManager.getContext();
 
 /**
- * コンテキスト付きロガー作成（後方互換性）
+ * Create context-aware logger (backward compatibility)
  *
- * デフォルト設定を使用した便利なエイリアス。
+ * Convenient alias using default configuration.
  *
- * @param baseLogger - ベースとなるロガーインスタンス
- * @param context - 追加のコンテキスト情報（オプション）
- * @returns コンテキスト付きロガーインスタンス
+ * @param baseLogger - Base logger instance
+ * @param context - Additional context information (optional)
+ * @returns Context-aware logger instance
  *
  * @public
  */

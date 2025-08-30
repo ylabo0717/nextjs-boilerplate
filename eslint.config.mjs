@@ -38,8 +38,8 @@ const eslintConfig = [
     },
     settings: {
       tailwindcss: {
-        // 明示的に Tailwind 設定を指す（pre-commit の解決エラー回避）
-        config: 'tailwind.config.ts',
+        // Tailwind v4 は CSS ベース設定のため config ファイル不要
+        // config: 'tailwind.config.ts', // 削除
         callees: ['classnames', 'clsx', 'ctl', 'cn', 'cv', 'tw'],
         classRegex: '^(class|className)$',
       },

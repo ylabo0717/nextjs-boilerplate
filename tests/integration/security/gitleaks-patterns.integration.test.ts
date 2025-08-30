@@ -11,7 +11,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 describe('Gitleaks Secret Scanning Patterns', () => {
-  const gitleaksPath = resolve(process.cwd(), '.gitleaks.toml');
+  const gitleaksPath = resolve(process.cwd(), 'config/security/.gitleaks.toml');
   let gitleaksContent: string;
 
   beforeAll(() => {

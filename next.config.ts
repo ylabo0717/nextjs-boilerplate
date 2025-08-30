@@ -45,11 +45,12 @@ const nextConfig: NextConfig = {
     return config;
   },
 
-  // Configure font loading for CI environments
+  // Configure caching headers
   async headers() {
     return [
+      // Static assets - long cache
       {
-        source: '/(.*)',
+        source: '/_next/static/(.*)',
         headers: [
           {
             key: 'Cache-Control',
@@ -57,6 +58,18 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // Images and public assets - long cache
+      {
+        source: '/images/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // API routes should not be cached globally
+      // Individual API routes handle their own cache headers
     ];
   },
 };

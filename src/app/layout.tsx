@@ -13,11 +13,18 @@ if (!isCI) {
   // 本番・開発環境では Google Fonts を使用
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Geist, Geist_Mono } = require('next/font/google');
-  
+
   geistSans = Geist({
     variable: '--font-geist-sans',
     subsets: ['latin'],
-    fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'arial', 'sans-serif'],
+    fallback: [
+      'system-ui',
+      '-apple-system',
+      'BlinkMacSystemFont',
+      'Segoe UI',
+      'arial',
+      'sans-serif',
+    ],
     display: 'swap',
     preload: true,
   });
@@ -62,7 +69,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   // CI環境ではフォント変数を手動で設定
-  const fontClasses = isCI 
+  const fontClasses = isCI
     ? 'font-sans' // システムフォントを使用
     : `${geistSans.variable} ${geistMono.variable} antialiased`;
 

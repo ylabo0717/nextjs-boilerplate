@@ -68,8 +68,17 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      // API routes should not be cached globally
-      // Individual API routes handle their own cache headers
+      // API routes should handle their own cache headers
+      // Explicitly avoid global caching for API routes
+      {
+        source: '/api/(.*)',
+        headers: [
+          {
+            key: 'X-Route-Type',
+            value: 'api',
+          },
+        ],
+      },
     ];
   },
 };

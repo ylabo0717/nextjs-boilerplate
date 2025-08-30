@@ -11,91 +11,91 @@ import { getDefaultStorage, type KVStorage } from './kv-storage';
 import type { LogLevel } from './types';
 
 /**
- * リモートログ設定構造（不変）
+ * Remote Log Configuration Structure (Immutable)
  *
- * 動的に更新可能なログレベル設定を定義します。
- * すべてのプロパティがreadonlyで不変性を保証しています。
+ * Defines dynamically updatable log level configuration.
+ * All properties are readonly to guarantee immutability.
  *
  * @public
  */
 export interface RemoteLogConfig {
-  /** グローバルログレベル */
+  /** Global log level */
   readonly global_level: LogLevel;
-  /** サービス別ログレベル設定 */
+  /** Service-specific log level settings */
   readonly service_levels: Readonly<Record<string, LogLevel>>;
-  /** レート制限設定 */
+  /** Rate limit settings */
   readonly rate_limits: Readonly<Record<string, number>>;
-  /** 最終更新日時（ISO文字列） */
+  /** Last update timestamp (ISO string) */
   readonly last_updated: string;
-  /** 設定バージョン番号 */
+  /** Configuration version number */
   readonly version: number;
-  /** リモート設定の有効化フラグ */
+  /** Remote configuration enabled flag */
   readonly enabled: boolean;
 }
 
 /**
- * 設定取得結果（純粋関数戻り値型）
+ * Configuration Fetch Result (Pure Function Return Type)
  *
- * リモート設定の取得操作の結果を表します。
+ * Represents the result of remote configuration fetch operation.
  *
  * @public
  */
 export interface ConfigFetchResult {
-  /** 取得操作が成功したかどうか */
+  /** Whether the fetch operation was successful */
   readonly success: boolean;
-  /** 取得された設定（成功時のみ） */
+  /** Fetched configuration (only on success) */
   readonly config?: RemoteLogConfig;
-  /** エラーメッセージ（失敗時） */
+  /** Error message (on failure) */
   readonly error?: string;
-  /** キャッシュからの取得かどうか */
+  /** Whether fetched from cache */
   readonly cached: boolean;
-  /** 設定の取得元 */
+  /** Source of the configuration */
   readonly source: 'remote' | 'cache' | 'default';
 }
 
 /**
- * 設定キャッシュエントリ
+ * Configuration Cache Entry
  *
- * メモリキャッシュに保存される設定データとメタデータ。
+ * Configuration data and metadata stored in memory cache.
  */
 interface CacheEntry {
-  /** キャッシュされた設定 */
+  /** Cached configuration */
   readonly config: RemoteLogConfig;
-  /** キャッシュ作成時刻（Unix時刻） */
+  /** Cache creation timestamp (Unix time) */
   readonly cached_at: number;
-  /** キャッシュ有効期限（Unix時刻） */
+  /** Cache expiration timestamp (Unix time) */
   readonly expires_at: number;
 }
 
 /**
- * 設定更新結果
+ * Configuration Update Result
  *
- * リモート設定の更新操作の結果を表します。
+ * Represents the result of remote configuration update operation.
  *
  * @public
  */
 export interface ConfigUpdateResult {
-  /** 更新操作が成功したかどうか */
+  /** Whether the update operation was successful */
   readonly success: boolean;
-  /** 更新後の設定（成功時のみ） */
+  /** Updated configuration (only on success) */
   readonly config?: RemoteLogConfig;
-  /** エラーメッセージ（失敗時） */
+  /** Error message (on failure) */
   readonly error?: string;
-  /** 更新前のバージョン番号 */
+  /** Version number before update */
   readonly previous_version?: number;
 }
 
 /**
- * 設定バリデーション結果
+ * Configuration Validation Result
  *
- * 設定データの妥当性検証結果を表します。
+ * Represents the result of configuration data validation.
  *
  * @public
  */
 export interface ValidationResult {
-  /** バリデーションが成功したかどうか */
+  /** Whether validation was successful */
   readonly valid: boolean;
-  /** バリデーションエラーの詳細リスト */
+  /** List of detailed validation errors */
   readonly errors: readonly string[];
 }
 
@@ -486,14 +486,14 @@ export function getEffectiveLogLevel(config: RemoteLogConfig, serviceName?: stri
  * Merge configurations with precedence (pure function)
  */
 /**
- * 2つの設定をマージして新しい設定を作成する関数
+ * Function to merge two configurations and create a new configuration
  *
- * 現在の設定をベースに、部分的な更新データをマージして新しい設定を作成します。
- * バージョンのインクリメント、タイムスタンプの更新、ネストされたオブジェクトの適切なマージを行います。
+ * Creates a new configuration by merging partial update data with the current configuration as base.
+ * Performs version increment, timestamp update, and proper merging of nested objects.
  *
- * @param base - 現在の設定（ベース）
- * @param override - 部分的な更新データ
- * @returns マージされた新しい設定オブジェクト
+ * @param base - Current configuration (base)
+ * @param override - Partial update data
+ * @returns Merged new configuration object
  *
  * @example
  * ```typescript
@@ -502,16 +502,16 @@ export function getEffectiveLogLevel(config: RemoteLogConfig, serviceName?: stri
  *   service_levels: { api: 'debug' },
  *   rate_limits: { error: 100 },
  *   version: 1,
- *   // ... その他のフィールド
+ *   // ... other fields
  * };
  *
  * const updates = {
  *   global_level: 'warn',
- *   service_levels: { auth: 'error' }, // apiは保持、authが追加
+ *   service_levels: { auth: 'error' }, // 'api' is preserved, 'auth' is added
  * };
  *
  * const merged = mergeConfigurations(currentConfig, updates);
- * // 結果: global_level='warn', version=2, service_levels={api:'debug', auth:'error'}
+ * // Result: global_level='warn', version=2, service_levels={api:'debug', auth:'error'}
  * ```
  *
  * @public

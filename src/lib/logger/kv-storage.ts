@@ -100,85 +100,85 @@ const EDGE_CONFIG_TYPE = 'edge-config' as const;
 const MEMORY_TYPE = 'memory' as const;
 
 /**
- * Key-Value Storage 統一インターフェース
+ * Unified Key-Value Storage interface
  *
- * Redis、Vercel Edge Config、メモリストレージを統一的に扱うためのインターフェースです。
- * 純粋関数アプローチに従い、副作用を明確に分離して設計されています。
+ * Interface to handle Redis, Vercel Edge Config, and Memory storage uniformly.
+ * Designed following a pure-function approach with side effects clearly separated.
  *
  * @public
  */
 export interface KVStorage {
   /**
-   * 指定されたキーの値を取得します
-   * @param key - 取得するキー
-   * @returns キーに対応する値、存在しない場合はnull
+   * Retrieve the value for the specified key
+   * @param key - Key to retrieve
+   * @returns Value for the key, or null if not found
    */
   get(key: string): Promise<string | null>;
 
   /**
-   * 指定されたキーに値を設定します
-   * @param key - 設定するキー
-   * @param value - 設定する値
-   * @param ttl - TTL（秒）、省略時はデフォルト値を使用
+   * Set the value for the specified key
+   * @param key - Key to set
+   * @param value - Value to store
+   * @param ttl - TTL in seconds; defaults to configured value when omitted
    */
   set(key: string, value: string, ttl?: number): Promise<void>;
 
   /**
-   * 指定されたキーを削除します
-   * @param key - 削除するキー
+   * Delete the specified key
+   * @param key - Key to delete
    */
   delete(key: string): Promise<void>;
 
   /**
-   * 指定されたキーが存在するかチェックします
-   * @param key - チェックするキー
-   * @returns キーが存在する場合true
+   * Check whether the specified key exists
+   * @param key - Key to check
+   * @returns true if the key exists
    */
   exists(key: string): Promise<boolean>;
 
-  /** ストレージタイプの識別子 */
+  /** Storage type identifier */
   readonly type: typeof REDIS_TYPE | typeof EDGE_CONFIG_TYPE | typeof MEMORY_TYPE;
 }
 
 /**
- * ストレージ設定インターフェース（不変）
+ * Storage configuration interface (immutable)
  *
- * KVストレージの設定パラメータを定義します。
- * すべてのプロパティがreadonlyで不変性を保証しています。
+ * Defines configuration parameters for KV storage.
+ * All properties are readonly to guarantee immutability.
  *
  * @public
  */
 export interface StorageConfig {
-  /** ストレージタイプ */
+  /** Storage type */
   readonly type: typeof REDIS_TYPE | typeof EDGE_CONFIG_TYPE | typeof MEMORY_TYPE;
-  /** 接続文字列（RedisまたはEdge Config用） */
+  /** Connection string (for Redis or Edge Config) */
   readonly connection_string?: string;
-  /** デフォルトTTL（秒） */
+  /** Default TTL in seconds */
   readonly ttl_default: number;
-  /** 最大リトライ回数 */
+  /** Maximum number of retries */
   readonly max_retries: number;
-  /** タイムアウト時間（ミリ秒） */
+  /** Timeout in milliseconds */
   readonly timeout_ms: number;
-  /** フォールバック機能の有効化フラグ */
+  /** Flag to enable fallback behavior */
   readonly fallback_enabled: boolean;
 }
 
 /**
- * ストレージ操作結果インターフェース
+ * Storage operation result interface
  *
- * ストレージ操作の成功・失敗情報とエラーハンドリングを提供します。
+ * Provides a consistent shape for success/failure outcomes and error handling.
  *
- * @typeParam T - 操作成功時のデータ型
+ * @typeParam T - Data type when the operation succeeds
  * @public
  */
 export interface StorageOperationResult<T = void> {
-  /** 操作が成功したかどうか */
+  /** Whether the operation succeeded */
   readonly success: boolean;
-  /** 操作成功時のデータ */
+  /** Data when the operation succeeds */
   readonly data?: T;
-  /** エラーメッセージ（操作失敗時） */
+  /** Error message when the operation fails */
   readonly error?: string;
-  /** リトライまでの待機時間（秒） */
+  /** Time to wait before retry (seconds) */
   readonly retry_after?: number;
 }
 
@@ -186,20 +186,20 @@ export interface StorageOperationResult<T = void> {
  * Create storage configuration (pure function)
  */
 /**
- * ストレージ設定を作成する純粋関数
+ * Pure function to create storage configuration
  *
- * 環境変数に基づいて適切なKVストレージ設定を自動選択し、設定オブジェクトを作成します。
- * Redis、Edge Config、メモリストレージの優先順で選択され、
- * 各ストレージタイプに応じた設定値が適用されます。
+ * Automatically selects the appropriate KV storage configuration based on environment variables
+ * and returns a configuration object. Selection priority: Redis, Edge Config, then Memory storage.
+ * Applies values specific to each storage type.
  *
- * @returns 不変のStorageConfig設定オブジェクト
+ * @returns Immutable StorageConfig object
  *
  * @example
  * ```typescript
- * // 環境変数に基づく自動設定
+ * // Auto-configure from environment variables
  * const config = createStorageConfig();
  * // {
- * //   type: 'redis', // または 'edge-config', 'memory'
+ * //   type: 'redis', // or 'edge-config', 'memory'
  * //   connection_string: 'redis://localhost:6379',
  * //   ttl_default: 3600,
  * //   max_retries: 5,
@@ -256,7 +256,7 @@ export function validateStorageConfig(config: StorageConfig): boolean {
     return false;
   }
 
-  // 🔧 追加: Redis URL フォーマット検証
+  // Additional: Validate Redis URL format
   if (config.type === 'redis' && config.connection_string) {
     try {
       const url = new URL(config.connection_string);
@@ -264,7 +264,7 @@ export function validateStorageConfig(config: StorageConfig): boolean {
         return false;
       }
     } catch {
-      return false; // 無効なURL形式
+      return false; // Invalid URL format
     }
   }
 
@@ -278,26 +278,25 @@ export function validateStorageConfig(config: StorageConfig): boolean {
 /**
  * Redis Storage Implementation
  *
- * ioredisライブラリを使用したRedisストレージの実装です。
- * 接続管理、エラーハンドリング、タイムアウト処理を含みます。
+ * Implementation using the ioredis library.
+ * Includes connection management, error handling, and timeout processing.
  *
- * ## クラス実装の理由
+ * ## Why a class implementation
  *
- * **Pure Functions First原則の例外として、以下の理由でクラス実装を採用:**
- * - **接続管理**: Redisクライアントの接続状態とコネクションプールの管理
- * - **リソース管理**: 接続リソースの適切なライフサイクル管理と解放
- * - **状態追跡**: 接続状態、エラー状態、リトライ状況の継続的な監視
- * - **設定保持**: 接続設定、タイムアウト、リトライ設定の不変管理
- * - **インターフェース実装**: KVStorageインターフェースの統一的な実装
+ * As an exception to the Pure Functions First principle, a class is used for:
+ * - Connection management: handling client connection state and pool
+ * - Resource management: lifecycle and disposal of connection resources
+ * - State tracking: monitoring connection, error, and retry states
+ * - Configuration retention: immutable management of connection/timeouts/retries
+ * - Interface implementation: unified implementation of the KVStorage interface
  */
 export class RedisStorage implements KVStorage {
   public readonly type = 'redis' as const;
-  /** ストレージ設定（不変） */
+  /** Storage configuration (immutable) */
   private config: StorageConfig;
-  /** Redisクライアントインスタンス */
   /** Redis client instance with proper typing */
   private client: RedisClient | null = null;
-  /** Redis接続状態 */
+  /** Redis connection state */
   private isConnected: boolean = false;
 
   constructor(config: StorageConfig) {
@@ -364,7 +363,7 @@ export class RedisStorage implements KVStorage {
     }
   }
 
-  /** Redisクライアントを取得・初期化する内部メソッド */
+  /** Internal method to get/initialize the Redis client */
   private async getClient(): Promise<RedisClient> {
     if (!this.client || !this.isConnected) {
       try {
@@ -372,9 +371,9 @@ export class RedisStorage implements KVStorage {
         const Redis = await import('ioredis');
         this.client = new Redis.default(this.config.connection_string!, {
           maxRetriesPerRequest: this.config.max_retries,
-          connectTimeout: 2000, // 🔧 2秒に短縮
-          commandTimeout: 2000, // 🔧 2秒に短縮
-          enableOfflineQueue: false, // 🔧 追加
+          connectTimeout: 2000, // shortened to 2s
+          commandTimeout: 2000, // shortened to 2s
+          enableOfflineQueue: false, // disable offline queue
         }) as RedisClient;
 
         // Connection event listeners
@@ -409,7 +408,7 @@ export class RedisStorage implements KVStorage {
     return this.client;
   }
 
-  /** Promise操作にタイムアウトを適用する内部メソッド */
+  /** Internal method to apply a timeout to a Promise */
   private async withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Operation timeout')), timeoutMs);
@@ -422,23 +421,23 @@ export class RedisStorage implements KVStorage {
 /**
  * Memory Storage Implementation (fallback)
  *
- * インメモリストレージの実装です。フォールバック用として使用され、
- * 定期的なクリーンアップ機能とTTL管理を提供します。
+ * In-memory storage implementation used as a fallback.
+ * Provides periodic cleanup and TTL management.
  *
- * ## クラス実装の理由
+ * ## Why a class implementation
  *
- * **Pure Functions First原則の例外として、以下の理由でクラス実装を採用:**
- * - **状態管理**: メモリ上のキー・バリューペアとTTLの継続的な管理
- * - **タイマー管理**: TTL期限切れアイテムの自動削除タイマーの制御
- * - **メモリ管理**: ガベージコレクション対象データの効率的な管理
- * - **インターフェース実装**: KVStorageインターフェースの統一的な実装
- * - **フォールバック機能**: 他のストレージ障害時の代替機能として動作
+ * As an exception to the Pure Functions First principle, a class is used for:
+ * - State management: continuous management of in-memory key-value pairs and TTLs
+ * - Timer management: controlling timers for automatic deletion of expired items
+ * - Memory management: efficient handling of GC-targeted data
+ * - Interface implementation: unified implementation of the KVStorage interface
+ * - Fallback behavior: acts as a substitute when other storages are unavailable
  */
 export class MemoryStorage implements KVStorage {
   public readonly type = 'memory' as const;
-  /** データストア（キーと有効期限付きの値） */
+  /** Data store (keys with TTL-bound values) */
   private store: Map<string, { value: string; expires: number }>;
-  /** ストレージ設定（不変） */
+  /** Storage configuration (immutable) */
   private config: StorageConfig;
 
   constructor(config: StorageConfig) {
@@ -480,7 +479,7 @@ export class MemoryStorage implements KVStorage {
     return value !== null;
   }
 
-  /** 期限切れエントリの定期クリーンアップを開始する内部メソッド */
+  /** Internal method to start periodic cleanup of expired entries */
   private startCleanupInterval(): void {
     // Run cleanup every 5 minutes
     setInterval(
@@ -500,25 +499,25 @@ export class MemoryStorage implements KVStorage {
 /**
  * Edge Config Storage Implementation (Vercel)
  *
- * Vercel Edge Configを使用したストレージ実装です。
- * エッジ環境での高速なデータアクセスを提供します。
+ * Storage implementation using Vercel Edge Config.
+ * Provides fast data access in edge environments.
  *
- * ## クラス実装の理由
+ * ## Why a class implementation
  *
- * **Pure Functions First原則の例外として、以下の理由でクラス実装を採用:**
- * - **接続管理**: Vercel Edge Configクライアントの接続状態管理
- * - **設定保持**: エッジ環境固有の設定とアクセストークンの管理
- * - **エラー処理**: ネットワーク障害やAPI制限のハンドリング
- * - **インターフェース実装**: KVStorageインターフェースの統一的な実装
- * - **環境依存**: Vercel特有の機能とエッジランタイムとの統合
+ * As an exception to the Pure Functions First principle, a class is used for:
+ * - Connection management: managing Vercel Edge Config client connections
+ * - Configuration retention: handling edge-specific settings and access tokens
+ * - Error handling: addressing network issues and API limits
+ * - Interface implementation: unified implementation of the KVStorage interface
+ * - Environment dependency: integration with Vercel-specific features and Edge Runtime
  */
 export class EdgeConfigStorage implements KVStorage {
   public readonly type = EDGE_CONFIG_TYPE;
-  /** ストレージ設定（不変） */
+  /** Storage configuration (immutable) */
   private config: StorageConfig;
-  /** Edge Config API ベースURL */
+  /** Edge Config API base URL */
   private baseUrl: string;
-  /** 認証トークン */
+  /** Authentication token */
   private token: string;
 
   constructor(config: StorageConfig) {
@@ -622,21 +621,21 @@ export class EdgeConfigStorage implements KVStorage {
  * Storage factory with fallback logic (pure function + controlled side effects)
  */
 /**
- * KVストレージインスタンスを作成する関数
+ * Function to create a KV storage instance
  *
- * 指定された設定または自動検出された環境に基づいて、適切なKVストレージ実装を作成します。
- * Redis、Edge Config、メモリストレージのいずれかが選択され、
- * 統一されたKVStorageインターフェースを提供します。
+ * Creates the appropriate KV storage implementation based on the provided configuration
+ * or auto-detected environment. Selects one of Redis, Edge Config, or Memory storage
+ * and provides a unified KVStorage interface.
  *
- * @param config - ストレージ設定（オプション、未指定時は自動設定）
- * @returns KVStorageインターフェースを実装したストレージインスタンス
+ * @param config - Storage configuration (optional; auto-configured if omitted)
+ * @returns Storage instance implementing the KVStorage interface
  *
  * @example
  * ```typescript
- * // 自動設定でストレージ作成
+ * // Create storage with auto-configuration
  * const storage = createKVStorage();
  *
- * // カスタム設定でストレージ作成
+ * // Create storage with custom configuration
  * const customStorage = createKVStorage({
  *   type: 'memory',
  *   ttl_default: 1800,
@@ -645,7 +644,7 @@ export class EdgeConfigStorage implements KVStorage {
  *   fallback_enabled: true
  * });
  *
- * // ストレージの使用
+ * // Using the storage
  * await storage.set('key', 'value', 3600);
  * const value = await storage.get('key');
  * ```
@@ -700,14 +699,14 @@ export function createKVStorage(config?: StorageConfig): KVStorage {
 }
 
 /**
- * ストレージの接続状態とヘルスチェックを実行する関数
+ * Function to perform connection and health checks on storage
  *
- * 指定されたKVストレージインスタンスに対してヘルスチェックを実行し、
- * 接続状態、読み書き操作の可用性を確認します。一時的なテストキーを使用して
- * 実際の操作をテストし、エラーハンドリングも含めて検証します。
+ * Runs a health check against the provided KV storage instance, verifying connectivity
+ * and read/write availability. Uses a temporary test key to exercise real operations and
+ * includes error handling in the validation.
  *
- * @param storage - ヘルスチェック対象のKVStorageインスタンス
- * @returns ヘルスチェック結果を含むStorageOperationResult
+ * @param storage - KVStorage instance to check
+ * @returns StorageOperationResult containing the health check result
  *
  * @example
  * ```typescript
@@ -715,9 +714,9 @@ export function createKVStorage(config?: StorageConfig): KVStorage {
  * const healthResult = await checkStorageHealth(storage);
  *
  * if (healthResult.success) {
- *   console.log('ストレージは正常に動作しています');
+ *   console.log('Storage is operating normally');
  * } else {
- *   console.error('ストレージエラー:', healthResult.error);
+ *   console.error('Storage error:', healthResult.error);
  * }
  * ```
  *
@@ -782,22 +781,22 @@ let defaultStorageInstance: KVStorage | null = null;
  * Get or create default storage instance
  */
 /**
- * デフォルトKVストレージインスタンスを取得する関数（シングルトン）
+ * Get the default KV storage instance (singleton)
  *
- * アプリケーション全体で共有されるデフォルトのKVストレージインスタンスを返します。
- * 初回呼び出し時にインスタンスが作成され、以降は同じインスタンスが返されます。
- * テストや特別な用途でのリセットが可能です。
+ * Returns the default KV storage instance shared across the application.
+ * The instance is created on the first call and reused thereafter. Can be reset
+ * for tests or special use cases.
  *
- * @returns 共有KVStorageインスタンス
+ * @returns Shared KVStorage instance
  *
  * @example
  * ```typescript
- * // アプリケーション全体で同じインスタンスを使用
+ * // Use the same instance across the app
  * const storage1 = getDefaultStorage();
  * const storage2 = getDefaultStorage();
  * console.log(storage1 === storage2); // true
  *
- * // ストレージの使用
+ * // Using the storage
  * await storage1.set('user:123', JSON.stringify(userData));
  * const userData = JSON.parse(await storage2.get('user:123') || '{}');
  * ```
@@ -815,21 +814,21 @@ export function getDefaultStorage(): KVStorage {
  * Reset default storage instance (for testing)
  */
 /**
- * デフォルトストレージインスタンスをリセットする関数
+ * Reset the default storage instance
  *
- * 現在のデフォルトストレージインスタンスを破棄し、次回getDefaultStorage()呼び出し時に
- * 新しいインスタンスが作成されるようにします。主にテスト環境や設定変更時に使用します。
+ * Discards the current default storage instance so that a new one is created
+ * on the next getDefaultStorage() call. Mainly used in tests or after config changes.
  *
  * @example
  * ```typescript
- * // テストの前処理でストレージをリセット
+ * // Reset storage in test setup
  * beforeEach(() => {
  *   resetDefaultStorage();
  * });
  *
- * // 設定変更後のリセット
+ * // Reset after changing configuration
  * process.env.REDIS_URL = 'redis://new-host:6379';
- * resetDefaultStorage(); // 新しい設定でインスタンスを再作成
+ * resetDefaultStorage(); // Recreate instance with new settings
  * const newStorage = getDefaultStorage();
  * ```
  *

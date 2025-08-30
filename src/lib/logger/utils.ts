@@ -1,6 +1,6 @@
 /**
- * 構造化ログユーティリティ関数
- * セキュリティクリティカルな機能を含む
+ * Structured log utility functions
+ * Contains security-critical functionality
  */
 
 import { randomUUID } from 'node:crypto';
@@ -8,25 +8,25 @@ import { randomUUID } from 'node:crypto';
 import { LogLevel, LOG_LEVELS, BaseProperties, SEVERITY_NUMBERS } from './types';
 
 /**
- * デフォルトログレベル
+ * Default log level
  */
 export const DEFAULT_LOG_LEVEL: LogLevel = 'info';
 
 /**
- * 環境変数からログレベルを取得する関数
+ * Function to get log level from environment variables
  *
- * 環境変数 LOG_LEVEL を読み取り、有効なログレベルを返します。
- * 無効な値または未設定の場合はデフォルトログレベルを返します。
+ * Reads the LOG_LEVEL environment variable and returns a valid log level.
+ * Returns default log level if invalid value or not set.
  *
- * @returns 有効なログレベル値
+ * @returns Valid log level value
  *
  * @example
  * ```typescript
- * // LOG_LEVEL=debug の場合
+ * // When LOG_LEVEL=debug
  * const level = getLogLevelFromEnv(); // 'debug'
  *
- * // LOG_LEVEL が未設定または無効の場合
- * const level = getLogLevelFromEnv(); // 'info' (デフォルト)
+ * // When LOG_LEVEL is not set or invalid
+ * const level = getLogLevelFromEnv(); // 'info' (default)
  * ```
  *
  * @public
@@ -42,49 +42,49 @@ export function getLogLevelFromEnv(): LogLevel {
 }
 
 /**
- * クライアントサイドで適切なログレベルを取得する関数
+ * Function to get appropriate log level for client-side
  *
- * サーバーサイドとクライアントサイドの環境に応じて適切なログレベルを決定します。
- * クライアントサイドでは NEXT_PUBLIC_LOG_LEVEL 環境変数を使用し、
- * サーバーサイドでは通常の LOG_LEVEL 環境変数を使用します。
+ * Determines appropriate log level based on server-side and client-side environments.
+ * Uses NEXT_PUBLIC_LOG_LEVEL environment variable on client-side,
+ * and normal LOG_LEVEL environment variable on server-side.
  *
- * @returns クライアント環境に適したログレベル
+ * @returns Log level suitable for client environment
  *
  * @example
  * ```typescript
- * // ブラウザ環境での使用
- * const clientLevel = getClientLogLevel(); // NEXT_PUBLIC_LOG_LEVEL から取得
+ * // Usage in browser environment
+ * const clientLevel = getClientLogLevel(); // Gets from NEXT_PUBLIC_LOG_LEVEL
  *
- * // サーバーサイドでの使用
- * const serverLevel = getClientLogLevel(); // LOG_LEVEL から取得
+ * // Usage on server-side
+ * const serverLevel = getClientLogLevel(); // Gets from LOG_LEVEL
  * ```
  *
  * @public
  */
 export function getClientLogLevel(): LogLevel {
   if (typeof window === 'undefined') {
-    // サーバーサイドでは環境変数から取得
+    // Get from environment variables on server-side
     return getLogLevelFromEnv();
   }
 
-  // ブラウザ環境では NEXT_PUBLIC_ プレフィックス付きの環境変数を使用
+  // Use environment variable with NEXT_PUBLIC_ prefix in browser environment
   const envLevel = process.env.NEXT_PUBLIC_LOG_LEVEL?.toLowerCase();
 
   if (envLevel && LOG_LEVELS.includes(envLevel as LogLevel)) {
     return envLevel as LogLevel;
   }
 
-  // 開発環境では詳細ログ、本番環境ではデフォルト
+  // Detailed logs in development environment, default in production environment
   return process.env.NODE_ENV === 'development' ? 'debug' : DEFAULT_LOG_LEVEL;
 }
 
 /**
- * 構造化ログのベースプロパティを生成する関数
+ * Function to generate base properties for structured logging
  *
- * すべてのログエントリに含まれる共通のベースプロパティを生成します。
- * アプリケーション名、環境、プロセスID、バージョン情報などが含まれます。
+ * Generates common base properties included in all log entries.
+ * Includes application name, environment, process ID, version information, etc.
  *
- * @returns 構造化ログのベースプロパティオブジェクト
+ * @returns Structured log base properties object
  *
  * @example
  * ```typescript
@@ -111,21 +111,21 @@ export function createBaseProperties(): BaseProperties {
 }
 
 /**
- * ログから機密情報をマスクするためのパス定義
+ * Path definitions for masking sensitive information from logs
  *
- * セキュリティクリティカルな情報を含む可能性があるオブジェクトパスのリストです。
- * これらのパスにマッチするデータは自動的に '[REDACTED]' に置換されます。
- * 認証情報、個人情報（PII）、機密ビジネス情報が含まれます。
+ * List of object paths that may contain security-critical information.
+ * Data matching these paths is automatically replaced with '[REDACTED]'.
+ * Includes authentication information, personal information (PII), and confidential business information.
  *
  * @example
  * ```typescript
- * // 以下のデータがログに含まれる場合
+ * // When the following data is included in logs
  * const userData = {
  *   user: { email: 'user@example.com', name: 'John' },
  *   password: 'secret123'
  * };
  *
- * // REDACT_PATHS により以下のように変換される
+ * // Transformed as follows by REDACT_PATHS
  * // {
  * //   user: { email: '[REDACTED]', name: 'John' },
  * //   password: '[REDACTED]'
@@ -135,7 +135,7 @@ export function createBaseProperties(): BaseProperties {
  * @public
  */
 export const REDACT_PATHS = [
-  // 認証情報
+  // Authentication information
   'password',
   'token',
   'authorization',
@@ -149,13 +149,13 @@ export const REDACT_PATHS = [
   '*.secret',
   '*.key',
 
-  // HTTPヘッダー
+  // HTTP headers
   'req.headers.authorization',
   'req.headers.cookie',
   'req.headers["x-api-key"]',
   'res.headers["set-cookie"]',
 
-  // 個人情報（PII）
+  // Personal information (PII)
   'user.email',
   'user.phone',
   'user.ssn',
@@ -169,7 +169,7 @@ export const REDACT_PATHS = [
   'ssn',
   'credit_card',
 
-  // 機密ビジネス情報
+  // Confidential business information
   'payment.card_number',
   'payment.cvv',
   'bank.account_number',
@@ -179,13 +179,13 @@ export const REDACT_PATHS = [
 ];
 
 /**
- * ログレベルを対応する数値に変換する関数
+ * Function to convert log level to corresponding numeric value
  *
- * OpenTelemetry の SeverityNumber 仕様に基づいてログレベルを数値に変換します。
- * この数値はログレベルの重要度比較やフィルタリングに使用されます。
+ * Converts log level to numeric value based on OpenTelemetry SeverityNumber specification.
+ * This numeric value is used for log level importance comparison and filtering.
  *
- * @param level - 変換するログレベル
- * @returns ログレベルに対応する数値（SeverityNumber）
+ * @param level - Log level to convert
+ * @returns Numeric value corresponding to log level (SeverityNumber)
  *
  * @example
  * ```typescript
@@ -202,21 +202,21 @@ export function getLogLevelValue(level: LogLevel): number {
 }
 
 /**
- * 指定されたログレベルが現在の設定で有効かどうかを判定する関数
+ * Function to determine if specified log level is enabled with current settings
  *
- * 現在のログレベル設定に基づいて、対象のログレベルが出力対象かどうかを判定します。
- * より高い重要度のログレベルのみが有効として判定されます。
+ * Determines whether target log level is subject to output based on current log level settings.
+ * Only log levels with higher importance are determined as enabled.
  *
- * @param currentLevel - 現在設定されているログレベル
- * @param targetLevel - 判定対象のログレベル
- * @returns 対象ログレベルが有効な場合 true、無効な場合 false
+ * @param currentLevel - Currently configured log level
+ * @param targetLevel - Log level to be determined
+ * @returns true if target log level is enabled, false if disabled
  *
  * @example
  * ```typescript
- * // 現在のレベルが 'info' の場合
- * isLogLevelEnabled('info', 'error'); // true (error は info より重要)
- * isLogLevelEnabled('info', 'debug'); // false (debug は info より軽微)
- * isLogLevelEnabled('info', 'info');  // true (同レベル)
+ * // When current level is 'info'
+ * isLogLevelEnabled('info', 'error'); // true (error is more important than info)
+ * isLogLevelEnabled('info', 'debug'); // false (debug is less important than info)
+ * isLogLevelEnabled('info', 'info');  // true (same level)
  * ```
  *
  * @public
@@ -226,43 +226,43 @@ export function isLogLevelEnabled(currentLevel: LogLevel, targetLevel: LogLevel)
 }
 
 /**
- * 一意なリクエストIDを生成する関数（UUID v7実装）
+ * Function to generate unique request ID (UUID v7 implementation)
  *
- * ログの相関分析やリクエストトレーシングに使用する一意なIDを生成します。
- * UUID v7を使用することで、高頻度実行での衝突を完全に防ぎます。
+ * Generates unique ID for log correlation analysis and request tracing.
+ * Using UUID v7 completely prevents collisions in high-frequency execution.
  *
- * @returns 一意なリクエストID文字列
+ * @returns Unique request ID string
  *
  * @example
  * ```typescript
  * const requestId = generateRequestId();
  * // 'req_01234567-89ab-7cde-f012-3456789abcde'
  *
- * // ログでの使用例
+ * // Usage example in logs
  * logger.info('Request started', { requestId });
  * ```
  *
  * @public
- * @remarks UUID v7を使用することで、高頻度実行での衝突を防ぎます
+ * @remarks Using UUID v7 prevents collisions in high-frequency execution
  */
 export function generateRequestId(): string {
   return `req_${randomUUID()}`;
 }
 
 /**
- * Edge Runtime環境検出（純粋関数）
+ * Edge Runtime environment detection (pure function)
  *
- * Vercel Edge Runtime環境かどうかを検出します。
- * グローバル変数 EdgeRuntime の存在をチェックして判定します。
+ * Detects whether it's Vercel Edge Runtime environment.
+ * Determined by checking the existence of global variable EdgeRuntime.
  *
- * @returns Edge Runtime環境の場合true
+ * @returns true if Edge Runtime environment
  *
  * @example
  * ```typescript
  * if (isEdgeRuntime()) {
- *   // Edge Runtime対応のコード
+ *   // Edge Runtime compatible code
  * } else {
- *   // Node.js環境のコード
+ *   // Node.js environment code
  * }
  * ```
  *
@@ -270,7 +270,7 @@ export function generateRequestId(): string {
  */
 export function isEdgeRuntime(): boolean {
   try {
-    // EdgeRuntimeグローバル変数の存在チェック
+    // Check existence of EdgeRuntime global variable
     return typeof (globalThis as { EdgeRuntime?: unknown }).EdgeRuntime === 'string';
   } catch {
     return false;
@@ -278,54 +278,53 @@ export function isEdgeRuntime(): boolean {
 }
 
 /**
- * 実行環境のタイプを検出（純粋関数）
+ * Detect runtime environment type (pure function)
  *
- * 現在の実行環境のタイプを識別します。
- * Edge Runtime、Node.js、ブラウザ環境を区別します。
+ * Identifies the type of current runtime environment.
+ * Distinguishes between Edge Runtime, Node.js, and browser environments.
  *
- * @returns 実行環境のタイプ
+ * @returns Runtime environment type
  *
  * @public
  */
 export function detectRuntimeEnvironment(): 'edge' | 'nodejs' | 'browser' {
-  // Edge Runtime環境
+  // Edge Runtime environment
   if (isEdgeRuntime()) {
     return 'edge';
   }
 
-  // Node.js環境（サーバーサイド）
+  // Node.js environment (server-side)
   if (typeof window === 'undefined' && typeof process !== 'undefined') {
     return 'nodejs';
   }
 
-  // ブラウザ環境
+  // Browser environment
   return 'browser';
 }
 
 /**
- * Edge Runtime対応コンテキストストレージ
+ * Edge Runtime compatible context storage
  *
- * AsyncLocalStorageが使用できないEdge Runtime環境で
- * リクエストスコープのコンテキスト管理を提供します。
- * WeakMapとPromise chaining を使用して実装します。
+ * Provides request-scoped context management in Edge Runtime environments
+ * where AsyncLocalStorage is not available.
+ * Implemented using WeakMap and Promise chaining.
  *
- * ## クラス実装の理由
+ * ## Reasons for Class Implementation
  *
- * **Pure Functions First原則の例外として、以下の理由でクラス実装を採用:**
- * - **状態管理**: WeakMapによるオブジェクト関連付けと現在コンテキストの管理
- * - **環境制約**: Edge Runtime環境でのAsyncLocalStorage代替実装
- * - **ライフサイクル**: リクエストスコープでのコンテキスト継承と自動クリーンアップ
- * - **メモリ効率**: WeakMapによるガベージコレクション対応のメモリ管理
- * - **型安全性**: ジェネリック型パラメータでの型安全なコンテキスト管理
+ * **As an exception to Pure Functions First principle, adopting class implementation for the following reasons:**
+ * - **State Management**: Object association and current context management through WeakMap
+ * - **Environment Constraints**: Alternative AsyncLocalStorage implementation for Edge Runtime environments
+ * - **Lifecycle**: Context inheritance and automatic cleanup in request scope
+ * - **Memory Efficiency**: Garbage collection-aware memory management through WeakMap
+ * - **Type Safety**: Type-safe context management with generic type parameters
  *
  * @internal
  */
 class EdgeContextStorage<T> {
-  private contextMap = new WeakMap<object, T>();
   private currentContext: T | null = null;
 
   /**
-   * コンテキストを設定してコールバックを実行
+   * Execute callback with specified context
    */
   run(context: T, callback: () => void): void;
   run<R>(context: T, callback: () => R): R;
@@ -341,14 +340,14 @@ class EdgeContextStorage<T> {
   }
 
   /**
-   * 現在のコンテキストを取得
+   * Get current context
    */
   getStore(): T | undefined {
     return this.currentContext ?? undefined;
   }
 
   /**
-   * オブジェクトにコンテキストを関連付け
+   * Bind context to object
    */
   bind<Args extends unknown[]>(fn: (...args: Args) => void, context?: T): (...args: Args) => void {
     const boundContext = context ?? this.currentContext;
@@ -363,44 +362,45 @@ class EdgeContextStorage<T> {
 }
 
 /**
- * 環境対応AsyncLocalStorage互換インターフェース
+ * Environment-compatible AsyncLocalStorage interface
  *
- * Edge Runtime環境では EdgeContextStorage を、
- * Node.js環境では AsyncLocalStorage を使用します。
+ * Uses EdgeContextStorage in Edge Runtime environments,
+ * and AsyncLocalStorage in Node.js environments.
  *
  * @internal
  */
 export interface CompatibleStorage<T> {
   /**
-   * 指定されたコンテキストでコールバック関数を実行します
-   * @param store - 設定するコンテキスト値
-   * @param callback - 実行するコールバック関数
-   * @returns コールバック関数の戻り値
+   * Execute callback function with specified context
+   * @param store - Context value to set
+   * @param callback - Callback function to execute
+   * @returns Return value of callback function
    */
   run<R>(store: T, callback: () => R): R;
 
   /**
-   * 現在のコンテキスト値を取得します
-   * @returns 現在のコンテキスト値、設定されていない場合はundefined
+   * Get current context value
+   * @returns Current context value, or undefined if not set
    */
   getStore(): T | undefined;
 
   /**
-   * 関数を指定されたコンテキストでバインドします
-   * @param fn - バインドする関数
-   * @param context - バインドするコンテキスト値（省略時は現在のコンテキスト）
-   * @returns バインドされた関数
+   * Bind function with specified context
+   * @param fn - Function to bind
+   * @param context - Context value to bind (defaults to current context if omitted)
+   * @returns Bound function
    */
   bind<Args extends unknown[]>(fn: (...args: Args) => void, context?: T): (...args: Args) => void;
 }
 
 /**
- * 環境対応ストレージファクトリー（純粋関数）
+ * Environment-compatible storage factory (pure function)
  *
- * 実行環境に応じて適切なコンテキストストレージを作成します。
- * Edge Runtime環境では独自実装、Node.js環境ではAsyncLocalStorageを使用します。
+ * Creates appropriate context storage based on runtime environment.
+ * Uses custom implementation in Edge Runtime environments,
+ * and AsyncLocalStorage in Node.js environments.
  *
- * @returns 環境対応ストレージインスタンス
+ * @returns Environment-compatible storage instance
  *
  * @public
  */
@@ -408,7 +408,7 @@ export function createCompatibleStorage<T>(): CompatibleStorage<T> {
   const runtime = detectRuntimeEnvironment();
 
   if (runtime === 'edge') {
-    // Edge Runtime環境: 独自実装を使用
+    // Edge Runtime environment: Use custom implementation
     const edgeStorage = new EdgeContextStorage<T>();
     return {
       run: edgeStorage.run.bind(edgeStorage),
@@ -416,7 +416,7 @@ export function createCompatibleStorage<T>(): CompatibleStorage<T> {
       bind: edgeStorage.bind.bind(edgeStorage),
     };
   } else {
-    // Node.js環境: AsyncLocalStorageを使用
+    // Node.js environment: Use AsyncLocalStorage
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { AsyncLocalStorage } = require('node:async_hooks');
@@ -437,7 +437,7 @@ export function createCompatibleStorage<T>(): CompatibleStorage<T> {
         },
       };
     } catch {
-      // フォールバック: Edge実装を使用
+      // Fallback: Use Edge implementation
       const fallbackStorage = new EdgeContextStorage<T>();
       return {
         run: fallbackStorage.run.bind(fallbackStorage),
@@ -449,18 +449,18 @@ export function createCompatibleStorage<T>(): CompatibleStorage<T> {
 }
 
 /**
- * エラーオブジェクトを構造化ログに適した形式にシリアライズする関数
+ * Function to serialize error objects into structured log format
  *
- * Error オブジェクトや任意の値を JSON シリアライズ可能な形式に変換します。
- * Error オブジェクトの場合は name、message、stack、cause を抽出し、
- * その他の値の場合は安全な文字列表現に変換します。
+ * Converts Error objects or arbitrary values into JSON-serializable format.
+ * For Error objects, extracts name, message, stack, and cause properties.
+ * For other values, converts to safe string representation.
  *
- * @param error - シリアライズするエラーオブジェクトまたは任意の値
- * @returns JSON シリアライズ可能なエラー情報オブジェクト
+ * @param error - Error object or arbitrary value to serialize
+ * @returns JSON-serializable error information object
  *
  * @example
  * ```typescript
- * // Error オブジェクトの場合
+ * // For Error objects
  * const err = new Error('Something went wrong');
  * const serialized = serializeError(err);
  * // {
@@ -470,7 +470,7 @@ export function createCompatibleStorage<T>(): CompatibleStorage<T> {
  * //   cause: undefined
  * // }
  *
- * // 文字列の場合
+ * // For string values
  * const serialized = serializeError('Custom error');
  * // {
  * //   message: 'Custom error',

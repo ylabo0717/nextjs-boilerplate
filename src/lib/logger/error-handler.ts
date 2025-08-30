@@ -1,6 +1,6 @@
 /**
- * 統合エラーハンドリングとログ機能
- * Next.js App Router、API Routes、Middleware対応
+ * Unified error handling and logging functionality
+ * Compatible with Next.js App Router, API Routes, and Middleware
  */
 
 import { sanitizeLogEntry } from './sanitizer';
@@ -9,7 +9,7 @@ import { serializeError } from './utils';
 import type { Logger, LogArgument } from './types';
 
 /**
- * エラー分類定義
+ * Error category definitions
  */
 export type ErrorCategory =
   | 'validation_error'
@@ -24,102 +24,102 @@ export type ErrorCategory =
   | 'unknown_error';
 
 /**
- * エラーコンテキスト情報
+ * Error context information
  *
- * エラー発生時の詳細なコンテキスト情報を保持。
- * デバッグ、分析、監視に必要な関連データを構造化。
+ * Holds detailed context information when errors occur.
+ * Structures related data necessary for debugging, analysis, and monitoring.
  *
- * GDPR準拠のため、個人識別情報は事前にハッシュ化または
- * 仮名化して格納する必要がある。
+ * For GDPR compliance, personally identifiable information must be
+ * hashed or pseudonymized prior to storage.
  *
  * @public
  */
 export interface ErrorContext {
   /**
-   * リクエスト固有ID
+   * Request-specific ID
    *
-   * エラーが発生したHTTPリクエストの一意識別子。
-   * 分散トレーシングでのエラー追跡に使用。
+   * Unique identifier of the HTTP request where the error occurred.
+   * Used for error tracking in distributed tracing.
    *
    * @public
    */
   requestId?: string;
 
   /**
-   * ユーザーID
+   * User ID
    *
-   * エラーが発生したユーザーの識別子。
-   * GDPR準拠のためハッシュ化または仮名化済み値を使用。
+   * Identifier of the user where the error occurred.
+   * Use hashed or pseudonymized values for GDPR compliance.
    *
    * @public
    */
   userId?: string;
 
   /**
-   * セッションID
+   * Session ID
    *
-   * エラーが発生したセッションの識別子。
-   * セッション固有のエラーパターン分析に使用。
+   * Identifier of the session where the error occurred.
+   * Used for session-specific error pattern analysis.
    *
    * @public
    */
   sessionId?: string;
 
   /**
-   * リクエストパス
+   * Request path
    *
-   * エラーが発生したURLパス。
-   * エンドポイント別エラー率分析に使用。
+   * URL path where the error occurred.
+   * Used for endpoint-specific error rate analysis.
    *
    * @public
    */
   path?: string;
 
   /**
-   * HTTPメソッド
+   * HTTP method
    *
-   * エラーが発生したHTTPメソッド（GET/POST等）。
-   * メソッド別エラー分析に使用。
+   * HTTP method where the error occurred (GET/POST, etc.).
+   * Used for method-specific error analysis.
    *
    * @public
    */
   method?: string;
 
   /**
-   * ユーザーエージェント
+   * User agent
    *
-   * エラーが発生したクライアントのUser-Agent文字列。
-   * ブラウザ固有エラーの分析に使用。
+   * User-Agent string of the client where the error occurred.
+   * Used for browser-specific error analysis.
    *
    * @public
    */
   userAgent?: string;
 
   /**
-   * ハッシュ化IPアドレス
+   * Hashed IP address
    *
-   * GDPR準拠でハッシュ化されたクライアントIPアドレス。
-   * 地理的エラーパターンの分析に使用。
+   * GDPR-compliant hashed client IP address.
+   * Used for geographic error pattern analysis.
    *
    * @public
    */
   hashedIP?: string;
 
   /**
-   * エラー発生タイムスタンプ
+   * Error occurrence timestamp
    *
-   * ISO 8601形式のUTC時刻文字列。
-   * 時系列エラー分析に使用。
+   * UTC time string in ISO 8601 format.
+   * Used for time series error analysis.
    *
    * @public
    */
   timestamp?: string;
 
   /**
-   * 追加データ
+   * Additional data
    *
-   * エラー固有の詳細情報やカスタムコンテキスト。
-   * 柔軟なエラー情報拡張に使用。
+   * Error-specific detailed information and custom context.
+   * Used for flexible error information extension.
    *
    * @public
    */
@@ -127,99 +127,99 @@ export interface ErrorContext {
 }
 
 /**
- * 構造化エラー情報
+ * Structured error information
  *
- * エラーの分類、重要度、回復可能性などの詳細情報を統一的に管理。
- * 監視システム、アラート、ユーザー通知の自動化に使用。
+ * Centrally manages detailed information about error classification, severity, and recoverability.
+ * Used for automation of monitoring systems, alerts, and user notifications.
  *
  * @public
  */
 export interface StructuredError {
   /**
-   * エラーカテゴリ
+   * Error category
    *
-   * エラーの種類を示す事前定義カテゴリ。
-   * 監視ダッシュボードでの自動グループ化に使用。
+   * Predefined category indicating the type of error.
+   * Used for automatic grouping in monitoring dashboards.
    *
    * @public
    */
   category: ErrorCategory;
 
   /**
-   * エラーメッセージ
+   * Error message
    *
-   * 人間が読める形式のエラー説明。
-   * ログとデバッグの主要フィールド。
+   * Human-readable error description.
+   * Primary field for logging and debugging.
    *
    * @public
    */
   message: string;
 
   /**
-   * 元のエラーオブジェクト
+   * Original error object
    *
-   * エラー発生元のErrorインスタンスまたは値。
-   * 詳細なスタックトレース分析に使用。
+   * Error instance or value from the error source.
+   * Used for detailed stack trace analysis.
    *
    * @public
    */
   originalError: Error | unknown;
 
   /**
-   * エラーコンテキスト
+   * Error context
    *
-   * エラー発生時の詳細なコンテキスト情報。
-   * デバッグと分析に必要な関連データ。
+   * Detailed context information when the error occurred.
+   * Related data necessary for debugging and analysis.
    *
    * @public
    */
   context: ErrorContext;
 
   /**
-   * エラー重要度
+   * Error severity
    *
-   * エラーの深刻度レベル。
-   * アラート優先度とエスカレーション自動化に使用。
+   * Error severity level.
+   * Used for alert prioritization and escalation automation.
    *
    * @public
    */
   severity: 'low' | 'medium' | 'high' | 'critical';
 
   /**
-   * 再試行可能フラグ
+   * Retryable flag
    *
-   * エラーが一時的で再試行可能かを示す。
-   * 自動復旧とクライアントリトライロジックに使用。
+   * Indicates whether the error is temporary and retryable.
+   * Used for automatic recovery and client retry logic.
    *
    * @public
    */
   isRetryable: boolean;
 
   /**
-   * ユーザー向けメッセージ
+   * User-facing message
    *
-   * エンドユーザーに表示可能な分かりやすいメッセージ。
-   * UI通知とエラーページ表示に使用。
+   * User-friendly message that can be displayed to end users.
+   * Used for UI notifications and error page displays.
    *
    * @public
    */
   userMessage?: string;
 
   /**
-   * エラーコード
+   * Error code
    *
-   * アプリケーション固有のエラー識別子。
-   * サポート対応と自動分類に使用。
+   * Application-specific error identifier.
+   * Used for support handling and automatic classification.
    *
    * @public
    */
   errorCode?: string;
 
   /**
-   * HTTPステータスコード
+   * HTTP status code
    *
-   * HTTPレスポンス用のステータスコード。
-   * API応答の自動生成に使用。
+   * Status code for HTTP responses.
+   * Used for automatic API response generation.
    *
    * @public
    */
@@ -227,63 +227,62 @@ export interface StructuredError {
 }
 
 /**
- * エラー分類器
+ * Error classifier
  *
- * エラーオブジェクトの自動分類とカテゴリ判定を提供。
- * エラーメッセージ、プロパティ、型情報を解析して
- * 適切なエラーカテゴリを自動判定。
+ * Provides automatic classification and category determination of error objects.
+ * Analyzes error messages, properties, and type information to
+ * automatically determine appropriate error categories.
  *
- * 統一的なエラー処理とアラート自動化に使用。
+ * Used for unified error handling and alert automation.
  *
  * @public
  */
 /**
- * エラー分類設定型
+ * Error classifier configuration type
  *
- * エラー分類に使用される設定オブジェクト。
- * 純粋関数の引数として使用される不変設定。
+ * Configuration object used for error classification.
+ * Immutable configuration used as arguments for pure functions.
  *
  * @public
  */
 export type ErrorClassifierConfig = Record<string, never>;
 
 /**
- * 統合エラーハンドラー
+ * Integrated error handler
  *
- * エラーの分類、ログ記録、ユーザー通知を統合的に処理。
- * Next.js App Router、API Routes、Middleware での
- * 統一的なエラー処理を提供。
+ * Processes error classification, log recording, and user notifications in an integrated manner.
+ * Provides unified error handling for Next.js App Router, API Routes, and Middleware.
  *
- * 主要機能:
- * - エラーの自動分類と構造化
- * - セキュリティサニタイゼーション
- * - 重要度別ログ記録
- * - ユーザー向けメッセージ生成
- * - コンテキスト情報の自動収集
+ * Key features:
+ * - Automatic error classification and structuring
+ * - Security sanitization
+ * - Severity-based log recording
+ * - User-facing message generation
+ * - Automatic context information collection
  *
  * @public
  */
 /**
- * エラーハンドラー設定型
+ * Error handler configuration type
  *
- * エラー処理に使用される設定オブジェクト。
- * 純粋関数の引数として使用される不変設定。
+ * Configuration object used for error handling.
+ * Immutable configuration used as arguments for pure functions.
  *
  * @public
  */
 export type ErrorHandlerConfig = {
-  /** エラーログの記録に使用するロガーインスタンス */
+  /** Logger instance used for error log recording */
   readonly logger: Logger;
 };
 
 /**
- * エラーハンドラー設定を作成（純粋関数）
+ * Create error handler configuration (pure function)
  *
- * Logger インスタンスを含む不変設定オブジェクトを生成。
- * アプリケーション起動時に一度だけ実行される純粋関数。
+ * Generates immutable configuration object containing Logger instance.
+ * Pure function executed only once at application startup.
  *
- * @param logger - エラーログ記録に使用するロガー
- * @returns 不変なエラーハンドラー設定オブジェクト
+ * @param logger - Logger used for error log recording
+ * @returns Immutable error handler configuration object
  *
  * @public
  */
@@ -294,15 +293,15 @@ export function createErrorHandlerConfig(logger: Logger): ErrorHandlerConfig {
 }
 
 /**
- * エラーの自動分類（純粋関数）
+ * Automatic error classification (pure function)
  *
- * エラーオブジェクトまたは値を解析して適切なカテゴリを判定。
- * エラーメッセージ、型、プロパティを総合的に評価。
+ * Analyzes error objects or values to determine appropriate categories.
+ * Comprehensively evaluates error messages, types, and properties.
  *
- * @param _config - エラー分類設定（現在未使用、将来拡張用）
- * @param error - 分類対象のエラーオブジェクトまたは値
- * @param context - エラーコンテキスト情報
- * @returns 判定された構造化エラー
+ * @param _config - Error classification configuration (currently unused, for future extension)
+ * @param error - Error object or value to classify
+ * @param context - Error context information
+ * @returns Determined structured error
  *
  * @public
  */
@@ -319,13 +318,13 @@ export function classifyError(
 }
 
 /**
- * 既知のエラータイプの分類（純粋関数）
+ * Classification of known error types (pure function)
  *
- * Error インスタンスを詳細に分析してカテゴリを判定。
+ * Analyzes Error instances in detail to determine categories.
  *
- * @param error - 分類対象のError インスタンス
- * @param context - エラーコンテキスト情報
- * @returns 判定された構造化エラー
+ * @param error - Error instance to classify
+ * @param context - Error context information
+ * @returns Determined structured error
  *
  * @internal
  */
@@ -444,13 +443,13 @@ function classifyKnownError(error: Error, context: ErrorContext): StructuredErro
 }
 
 /**
- * 未知のエラータイプの分類（純粋関数）
+ * Classification of unknown error types (pure function)
  *
- * Error以外の値を構造化エラーに変換。
+ * Converts non-Error values to structured errors.
  *
- * @param error - 分類対象の値
- * @param context - エラーコンテキスト情報
- * @returns 判定された構造化エラー
+ * @param error - Value to classify
+ * @param context - Error context information
+ * @returns Determined structured error
  *
  * @internal
  */
@@ -467,17 +466,17 @@ function classifyUnknownError(error: unknown, context: ErrorContext): Structured
   };
 }
 
-// エラー判定ヘルパー関数群（純粋関数）
+// Error determination helper functions (pure functions)
 
 /**
- * バリデーションエラー判定（純粋関数）
+ * Validation error determination (pure function)
  *
- * エラーがユーザー入力の検証失敗によるものかを判定。
- * フォーム入力、APIパラメーター検証エラーなどが対象。
+ * Determines whether an error is due to user input validation failure.
+ * Targets form inputs, API parameter validation errors, etc.
  *
- * @param error - 判定対象のエラーオブジェクト
- * @param message - エラーメッセージ（小文字）
- * @returns バリデーションエラーの場合true
+ * @param error - Error object to determine
+ * @param message - Error message (lowercase)
+ * @returns true if validation error
  *
  * @internal
  */
@@ -492,14 +491,14 @@ function isValidationError(error: Error, message: string): boolean {
 }
 
 /**
- * 認証エラー判定（純粋関数）
+ * Authentication error determination (pure function)
  *
- * エラーがユーザー認証の失敗によるものかを判定。
- * ログイン失敗、トークン無効、認証情報不足などが対象。
+ * Determines whether an error is due to user authentication failure.
+ * Targets login failures, invalid tokens, insufficient authentication information, etc.
  *
- * @param error - 判定対象のエラーオブジェクト
- * @param message - エラーメッセージ（小文字）
- * @returns 認証エラーの場合true
+ * @param error - Error object to determine
+ * @param message - Error message (lowercase)
+ * @returns true if authentication error
  *
  * @internal
  */
@@ -513,14 +512,14 @@ function isAuthenticationError(error: Error, message: string): boolean {
 }
 
 /**
- * 認可エラー判定（純粋関数）
+ * Authorization error determination (pure function)
  *
- * エラーがアクセス権限不足によるものかを判定。
- * リソースアクセス拒否、権限不足などが対象。
+ * Determines whether an error is due to insufficient access permissions.
+ * Targets resource access denial, insufficient permissions, etc.
  *
- * @param error - 判定対象のエラーオブジェクト
- * @param message - エラーメッセージ（小文字）
- * @returns 認可エラーの場合true
+ * @param error - Error object to determine
+ * @param message - Error message (lowercase)
+ * @returns true if authorization error
  *
  * @internal
  */
@@ -534,14 +533,14 @@ function isAuthorizationError(error: Error, message: string): boolean {
 }
 
 /**
- * 未発見エラー判定（純粋関数）
+ * Not found error determination (pure function)
  *
- * エラーがリソース不存在によるものかを判定。
- * ページ、ファイル、データの存在しないアクセスが対象。
+ * Determines whether an error is due to non-existent resources.
+ * Targets access to non-existent pages, files, and data.
  *
- * @param error - 判定対象のエラーオブジェクト
- * @param message - エラーメッセージ（小文字）
- * @returns 未発見エラーの場合true
+ * @param error - Error object to determine
+ * @param message - Error message (lowercase)
+ * @returns true if not found error
  *
  * @internal
  */
@@ -554,14 +553,14 @@ function isNotFoundError(error: Error, message: string): boolean {
 }
 
 /**
- * ネットワークエラー判定（純粋関数）
+ * Network error determination (pure function)
  *
- * エラーがネットワーク接続問題によるものかを判定。
- * タイムアウト、接続失敗、ネットワーク障害などが対象。
+ * Determines whether an error is due to network connection issues.
+ * Targets timeouts, connection failures, network outages, etc.
  *
- * @param error - 判定対象のエラーオブジェクト
- * @param message - エラーメッセージ（小文字）
- * @returns ネットワークエラーの場合true
+ * @param error - Error object to determine
+ * @param message - Error message (lowercase)
+ * @returns true if network error
  *
  * @internal
  */
@@ -576,14 +575,14 @@ function isNetworkError(error: Error, message: string): boolean {
 }
 
 /**
- * データベースエラー判定（純粋関数）
+ * Database error determination (pure function)
  *
- * エラーがデータベース操作失敗によるものかを判定。
- * 接続エラー、クエリエラー、制約違反などが対象。
+ * Determines whether an error is due to database operation failure.
+ * Targets connection errors, query errors, constraint violations, etc.
  *
- * @param error - 判定対象のエラーオブジェクト
- * @param message - エラーメッセージ（小文字）
- * @returns データベースエラーの場合true
+ * @param error - Error object to determine
+ * @param message - Error message (lowercase)
+ * @returns true if database error
  *
  * @internal
  */
@@ -598,14 +597,14 @@ function isDatabaseError(error: Error, message: string): boolean {
 }
 
 /**
- * レート制限エラー判定（純粋関数）
+ * Rate limit error determination (pure function)
  *
- * エラーがAPI使用制限超過によるものかを判定。
- * リクエスト頻度制限、使用量制限超過などが対象。
+ * Determines whether an error is due to API usage limit exceeded.
+ * Targets request frequency limits, usage limit exceeded, etc.
  *
- * @param error - 判定対象のエラーオブジェクト
- * @param message - エラーメッセージ（小文字）
- * @returns レート制限エラーの場合true
+ * @param error - Error object to determine
+ * @param message - Error message (lowercase)
+ * @returns true if rate limit error
  *
  * @internal
  */
@@ -618,15 +617,15 @@ function isRateLimitError(error: Error, message: string): boolean {
 }
 
 /**
- * エラーの処理とログ記録（純粋関数 + 制御された副作用）
+ * Error processing and log recording (pure function + controlled side effects)
  *
- * エラーを分類し、適切なログレベルで記録する。
- * 構造化されたエラー情報を返す。
+ * Classifies errors and records them at appropriate log levels.
+ * Returns structured error information.
  *
- * @param config - エラーハンドラー設定
- * @param error - 処理対象のエラー
- * @param context - エラーコンテキスト情報
- * @returns 構造化されたエラー情報
+ * @param config - Error handler configuration
+ * @param error - Error to process
+ * @param context - Error context information
+ * @returns Structured error information
  *
  * @public
  */
@@ -638,25 +637,25 @@ export function handleError(
   const classifierConfig: ErrorClassifierConfig = {};
   const structuredError = classifyError(classifierConfig, error, context);
 
-  // ログレベルの決定
+  // Determine log level
   const logLevel = getLogLevel(structuredError.severity);
 
-  // ログエントリの作成
+  // Create log entry
   const logEntry = createLogEntry(structuredError);
 
-  // ログ出力（型安全な方法でメソッド呼び出し）
+  // Log output (type-safe method call)
   logWithLevel(config.logger, logLevel, logEntry.message, logEntry.data);
 
   return structuredError;
 }
 
 /**
- * 型安全なログレベル呼び出し（純粋関数 + 制御された副作用）
+ * Type-safe log level call (pure function + controlled side effects)
  *
- * @param logger - ロガーインスタンス
- * @param level - ログレベル
- * @param message - ログメッセージ
- * @param data - ログデータ
+ * @param logger - Logger instance
+ * @param level - Log level
+ * @param message - Log message
+ * @param data - Log data
  *
  * @internal
  */
@@ -666,7 +665,7 @@ function logWithLevel(
   message: string,
   data?: unknown
 ): void {
-  // unknownをLogArgumentに適合する形に変換
+  // Convert unknown to LogArgument compatible form
   const logData = data as LogArgument;
 
   switch (level) {
@@ -685,10 +684,10 @@ function logWithLevel(
 }
 
 /**
- * 重要度に基づくログレベルの決定（純粋関数）
+ * Log level determination based on severity (pure function)
  *
- * @param severity - エラーの重要度
- * @returns 対応するログレベル
+ * @param severity - Error severity
+ * @returns Corresponding log level
  *
  * @internal
  */
@@ -706,19 +705,19 @@ function getLogLevel(severity: StructuredError['severity']): 'error' | 'warn' | 
 }
 
 /**
- * 構造化ログエントリの作成（純粋関数）
+ * Creation of structured log entry (pure function)
  *
- * StructuredErrorを構造化ログエントリに変換。
+ * Converts StructuredError to structured log entry.
  *
- * @param structuredError - 変換対象の構造化エラー
- * @returns ログエントリデータ
+ * @param structuredError - Structured error to convert
+ * @returns Log entry data
  *
  * @internal
  */
 function createLogEntry(structuredError: StructuredError): {
-  /** ログメッセージ */
+  /** Log message */
   message: string;
-  /** ログデータ */
+  /** Log data */
   data: unknown;
 } {
   const logData = {
@@ -746,12 +745,12 @@ function createLogEntry(structuredError: StructuredError): {
 }
 
 /**
- * API Routes用エラーハンドラー（純粋関数 + 制御された副作用）
+ * Error handler for API Routes (pure function + controlled side effects)
  *
- * @param config - エラーハンドラー設定
- * @param error - 処理対象のエラー
- * @param context - エラーコンテキスト情報
- * @returns API エラーレスポンス
+ * @param config - Error handler configuration
+ * @param error - Error to process
+ * @param context - Error context information
+ * @returns API error response
  *
  * @public
  */
@@ -779,15 +778,15 @@ export function handleApiError(
 }
 
 /**
- * React Components用エラーハンドラー（純粋関数 + 制御された副作用）
+ * Error handler for React components (pure function + controlled side effects)
  *
- * React ErrorBoundaryでの使用に特化したエラー処理。
- * ユーザー向けメッセージと再試行フラグを返す。
+ * Specialized for use with React ErrorBoundary.
+ * Returns a user-facing message and retry flag.
  *
- * @param config - エラーハンドラー設定
- * @param error - 処理対象のエラー
- * @param context - エラーコンテキスト情報
- * @returns コンポーネント向けエラー情報
+ * @param config - Error handler configuration
+ * @param error - Error to process
+ * @param context - Error context information
+ * @returns Error information for components
  *
  * @public
  */
@@ -796,11 +795,11 @@ export function handleComponentError(
   error: Error | unknown,
   context: ErrorContext = {}
 ): {
-  /** ユーザー向けエラーメッセージ */
+  /** User-facing error message */
   userMessage: string;
-  /** 再試行推奨フラグ */
+  /** Retry recommended flag */
   shouldRetry: boolean;
-  /** エラー識別ID */
+  /** Error identifier */
   errorId: string;
 } {
   const structuredError = handleError(config, error, context);
@@ -813,11 +812,11 @@ export function handleComponentError(
 }
 
 /**
- * Promise rejection用グローバルハンドラー（純粋関数 + 制御された副作用）
+ * Global handler for unhandled Promise rejections (pure function + controlled side effects)
  *
- * @param config - エラーハンドラー設定
- * @param reason - 拒否理由
- * @param context - エラーコンテキスト情報
+ * @param config - Error handler configuration
+ * @param reason - Rejection reason
+ * @param context - Error context information
  *
  * @public
  */
@@ -836,11 +835,11 @@ export function handleUnhandledRejection(
 }
 
 /**
- * 未捕捉例外用グローバルハンドラー（純粋関数 + 制御された副作用）
+ * Global handler for uncaught exceptions (pure function + controlled side effects)
  *
- * @param config - エラーハンドラー設定
- * @param error - 処理対象のエラー
- * @param context - エラーコンテキスト情報
+ * @param config - Error handler configuration
+ * @param error - Error to process
+ * @param context - Error context information
  *
  * @public
  */
@@ -859,22 +858,21 @@ export function handleUncaughtException(
 }
 
 // ===================================================================
-// デフォルトインスタンスとヘルパー関数（後方互換性）
+// Default instance and helper functions (backward compatibility)
 // ===================================================================
 
 /**
- * デフォルト エラーハンドラー設定
+ * Default error handler configuration
  *
- * アプリケーション全体で使用されるデフォルト設定。
- * 一度だけ作成され、以降は immutable として使用。
+ * Default configuration used across the entire application.
+ * Created once and treated as immutable thereafter.
  *
  * @public
  */
 export const defaultErrorHandlerConfig = createDefaultErrorHandlerConfig();
 
 /**
- * 純粋関数ファクトリーパターンでデフォルトエラーハンドラー設定を作成
- * 循環インポートを避けるため遅延評価を実装
+ * Create default error handler config via factory (lazy evaluation to avoid circular imports)
  */
 function createDefaultErrorHandlerConfig(): () => ErrorHandlerConfig {
   let _config: ErrorHandlerConfig | null = null;
@@ -886,7 +884,7 @@ function createDefaultErrorHandlerConfig(): () => ErrorHandlerConfig {
         const { serverLoggerWrapper } = require('./server') as typeof import('./server');
         _config = createErrorHandlerConfig(serverLoggerWrapper);
       } catch {
-        // server モジュールが利用できない場合は client logger をフォールバックとして使用
+        // If the server module isn't available, fall back to the client logger
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { clientLoggerWrapper } = require('./client') as typeof import('./client');
         _config = createErrorHandlerConfig(clientLoggerWrapper);
@@ -897,10 +895,10 @@ function createDefaultErrorHandlerConfig(): () => ErrorHandlerConfig {
 }
 
 /**
- * デフォルトエラーハンドラー（後方互換性）
+ * Backward-compatible default error handler
  *
- * 既存コードとの互換性のためのオブジェクト型インターフェース。
- * 純粋関数を既存のメソッド呼び出しパターンでラップ。
+ * Object-style interface for compatibility with existing code.
+ * Wraps pure functions in the legacy method-call pattern.
  *
  * @public
  */
@@ -922,13 +920,13 @@ export const errorHandler = {
 };
 
 /**
- * エラーハンドリング用ユーティリティ関数（純粋関数版に更新）
+ * Utility functions for error handling (updated to pure-function style)
  *
  * @public
  */
 export const errorHandlerUtils = {
   /**
-   * Async関数のエラーキャッチ装飾（純粋関数版）
+   * Decorator to catch errors of async functions (pure-function variant)
    */
   withErrorHandling: <T extends unknown[], R>(
     config: ErrorHandlerConfig,
@@ -946,7 +944,7 @@ export const errorHandlerUtils = {
   },
 
   /**
-   * Try-catch付きの安全な実行（純粋関数版）
+   * Safe execution with try/catch (pure-function variant)
    */
   safeExecute: async <T>(
     config: ErrorHandlerConfig,
@@ -963,7 +961,7 @@ export const errorHandlerUtils = {
   },
 
   /**
-   * エラーバウンダリ用のReactコンポーネントヘルパー（純粋関数版）
+   * React Error Boundary helper (pure-function variant)
    */
   createErrorBoundaryHandler: (config: ErrorHandlerConfig) => {
     return (error: Error, errorInfo: { componentStack: string }) => {
@@ -977,7 +975,7 @@ export const errorHandlerUtils = {
   },
 
   /**
-   * Next.js API Routes用の統一エラーハンドラー（純粋関数版）
+   * Unified error handler for Next.js API Routes (pure-function variant)
    */
   createApiHandler: (config: ErrorHandlerConfig) => {
     return (error: Error | unknown, context: Record<string, unknown> = {}) => {
@@ -993,10 +991,10 @@ export const errorHandlerUtils = {
 };
 
 /**
- * 後方互換性用のデフォルトエクスポート
+ * Default export for backward compatibility
  *
- * 既存コードとの互換性のため errorHandler オブジェクトをデフォルトとしてエクスポート。
- * 新しいコードでは純粋関数形式の使用を推奨。
+ * Exports the errorHandler object as the default for compatibility with existing code.
+ * Prefer using the pure-function style in new code.
  *
  * @public
  */

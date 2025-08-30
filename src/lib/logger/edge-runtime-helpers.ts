@@ -1,8 +1,8 @@
 /**
- * Edge Runtime制限対応ヘルパー関数
+ * Edge Runtime limitation handling helper functions
  *
- * Edge Runtime環境での制限事項に対する回避策とベストプラクティスを提供します。
- * AsyncLocalStorageの制限、非同期コンテキスト継承の課題を解決するためのユーティリティです。
+ * Provides workarounds and best practices for Edge Runtime environment limitations.
+ * Utilities for solving AsyncLocalStorage limitations and asynchronous context inheritance issues.
  */
 
 import { createCompatibleStorage, detectRuntimeEnvironment } from './utils';
@@ -10,14 +10,14 @@ import { createCompatibleStorage, detectRuntimeEnvironment } from './utils';
 import type { LoggerContext } from './types';
 
 /**
- * Edge Runtime対応の非同期ラッパー関数
+ * Edge Runtime compatible asynchronous wrapper function
  *
- * Edge Runtime環境では非同期操作でコンテキストが失われるため、
- * 明示的なコンテキストバインディングを提供します。
+ * Provides explicit context binding as context is lost during asynchronous operations
+ * in Edge Runtime environments.
  *
- * @param context - 保持するコンテキスト
- * @param asyncOperation - 実行する非同期操作
- * @returns コンテキストが保持された非同期操作の結果
+ * @param context - Context to preserve
+ * @param asyncOperation - Asynchronous operation to execute
+ * @returns Result of asynchronous operation with preserved context
  *
  * @example
  * ```typescript
@@ -36,25 +36,25 @@ export async function withEdgeContext<T>(
   const runtime = detectRuntimeEnvironment();
 
   if (runtime === 'edge') {
-    // Edge Runtime: 明示的なコンテキストバインディングを使用
+    // Edge Runtime: Use explicit context binding
     const storage = createCompatibleStorage<LoggerContext>();
     return await storage.run(context, asyncOperation);
   } else {
-    // Node.js環境: 通常の実行
+    // Node.js environment: Normal execution
     return await asyncOperation();
   }
 }
 
 /**
- * Edge Runtime対応のPromise.all実行
+ * Edge Runtime compatible Promise.all execution
  *
- * 複数の非同期操作を並行実行する際に、各操作でコンテキストを保持します。
- * Edge Runtime環境では自動的なコンテキスト継承ができないため、
- * 各Promise操作に対して明示的にコンテキストをバインドします。
+ * Preserves context for each operation when executing multiple asynchronous operations in parallel.
+ * In Edge Runtime environments, automatic context inheritance is not possible,
+ * so context is explicitly bound to each Promise operation.
  *
- * @param context - 保持するコンテキスト
- * @param operations - 実行する非同期操作の配列
- * @returns すべての操作の結果を含む配列
+ * @param context - Context to preserve
+ * @param operations - Array of asynchronous operations to execute
+ * @returns Array containing results of all operations
  *
  * @example
  * ```typescript
@@ -74,30 +74,30 @@ export async function promiseAllWithContext<T>(
   const runtime = detectRuntimeEnvironment();
 
   if (runtime === 'edge') {
-    // Edge Runtime: 各操作にコンテキストをバインド
+    // Edge Runtime: Bind context to each operation
     const storage = createCompatibleStorage<LoggerContext>();
     return await Promise.all(operations.map((op) => storage.run(context, op)));
   } else {
-    // Node.js環境: 通常のPromise.all
+    // Node.js environment: Normal Promise.all
     return await Promise.all(operations.map((op) => op()));
   }
 }
 
 /**
- * Edge Runtime対応のタイマー実行
+ * Edge Runtime compatible timer execution
  *
- * setTimeout/setIntervalでコンテキストが失われることを防ぎ、
- * 指定されたコンテキストでコールバック関数を実行します。
+ * Prevents context loss in setTimeout/setInterval and executes callback functions
+ * with the specified context.
  *
- * @param context - 保持するコンテキスト
- * @param callback - 実行するコールバック関数
- * @param delay - 遅延時間（ミリ秒）
- * @returns タイマーID
+ * @param context - Context to preserve
+ * @param callback - Callback function to execute
+ * @param delay - Delay time (milliseconds)
+ * @returns Timer ID
  *
  * @example
  * ```typescript
  * const timerId = setTimeoutWithContext(context, () => {
- *   // このコールバック内でもコンテキストが利用可能
+ *   // Context is available within this callback
  *   logger.info('Delayed operation completed');
  * }, 1000);
  * ```
@@ -112,31 +112,31 @@ export function setTimeoutWithContext(
   const runtime = detectRuntimeEnvironment();
 
   if (runtime === 'edge') {
-    // Edge Runtime: コンテキストをバインドしたコールバックを使用
+    // Edge Runtime: Use callback with bound context
     const storage = createCompatibleStorage<LoggerContext>();
     const boundCallback = storage.bind(callback, context);
     return setTimeout(boundCallback, delay);
   } else {
-    // Node.js環境: 通常のsetTimeout
+    // Node.js environment: Normal setTimeout
     return setTimeout(callback, delay);
   }
 }
 
 /**
- * Edge Runtime対応のInterval実行
+ * Edge Runtime compatible Interval execution
  *
- * setIntervalでコンテキストが失われることを防ぎ、
- * 指定されたコンテキストで定期的にコールバック関数を実行します。
+ * Prevents context loss in setInterval and periodically executes callback functions
+ * with the specified context.
  *
- * @param context - 保持するコンテキスト
- * @param callback - 実行するコールバック関数
- * @param interval - 実行間隔（ミリ秒）
+ * @param context - Context to preserve
+ * @param callback - Callback function to execute
+ * @param interval - Execution interval (milliseconds)
  * @returns IntervalID
  *
  * @example
  * ```typescript
  * const intervalId = setIntervalWithContext(context, () => {
- *   // 定期実行でもコンテキストが利用可能
+ *   // Context is available even in periodic execution
  *   logger.debug('Periodic health check');
  * }, 30000);
  * ```
@@ -151,23 +151,23 @@ export function setIntervalWithContext(
   const runtime = detectRuntimeEnvironment();
 
   if (runtime === 'edge') {
-    // Edge Runtime: コンテキストをバインドしたコールバックを使用
+    // Edge Runtime: Use callback with bound context
     const storage = createCompatibleStorage<LoggerContext>();
     const boundCallback = storage.bind(callback, context);
     return setInterval(boundCallback, interval);
   } else {
-    // Node.js環境: 通常のsetInterval
+    // Node.js environment: Normal setInterval
     return setInterval(callback, interval);
   }
 }
 
 /**
- * Edge Runtime制限事項の診断情報を取得
+ * Get Edge Runtime limitation diagnostic information
  *
- * 現在の実行環境でのEdge Runtime制限事項と対応状況を分析し、
- * 開発者向けの診断情報を提供します。
+ * Analyzes Edge Runtime limitations and compliance status in the current execution environment
+ * and provides diagnostic information for developers.
  *
- * @returns 診断情報オブジェクト
+ * @returns Diagnostic information object
  *
  * @example
  * ```typescript
@@ -186,7 +186,7 @@ export function getEdgeRuntimeDiagnostics(): {
 } {
   const runtime = detectRuntimeEnvironment();
 
-  // AsyncLocalStorageの可用性チェック
+  // AsyncLocalStorage availability check
   let asyncLocalStorageAvailable = false;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -196,7 +196,7 @@ export function getEdgeRuntimeDiagnostics(): {
     asyncLocalStorageAvailable = false;
   }
 
-  // コンテキストストレージタイプの判定
+  // Context storage type determination
   let contextStorageType: 'AsyncLocalStorage' | 'EdgeContextStorage' | 'Unknown';
   if (runtime === 'edge') {
     contextStorageType = 'EdgeContextStorage';
@@ -206,7 +206,7 @@ export function getEdgeRuntimeDiagnostics(): {
     contextStorageType = 'Unknown';
   }
 
-  // 環境別の推奨事項
+  // Environment-specific recommendations
   const recommendations: string[] = [];
   if (runtime === 'edge') {
     recommendations.push(
@@ -236,13 +236,13 @@ export function getEdgeRuntimeDiagnostics(): {
 }
 
 /**
- * Edge Runtime環境での推奨実装パターンをチェック
+ * Check recommended implementation patterns in Edge Runtime environment
  *
- * 現在のコードがEdge Runtime環境での制限に適切に対応しているかを
- * 静的に分析し、改善提案を提供します。
+ * Statically analyzes whether current code appropriately handles limitations
+ * in Edge Runtime environment and provides improvement suggestions.
  *
- * @param codePattern - チェックするコードパターン
- * @returns 分析結果と改善提案
+ * @param codePattern - Code pattern to check
+ * @returns Analysis results and improvement suggestions
  *
  * @public
  */
@@ -299,14 +299,14 @@ export function analyzeEdgeRuntimeCompliance(codePattern: {
 }
 
 /**
- * Edge Runtime対応のコンテキスト継承ラッパー
+ * Edge Runtime compatible context inheritance wrapper
  *
- * 関数やクラスメソッドをラップして、Edge Runtime環境でも
- * 確実にコンテキストが継承されるようにします。
+ * Wraps functions and class methods to ensure reliable context inheritance
+ * even in Edge Runtime environments.
  *
- * @param target - ラップ対象の関数
- * @param context - 継承するコンテキスト
- * @returns コンテキスト継承が保証された関数
+ * @param target - Function to wrap
+ * @param context - Context to inherit
+ * @returns Function with guaranteed context inheritance
  *
  * @example
  * ```typescript
@@ -314,7 +314,7 @@ export function analyzeEdgeRuntimeCompliance(codePattern: {
  * await wrappedFunction(arg1, arg2);
  * ```
  *
- * @typeParam T - ラップ対象関数の型（関数シグネチャを保持）
+ * @typeParam T - Type of target function (preserves function signature)
  * @public
  */
 export function wrapWithContext<T extends (...args: unknown[]) => unknown>(
@@ -324,11 +324,11 @@ export function wrapWithContext<T extends (...args: unknown[]) => unknown>(
   const runtime = detectRuntimeEnvironment();
 
   if (runtime === 'edge') {
-    // Edge Runtime: 明示的なコンテキストバインディング
+    // Edge Runtime: Explicit context binding
     const storage = createCompatibleStorage<LoggerContext>();
     return storage.bind(target, context) as T;
   } else {
-    // Node.js環境: 元の関数をそのまま返す
+    // Node.js environment: Return original function as-is
     return target;
   }
 }

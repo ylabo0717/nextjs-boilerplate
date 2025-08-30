@@ -1,9 +1,9 @@
 /**
- * クライアントサイドLogger実装（純粋関数型）
- * ブラウザ環境での軽量ログ処理とコンソール統合
+ * Client-side logger implementation (pure functional approach)
  *
- * アーキテクチャ原則に従った純粋関数ファーストの実装。
- * ステートレスで予測可能、テスタブルなログシステムを提供。
+ * Lightweight logging for browser environments with console integration.
+ * Follows architecture principles with pure-function-first implementation,
+ * providing stateless, predictable, and testable logging system.
  */
 
 import { incrementLogCounter, incrementErrorCounter } from './metrics';
@@ -13,10 +13,11 @@ import { getClientLogLevel, createBaseProperties, serializeError } from './utils
 import type { Logger, LogArgument, LogLevel } from './types';
 
 /**
- * ブラウザコンソールスタイル定義
+ * Browser console style definitions
  *
- * 各ログレベルに対応するCSS設定。
- * ブラウザコンソールでの視覚的区別に使用。
+ * CSS configuration for each log level to provide visual
+ * differentiation in browser console. Enhances debugging
+ * experience through color-coded log levels.
  *
  * @internal
  */
@@ -30,10 +31,10 @@ const CONSOLE_STYLES = {
 } as const;
 
 /**
- * ログレベルの優先度マップ
+ * Log level priority mapping
  *
- * 数値による優先度定義。高い値ほど重要度が高い。
- * ログレベルフィルタリングに使用。
+ * Priority definition by numeric values. Higher values indicate greater importance.
+ * Used for log level filtering.
  *
  * @internal
  */
@@ -47,27 +48,27 @@ const LOG_LEVELS = {
 } as const;
 
 /**
- * クライアントLogger設定型
+ * Client Logger configuration type
  *
- * ログ動作を制御する不変設定オブジェクト。
- * 純粋関数の引数として使用。
+ * Immutable configuration object that controls log behavior.
+ * Used as an argument for pure functions.
  *
  * @public
  */
 export type ClientLoggerConfig = {
-  /** 現在のログレベル設定 */
+  /** Current log level setting */
   readonly level: LogLevel;
-  /** すべてのログエントリに付与される基本プロパティ */
+  /** Base properties applied to all log entries */
   readonly baseProperties: Readonly<Record<string, unknown>>;
 };
 
 /**
- * クライアントLogger設定を作成
+ * Create client Logger configuration
  *
- * 環境変数とシステム情報から不変の設定オブジェクトを生成。
- * アプリケーション起動時に一度だけ実行される純粋関数。
+ * Generate immutable configuration object from environment variables and system information.
+ * Pure function executed only once at application startup.
  *
- * @returns 不変なLogger設定オブジェクト
+ * @returns Immutable Logger configuration object
  *
  * @public
  */
@@ -79,13 +80,13 @@ export function createClientLoggerConfig(): ClientLoggerConfig {
 }
 
 /**
- * ログレベルの数値を取得（純粋関数）
+ * Get numeric value of log level (pure function)
  *
- * ログレベル文字列を対応する数値に変換。
- * 型安全性を保ちながら数値比較を可能にする。
+ * Convert log level string to corresponding numeric value.
+ * Enable numeric comparison while maintaining type safety.
  *
- * @param level - 変換するログレベル
- * @returns ログレベルに対応する数値
+ * @param level - Log level to convert
+ * @returns Numeric value corresponding to log level
  *
  * @internal
  */
@@ -104,19 +105,19 @@ function getLogLevelValue(level: LogLevel): number {
     case 'fatal':
       return LOG_LEVELS.fatal;
     default:
-      return LOG_LEVELS.info; // フォールバック
+      return LOG_LEVELS.info; // Fallback
   }
 }
 
 /**
- * ログレベルの有効性チェック（純粋関数）
+ * Check log level validity (pure function)
  *
- * 指定されたログレベルが現在の設定で出力されるかを判定。
- * パフォーマンス最適化のためのプリチェックに使用。
+ * Determine whether specified log level will be output with current settings.
+ * Used for pre-check for performance optimization.
  *
- * @param config - Logger設定
- * @param level - チェックするログレベル
- * @returns ログレベルが有効な場合true
+ * @param config - Logger configuration
+ * @param level - Log level to check
+ * @returns true if log level is enabled
  *
  * @public
  */
@@ -128,13 +129,13 @@ export function isLevelEnabled(config: ClientLoggerConfig, level: LogLevel): boo
 }
 
 /**
- * コンソールスタイルを取得（純粋関数）
+ * Get console style (pure function)
  *
- * ログレベルに対応するCSS記述文字列を取得。
- * 型安全性を保ちながらスタイル適用。
+ * Retrieve CSS description string corresponding to log level.
+ * Apply styles while maintaining type safety.
  *
- * @param level - スタイルを取得するログレベル
- * @returns CSSスタイル文字列
+ * @param level - Log level to get style for
+ * @returns CSS style string
  *
  * @internal
  */
@@ -153,18 +154,18 @@ function getConsoleStyle(level: LogLevel): string {
     case 'fatal':
       return CONSOLE_STYLES.fatal;
     default:
-      return CONSOLE_STYLES.info; // フォールバック
+      return CONSOLE_STYLES.info; // Fallback
   }
 }
 
 /**
- * コンソールメソッドを取得（純粋関数）
+ * Get console method (pure function)
  *
- * ログレベルに最適なブラウザコンソールメソッドを選択。
- * エラーレベルはconsole.error、警告はconsole.warnを使用。
+ * Select optimal browser console method for log level.
+ * Use console.error for error levels, console.warn for warnings.
  *
- * @param level - ログレベル
- * @returns 対応するコンソールメソッド
+ * @param level - Log level
+ * @returns Corresponding console method
  *
  * @internal
  */
@@ -187,13 +188,13 @@ function getConsoleMethod(level: LogLevel): typeof console.log {
 }
 
 /**
- * ログ引数を処理（純粋関数）
+ * Process log arguments (pure function)
  *
- * ログメソッドに渡された複数引数を統一的な構造に変換。
- * 型に応じた適切な処理とサイズ制限を適用。
+ * Convert multiple arguments passed to log method into unified structure.
+ * Apply appropriate processing and size limitations based on types.
  *
- * @param args - ログメソッドの引数配列
- * @returns 統一された構造化データ
+ * @param args - Argument array of log method
+ * @returns Unified structured data
  *
  * @internal
  */
@@ -206,14 +207,14 @@ function processLogArguments(args: LogArgument[]): Record<string, unknown> {
     }
 
     if (arg instanceof Error) {
-      // Error オブジェクトの処理
+      // Error object processing
       result.error = serializeError(arg);
     } else if (typeof arg === 'object' && !Array.isArray(arg)) {
-      // オブジェクトのマージ（サイズ制限付き）
+      // Object merge (with size limitation)
       const limited = limitObjectSize(arg, 8, 50);
       Object.assign(result, limited);
     } else {
-      // その他の型は args 配列に格納
+      // Other types are stored in args array
       if (!result.args) {
         result.args = [];
       }
@@ -225,14 +226,14 @@ function processLogArguments(args: LogArgument[]): Record<string, unknown> {
 }
 
 /**
- * ブラウザコンソールに出力（副作用関数）
+ * Output to browser console (side-effect function)
  *
- * ログレベルに応じたスタイルとコンソールメソッドで出力。
- * 構造化データは折りたたみ可能なグループとして表示。
+ * Output with styles and console methods according to log level.
+ * Structured data is displayed as collapsible groups.
  *
- * @param level - ログレベル
- * @param message - 出力メッセージ
- * @param data - 追加の構造化データ
+ * @param level - Log level
+ * @param message - Output message
+ * @param data - Additional structured data
  *
  * @internal
  */
@@ -240,30 +241,30 @@ function outputToConsole(level: LogLevel, message: string, data?: unknown): void
   const style = getConsoleStyle(level);
   const prefix = `[${level.toUpperCase()}]`;
 
-  // コンソールメソッドの選択
+  // Console method selection
   const consoleMethod = getConsoleMethod(level);
 
   if (data && typeof data === 'object') {
-    // データがある場合はグループ化して表示
+    // Display as group when data exists
     console.group(`%c${prefix} ${message}`, style);
     consoleMethod('Details:', data);
     console.groupEnd();
   } else {
-    // シンプルなメッセージ出力
+    // Simple message output
     consoleMethod(`%c${prefix} ${message}`, style, data || '');
   }
 }
 
 /**
- * 開発環境用デバッグ情報出力（副作用関数）
+ * Output development debug information (side-effect function)
  *
- * 開発環境でのみ詳細なデバッグ情報を表示。
- * ログ処理の内部状態と引数を可視化。
+ * Display detailed debug information only in development environment.
+ * Visualize internal state and arguments of log processing.
  *
- * @param level - ログレベル
- * @param originalMessage - 元のメッセージ
- * @param processedData - 処理済みデータ
- * @param processedArgs - 処理済み引数
+ * @param level - Log level
+ * @param originalMessage - Original message
+ * @param processedData - Processed data
+ * @param processedArgs - Processed arguments
  *
  * @internal
  */
@@ -319,20 +320,20 @@ function extractErrorType(processedArgs: Record<string, unknown>): string {
 }
 
 /**
- * 統合ログ出力関数（純粋関数 + 制御された副作用）
+ * Integrated log output function (pure function + controlled side effects)
  *
- * すべてのログレベルで使用される共通出力処理。
- * セキュリティサニタイゼーション、フォーマット、コンソール出力を統合。
+ * Common output processing used by all log levels.
+ * Integrates security sanitization, formatting, and console output.
  *
- * 設計原則:
- * - 設定とメッセージ処理は純粋関数
- * - コンソール出力のみ副作用として分離
- * - テスタビリティを最大化
+ * Design principles:
+ * - Configuration and message processing are pure functions
+ * - Console output is separated as side effects only
+ * - Maximize testability
  *
- * @param config - Logger設定（不変）
- * @param level - ログレベル
- * @param message - ログメッセージ
- * @param args - 追加のログデータ
+ * @param config - Logger configuration (immutable)
+ * @param level - Log level
+ * @param message - Log message
+ * @param args - Additional log data
  *
  * @public
  */
@@ -342,12 +343,12 @@ export function log(
   message: string,
   ...args: LogArgument[]
 ): void {
-  // レベルチェック（純粋関数）
+  // Level check (pure function)
   if (!isLevelEnabled(config, level)) {
     return;
   }
 
-  // ログエントリの構築（純粋関数）
+  // Log entry construction (pure function)
   const timestamp = new Date().toISOString();
   const logEntry = {
     timestamp,
@@ -356,7 +357,7 @@ export function log(
     ...config.baseProperties,
   };
 
-  // 引数の処理とサニタイズ（純粋関数）
+  // Argument processing and sanitization (pure function)
   const processedArgs = processLogArguments(args);
   const sanitized = sanitizeLogEntry(message, {
     ...logEntry,
@@ -380,22 +381,22 @@ export function log(
     }
   }
 
-  // 副作用: ブラウザコンソールへの出力
+  // Side effect: Output to browser console
   outputToConsole(level, sanitized.message, sanitized.data);
 
-  // 副作用: 開発環境デバッグ情報
+  // Side effect: Development environment debug information
   outputDevelopmentDebug(level, message, sanitized.data, processedArgs);
 }
 
 /**
- * Logger インターフェース準拠オブジェクトを作成
+ * Create Logger interface compliant object
  *
- * 設定を部分適用した統一Loggerインターフェース。
- * サーバーサイドロガーとの互換性を保ちながら、
- * クライアント最適化されたログ処理を提供。
+ * Unified Logger interface with partial application of configuration.
+ * Provides client-optimized log processing while maintaining
+ * compatibility with server-side logger.
  *
- * @param config - Logger設定
- * @returns Logger インターフェース準拠オブジェクト
+ * @param config - Logger configuration
+ * @returns Logger interface compliant object
  *
  * @public
  */
@@ -412,58 +413,58 @@ export function createClientLogger(config: ClientLoggerConfig): Logger {
 }
 
 // ===================================================================
-// デフォルトインスタンスとヘルパー関数（後方互換性）
+// Default instances and helper functions (backward compatibility)
 // ===================================================================
 
 /**
- * デフォルトクライアントLogger設定
+ * Default client Logger configuration
  *
- * アプリケーション全体で使用されるデフォルト設定。
- * 一度だけ作成され、以降はimmutableとして使用。
+ * Default configuration used throughout the application.
+ * Created only once and used as immutable thereafter.
  *
  * @public
  */
 export const defaultClientLoggerConfig = createClientLoggerConfig();
 
 /**
- * デフォルトクライアントLoggerインスタンス
+ * Default client Logger instance
  *
- * 最も一般的な用途での推奨ロガー。
- * デフォルト設定を使用した即座に利用可能なインスタンス。
+ * Recommended logger for most common uses.
+ * Instance immediately available using default configuration.
  *
  * @public
  */
 export const clientLogger = createClientLogger(defaultClientLoggerConfig);
 
 /**
- * Logger インターフェース準拠のラッパー（後方互換性）
+ * Logger interface compliant wrapper (backward compatibility)
  *
- * 既存コードとの互換性のためのエイリアス。
- * clientLoggerと同じインスタンスを指す。
+ * Alias for compatibility with existing code.
+ * Points to the same instance as clientLogger.
  *
  * @public
  */
 export const clientLoggerWrapper: Logger = clientLogger;
 
 /**
- * クライアントサイド専用ヘルパー関数群
+ * Client-side specific helper functions
  *
- * ブラウザ環境での一般的なログパターンの便利関数集。
- * Web API統合、ユーザー操作追跡、ナビゲーション記録等の
- * クライアント固有のログ機能を提供。
+ * Collection of convenience functions for common log patterns in browser environment.
+ * Provides client-specific log functionality including Web API integration,
+ * user action tracking, navigation recording, etc.
  *
  * @public
  */
 export const clientLoggerHelpers = {
   /**
-   * パフォーマンス測定（Web API使用）
+   * Performance measurement (using Web API)
    *
-   * Web API のperformance.now()を使用した高精度測定。
-   * ブラウザ環境での関数実行時間を自動記録。
+   * High-precision measurement using Web API performance.now().
+   * Automatically record function execution time in browser environment.
    *
-   * @param name - 測定操作名
-   * @param fn - 測定対象の関数
-   * @returns 関数の実行結果
+   * @param name - Measurement operation name
+   * @param fn - Function to measure
+   * @returns Function execution result
    *
    * @public
    */
@@ -496,13 +497,13 @@ export const clientLoggerHelpers = {
   },
 
   /**
-   * ユーザーアクションログ
+   * User action log
    *
-   * ユーザー操作の構造化ログ記録。
-   * クリック、フォーム送信、ページ遷移等の記録に使用。
+   * Structured log recording of user operations.
+   * Used for recording clicks, form submissions, page transitions, etc.
    *
-   * @param action - ユーザーアクション名
-   * @param details - アクション詳細情報
+   * @param action - User action name
+   * @param details - Action detail information
    *
    * @public
    */
@@ -516,14 +517,14 @@ export const clientLoggerHelpers = {
   },
 
   /**
-   * ナビゲーションイベントログ
+   * Navigation event log
    *
-   * ページ遷移とルーティングイベントの記録。
-   * SPAでのユーザーナビゲーション追跡に使用。
+   * Record page transitions and routing events.
+   * Used for tracking user navigation in SPA.
    *
-   * @param from - 遷移元パス
-   * @param to - 遷移先パス
-   * @param method - 遷移方法（デフォルト: 'unknown'）
+   * @param from - Source path
+   * @param to - Destination path
+   * @param method - Transition method (default: 'unknown')
    *
    * @public
    */
@@ -541,13 +542,13 @@ export const clientLoggerHelpers = {
   },
 
   /**
-   * エラーイベントログ
+   * Error event log
    *
-   * クライアントサイドエラーの構造化ログ記録。
-   * ブラウザ情報、URL、コンテキストを自動収集。
+   * Structured log recording of client-side errors.
+   * Automatically collect browser information, URL, and context.
    *
-   * @param error - エラーオブジェクトまたは値
-   * @param context - エラー発生時のコンテキスト情報
+   * @param error - Error object or value
+   * @param context - Context information when error occurred
    *
    * @public
    */
@@ -563,15 +564,15 @@ export const clientLoggerHelpers = {
   },
 
   /**
-   * API呼び出しログ
+   * API call log
    *
-   * HTTPリクエストの構造化ログ記録。
-   * ステータスコードに応じたログレベル自動選択。
+   * Structured log recording of HTTP requests.
+   * Automatic log level selection based on status code.
    *
-   * @param url - リクエストURL
-   * @param method - HTTPメソッド
-   * @param status - HTTPステータスコード（オプション）
-   * @param duration - 処理時間（ms）（オプション）
+   * @param url - Request URL
+   * @param method - HTTP method
+   * @param status - HTTP status code (optional)
+   * @param duration - Processing time (ms) (optional)
    *
    * @public
    */
@@ -593,10 +594,10 @@ export const clientLoggerHelpers = {
 };
 
 /**
- * デフォルトクライアントロガーエクスポート
+ * Default client logger export
  *
- * 統一Loggerインターフェース準拠のクライアントサイドロガー。
- * 最も一般的な用途での推奨エクスポート。
+ * Client-side logger compliant with unified Logger interface.
+ * Recommended export for most common uses.
  *
  * @public
  */

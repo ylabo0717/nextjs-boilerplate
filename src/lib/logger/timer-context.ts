@@ -154,14 +154,14 @@ export function setIntervalWithContext<TArgs extends unknown[]>(
  *
  * Provides utilities for managing context-aware timers globally.
  *
- * ## クラス実装の理由
+ * ## Why a class implementation
  *
- * **Pure Functions First原則の例外として、以下の理由でクラス実装を採用:**
- * - **状態管理**: アクティブタイマーの追跡とライフサイクル管理が必要
- * - **リソース管理**: タイマーの適切なクリーンアップとメモリリーク防止
- * - **グローバル管理**: アプリケーション全体でのタイマー統制とモニタリング
- * - **コンテキスト保持**: 非同期処理でのロガーコンテキスト継承
- * - **デバッグ支援**: アクティブタイマーの可視化とトラブルシューティング
+ * As an exception to the Pure Functions First principle, we use a class here because:
+ * - State management: track active timers and control their lifecycle
+ * - Resource management: ensure proper cleanup and prevent memory leaks
+ * - Global coordination: centralize timer operations and monitoring across the app
+ * - Context propagation: preserve logger context across async executions
+ * - Debugging support: make active timers observable to aid troubleshooting
  *
  * @public
  */

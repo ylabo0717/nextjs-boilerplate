@@ -17,18 +17,18 @@ import type { LokiClientConfig, LokiLabels } from './loki-client';
 import type { Logger, LogLevel, LogArgument, LoggerContext } from './types';
 
 /**
- * Loki トランスポート設定型
+ * Loki transport configuration type
  *
  * @public
  */
 export interface LokiTransportConfig extends Partial<LokiClientConfig> {
-  /** Transport を有効化するかどうか (default: true) */
+  /** Whether to enable Transport (default: true) */
   readonly enabled?: boolean;
-  /** 最小ログレベル (この レベル以下のログは送信されない) */
+  /** Minimum log level (logs below this level are not sent) */
   readonly minLevel?: LogLevel;
-  /** Loki への送信を除外するログパターン */
+  /** Log patterns to exclude from sending to Loki */
   readonly excludePatterns?: readonly RegExp[];
-  /** 送信前のログ変換関数 */
+  /** Log transformation function before sending */
   readonly logTransformer?: (
     level: LogLevel,
     message: string,
@@ -38,7 +38,7 @@ export interface LokiTransportConfig extends Partial<LokiClientConfig> {
     labels: LokiLabels;
     metadata?: Record<string, unknown>;
   };
-  /** エラー時のフォールバック動作 */
+  /** Fallback behavior on error */
   readonly onError?: (
     error: Error,
     logData: {
@@ -50,31 +50,31 @@ export interface LokiTransportConfig extends Partial<LokiClientConfig> {
 }
 
 /**
- * Loki トランスポート統計情報型
+ * Loki transport statistics type
  *
  * @public
  */
 export interface LokiTransportStats {
-  /** Loki トランスポートが有効かどうか */
+  /** Whether Loki transport is enabled */
   readonly enabled: boolean;
-  /** 送信を試行したログの総数 */
+  /** Total number of logs that attempted to send */
   readonly totalLogs: number;
-  /** 正常に送信されたログの数 */
+  /** Number of successfully sent logs */
   readonly successfulLogs: number;
-  /** 送信に失敗したログの数 */
+  /** Number of failed log sends */
   readonly failedLogs: number;
-  /** フィルタリングにより除外されたログの数 */
+  /** Number of logs excluded by filtering */
   readonly excludedLogs: number;
-  /** 現在バッファリングされているログの数 */
+  /** Number of currently buffered logs */
   readonly bufferedLogs: number;
-  /** 最後に発生したエラーメッセージ */
+  /** Last error message that occurred */
   readonly lastError?: string;
-  /** 最後にエラーが発生した時刻 */
+  /** Time when the last error occurred */
   readonly lastErrorTime?: Date;
 }
 
 /**
- * 内部統計情報型（mutable）
+ * Internal statistics type (mutable)
  *
  * @internal
  */
@@ -90,71 +90,68 @@ interface MutableTransportStats {
 }
 
 /**
- * Loki ログトランスポート
+ * Loki transport for logs
  *
- * 既存のロガーシステムからGrafana Lokiへのログ転送を管理。
- * バッファリング、リトライ、エラーハンドリングを自動処理。
+ * Manages forwarding logs from the existing logger to Grafana Loki.
+ * Automatically handles buffering, retries, and error handling.
  *
- * ## クラス実装の理由
+ * ## Reason for class implementation
  *
- * **Pure Functions First原則の例外として、以下の理由でクラス実装を採用:**
- * - **状態管理**: LokiClientインスタンス、送信統計、エラー状態の管理が必要
- * - **ライフサイクル管理**: 初期化、シャットダウン、リソース解放の複雑な制御
- * - **ラッパー機能**: 既存ロガーとの統合で状態を保持したプロキシとして動作
- * - **設定管理**: 動的な設定変更とフィルタリングルールの更新
- * - **統計収集**: ログ送信成功/失敗の累積統計とモニタリング
+ * As an exception to the Pure Functions First principle, a class is used because:
+ * - State management is required (LokiClient instance, send stats, error states)
+ * - Lifecycle management (init, shutdown, resource cleanup)
+ * - Acts as a stateful proxy to wrap existing loggers
+ * - Configuration changes and dynamic filtering rules
+ * - Accumulated statistics and monitoring of delivery results
  *
  * @example
- * ```typescript
+ * ```ts
  * const transport = new LokiTransport({
  *   url: 'http://localhost:3100',
  *   defaultLabels: { service: 'my-app' },
  *   minLevel: 'info',
  *   excludePatterns: [/health.*check/i]
  * });
- *
  * await transport.initialize();
- *
- * // ログラッパーで使用
- * const wrappedLogger = transport.wrapLogger(baseLogger);
- * wrappedLogger.info('This will be sent to Loki and the base logger');
+ * const wrapped = transport.wrapLogger(baseLogger);
+ * wrapped.info('sent to Loki and base logger');
  * ```
  *
  * @public
  */
 export class LokiTransport {
   /**
-   * トランスポート設定（内部使用）
+   * Transport configuration (internal use)
    *
    * @internal
    */
   private readonly config: Required<LokiTransportConfig>;
 
   /**
-   * Lokiクライアントインスタンス（内部使用）
+   * Loki client instance (internal use)
    *
    * @internal
    */
   private client: LokiClient | null = null;
 
   /**
-   * トランスポート統計情報（内部使用）
+   * Transport statistics (internal use)
    *
    * @internal
    */
   private stats: MutableTransportStats;
 
   /**
-   * 初期化完了フラグ（内部使用）
+   * Initialization completed flag (internal use)
    *
    * @internal
    */
   private isInitialized = false;
 
   /**
-   * Loki トランスポートを作成
+   * Create Loki transport
    *
-   * @param config - トランスポート設定
+   * @param config - Transport configuration
    */
   constructor(config: LokiTransportConfig = {}) {
     const defaultConfig = createDefaultLokiConfig();
@@ -181,7 +178,7 @@ export class LokiTransport {
   }
 
   /**
-   * トランスポートを初期化
+   * Initialize transport
    *
    * @returns Promise that resolves when transport is initialized
    *
@@ -212,10 +209,10 @@ export class LokiTransport {
   }
 
   /**
-   * 既存のロガーをラップしてLoki転送機能を追加
+   * Wrap existing logger to add Loki forwarding functionality
    *
-   * @param baseLogger - ベースとなるロガー
-   * @returns Loki転送機能付きロガー
+   * @param baseLogger - Base logger
+   * @returns Logger with Loki forwarding functionality
    *
    * @public
    */
@@ -262,11 +259,11 @@ export class LokiTransport {
   }
 
   /**
-   * ログを直接 Loki に送信
+   * Send log directly to Loki
    *
-   * @param level - ログレベル
-   * @param message - ログメッセージ
-   * @param args - ログ引数
+   * @param level - Log level
+   * @param message - Log message
+   * @param args - Log arguments
    * @returns Promise that resolves when log is sent or queued
    *
    * @public
@@ -280,7 +277,7 @@ export class LokiTransport {
   }
 
   /**
-   * トランスポートをシャットダウン
+   * Shutdown transport
    *
    * @returns Promise that resolves when shutdown is complete
    *
@@ -296,7 +293,7 @@ export class LokiTransport {
   }
 
   /**
-   * トランスポート統計情報を取得
+   * Get transport statistics
    *
    * @returns Transport statistics
    *
@@ -314,7 +311,7 @@ export class LokiTransport {
   }
 
   /**
-   * トランスポート設定を取得
+   * Get transport configuration
    *
    * @returns Transport configuration (for debugging)
    *
@@ -325,9 +322,9 @@ export class LokiTransport {
   }
 
   /**
-   * ログレベルが送信対象かチェック
+   * Check whether the given log level should be sent
    *
-   * @param level - チェックするログレベル
+   * @param level - Log level to check
    * @returns true if level should be sent
    *
    * @public
@@ -349,11 +346,11 @@ export class LokiTransport {
   }
 
   /**
-   * ログを Loki に送信（内部実装）
+   * Send log to Loki (internal)
    *
-   * @param level - ログレベル
-   * @param message - ログメッセージ
-   * @param args - ログ引数
+   * @param level - Log level
+   * @param message - Log message
+   * @param args - Log arguments
    * @returns Promise that resolves when log is processed
    *
    * @internal
@@ -365,39 +362,39 @@ export class LokiTransport {
   ): Promise<void> {
     this.stats.totalLogs++;
 
-    // Transport が無効または初期化されていない場合
+    // If transport is disabled or not initialized
     if (!this.config.enabled || !this.isInitialized || !this.client) {
       this.stats.excludedLogs++;
       return;
     }
 
-    // ログレベルのチェック
+    // Check log level threshold
     if (!this.shouldSendLevel(level)) {
       this.stats.excludedLogs++;
       return;
     }
 
-    // 除外パターンのチェック
+    // Check exclude patterns
     if (this.config.excludePatterns.some((pattern) => pattern.test(message))) {
       this.stats.excludedLogs++;
       return;
     }
 
     try {
-      // ログの変換とラベル生成
+      // Transform log and generate labels
       const logData = this.transformLog(level, message, args);
 
-      // コンテキスト情報の取得
+      // Retrieve context information
       const context = getLoggerContext(defaultLoggerContextConfig);
       const contextLabels = this.extractContextLabels(context);
 
-      // 最終的なラベルの生成
+      // Build final labels
       const finalLabels: LokiLabels = {
         ...logData.labels,
         ...contextLabels,
       };
 
-      // Loki に送信
+      // Send to Loki
       await this.client.pushLog(level, logData.message, finalLabels, logData.metadata);
 
       this.stats.successfulLogs++;
@@ -406,7 +403,7 @@ export class LokiTransport {
       this.stats.lastError = error instanceof Error ? error.message : String(error);
       this.stats.lastErrorTime = new Date();
 
-      // エラーハンドラーを呼び出し
+      // Invoke error handler
       this.config.onError(error instanceof Error ? error : new Error(String(error)), {
         level,
         message,
@@ -416,11 +413,11 @@ export class LokiTransport {
   }
 
   /**
-   * ログを変換してラベルとメタデータを生成
+   * Transform log and create labels/metadata
    *
-   * @param level - ログレベル
-   * @param message - ログメッセージ
-   * @param args - ログ引数
+   * @param level - Log level
+   * @param message - Log message
+   * @param args - Log arguments
    * @returns Transformed log data
    *
    * @internal
@@ -434,12 +431,12 @@ export class LokiTransport {
     labels: LokiLabels;
     metadata?: Record<string, unknown>;
   } {
-    // カスタム変換関数が指定されている場合
+    // If a custom transformer is provided
     if (this.config.logTransformer) {
       return this.config.logTransformer(level, message, args);
     }
 
-    // デフォルト変換
+    // Default transformation
     const sanitized = sanitizeLogEntry(message, { level, args });
 
     const labels: LokiLabels = {
@@ -460,9 +457,9 @@ export class LokiTransport {
   }
 
   /**
-   * ロガーコンテキストからラベルを抽出
+   * Extract labels from logger context
    *
-   * @param context - ロガーコンテキスト
+   * @param context - Logger context
    * @returns Context labels for Loki
    *
    * @internal
@@ -486,7 +483,7 @@ export class LokiTransport {
       labels.span_id = context.spanId;
     }
 
-    // HTTPコンテキスト情報（Record<string, unknown>として追加されている可能性）
+    // HTTP context info (may be included as Record<string, unknown>)
     if (typeof context.method === 'string') {
       labels.http_method = context.method;
     }
@@ -516,18 +513,18 @@ export class LokiTransport {
 }
 
 /**
- * グローバル Loki トランスポートインスタンス
+ * Global Loki transport instance
  *
- * アプリケーション全体で使用されるデフォルトトランスポート。
+ * Default transport used across the application.
  *
  * @public
  */
 export let globalLokiTransport: LokiTransport | null = null;
 
 /**
- * グローバル Loki トランスポートを初期化
+ * Initialize the global Loki transport
  *
- * @param config - トランスポート設定
+ * @param config - Transport configuration
  * @returns Promise that resolves when transport is initialized
  *
  * @public
@@ -547,7 +544,7 @@ export async function initializeLokiTransport(
 }
 
 /**
- * グローバル Loki トランスポートを取得
+ * Get the global Loki transport
  *
  * @returns Global transport instance or null if not initialized
  *
@@ -558,7 +555,7 @@ export function getLokiTransport(): LokiTransport | null {
 }
 
 /**
- * グローバル Loki トランスポートをシャットダウン
+ * Shutdown the global Loki transport
  *
  * @returns Promise that resolves when transport is shutdown
  *
@@ -572,7 +569,7 @@ export async function shutdownLokiTransport(): Promise<void> {
 }
 
 /**
- * 環境変数からLoki設定を作成
+ * Create Loki configuration from environment variables
  *
  * @returns Loki transport configuration from environment
  *

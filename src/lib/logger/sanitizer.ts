@@ -1,19 +1,19 @@
 /**
- * セキュリティ強化: ログインジェクション防止サニタイザー実装
+ * Security Enhancement: Log Injection Prevention Sanitizer Implementation
  *
- * 制御文字・改行文字のエスケープ処理により、ログインジェクション攻撃を防御。
- * ユーザー入力の完全サニタイゼーションでログシステムのセキュリティを保証。
+ * Defends against log injection attacks through control character and newline escaping.
+ * Ensures log system security through complete sanitization of user input.
  */
 
 import type { SanitizedLogEntry } from './types';
 
 /**
- * 制御文字（0x00-0x1F, 0x7F-0x9F）のサニタイゼーション（純粋関数）
+ * Control character sanitization (0x00-0x1F, 0x7F-0x9F) (pure function)
  *
- * ログインジェクション攻撃を防ぐため、制御文字をUnicodeエスケープ形式（\\uXXXX）に変換します。
+ * Converts control characters to Unicode escape format (\\uXXXX) to prevent log injection attacks.
  *
- * @param input - サニタイズ対象のデータ
- * @returns サニタイズされたデータ
+ * @param input - Data to sanitize
+ * @returns Sanitized data
  *
  * @example
  * ```typescript
@@ -25,7 +25,7 @@ import type { SanitizedLogEntry } from './types';
  */
 export function sanitizeControlCharacters(input: unknown): unknown {
   if (typeof input === 'string') {
-    // 制御文字: 0x00-0x1F (C0制御文字), 0x7F-0x9F (DEL + C1制御文字)
+    // Control characters: 0x00-0x1F (C0 control), 0x7F-0x9F (DEL + C1 control)
     return input.replace(/[\x00-\x1F\x7F-\x9F]/g, (char) => {
       return `\\u${char.charCodeAt(0).toString(16).padStart(4, '0').toUpperCase()}`;
     });
@@ -36,7 +36,7 @@ export function sanitizeControlCharacters(input: unknown): unknown {
   }
 
   if (input && typeof input === 'object') {
-    // 循環参照検出用のセット
+    // Set for circular reference detection
     const seen = new Set<object>();
     return sanitizeObjectWithCircularCheck(input, seen);
   }
@@ -45,11 +45,11 @@ export function sanitizeControlCharacters(input: unknown): unknown {
 }
 
 /**
- * 循環参照を考慮したオブジェクトサニタイゼーション（純粋関数）
+ * Object sanitization considering circular references (pure function)
  *
- * @param input - サニタイズ対象のオブジェクト
- * @param seen - 循環参照検出用のセット
- * @returns サニタイズされたオブジェクト
+ * @param input - Object to sanitize
+ * @param seen - Set for circular reference detection
+ * @returns Sanitized object
  *
  * @internal
  */
@@ -73,7 +73,7 @@ function sanitizeObjectWithCircularCheck(
         if (seen.has(value)) {
           Object.assign(sanitized, { [sanitizedKey]: { _circular_reference: true } });
         } else {
-          // 再帰的に処理する際に同じseenセットを渡す
+          // Pass the same seen set for recursive processing
           Object.assign(sanitized, {
             [sanitizedKey]: sanitizeObjectWithCircularCheck(value, seen),
           });
@@ -90,12 +90,12 @@ function sanitizeObjectWithCircularCheck(
 }
 
 /**
- * CRLF 注入防止（純粋関数）
+ * CRLF injection prevention (pure function)
  *
- * ログファイルへのCRLF注入攻撃を防ぐため、改行文字をエスケープ形式に変換します。
+ * Converts newline characters to escape format to prevent CRLF injection attacks on log files.
  *
- * @param input - サニタイズ対象の文字列
- * @returns エスケープされた文字列
+ * @param input - String to sanitize
+ * @returns Escaped string
  *
  * @example
  * ```typescript
@@ -110,12 +110,12 @@ export function sanitizeNewlines(input: string): string {
 }
 
 /**
- * JSON-safe 文字列エスケープ（純粋関数）
+ * JSON-safe string escaping (pure function)
  *
- * 制御文字と改行文字の両方をサニタイズし、JSON形式で安全に出力できるようにします。
+ * Sanitizes both control characters and newlines to enable safe output in JSON format.
  *
- * @param input - サニタイズ対象のデータ
- * @returns JSONシリアライゼーション安全なデータ
+ * @param input - Data to sanitize
+ * @returns JSON-serialization safe data
  *
  * @example
  * ```typescript
@@ -134,14 +134,14 @@ export function sanitizeForJson(input: unknown): unknown {
 }
 
 /**
- * ログメッセージの総合サニタイゼーション（純粋関数）
+ * Comprehensive log message sanitization (pure function)
  *
- * ログメッセージとデータの両方をサニタイズし、安全な形式で返します。
- * ログインジェクション攻撃やデータ破損を防ぐための包括的な処理を行います。
+ * Sanitizes both log messages and data, returning them in safe format.
+ * Performs comprehensive processing to prevent log injection attacks and data corruption.
  *
- * @param message - ログメッセージ
- * @param data - ログに含めるデータ（オプション）
- * @returns サニタイズされたログエントリ
+ * @param message - Log message
+ * @param data - Data to include in log (optional)
+ * @returns Sanitized log entry
  *
  * @example
  * ```typescript
@@ -156,21 +156,21 @@ export function sanitizeLogEntry(message: string, data?: unknown): SanitizedLogE
   const sanitizedData = data ? sanitizeForJson(data) : undefined;
 
   return {
-    message: String(sanitizedMessage), // 明示的にStringに変換
+    message: String(sanitizedMessage), // Explicitly convert to String
     data: sanitizedData,
   };
 }
 
 /**
- * 大きなオブジェクトの制限（純粋関数）
+ * Large object limitation (pure function)
  *
- * メモリ枯渇防止のため、オブジェクトの深度とキー数を制限します。
- * 循環参照の検出と処理も行い、安全なログ出力を保証します。
+ * Limits object depth and key count to prevent memory exhaustion.
+ * Also performs circular reference detection and processing to ensure safe log output.
  *
- * @param input - 制限対象のデータ
- * @param maxDepth - 最大深度（デフォルト: 10）
- * @param maxKeys - 最大キー数（デフォルト: 100）
- * @returns サイズ制限されたデータ
+ * @param input - Data to limit
+ * @param maxDepth - Maximum depth (default: 10)
+ * @param maxKeys - Maximum key count (default: 100)
+ * @returns Size-limited data
  *
  * @example
  * ```typescript
@@ -190,14 +190,14 @@ export function limitObjectSize(
 }
 
 /**
- * オブジェクトサイズ制限の再帰処理（純粋関数）
+ * Recursive processing for object size limitation (pure function)
  *
- * @param input - 処理対象のデータ
- * @param maxDepth - 最大深度
- * @param maxKeys - 最大キー数
- * @param currentDepth - 現在の深度
- * @param seen - 循環参照検出用のセット
- * @returns 制限されたデータ
+ * @param input - Data to process
+ * @param maxDepth - Maximum depth
+ * @param maxKeys - Maximum key count
+ * @param currentDepth - Current depth
+ * @param seen - Set for circular reference detection
+ * @returns Limited data
  *
  * @internal
  */
@@ -228,14 +228,14 @@ function limitObjectSizeRecursive(
 }
 
 /**
- * 配列データの処理（純粋関数）
+ * Array data processing (pure function)
  *
- * @param input - 処理対象の配列
- * @param maxDepth - 最大深度
- * @param maxKeys - 最大要素数
- * @param currentDepth - 現在の深度
- * @param seen - 循環参照検出用のセット
- * @returns 制限された配列
+ * @param input - Array to process
+ * @param maxDepth - Maximum depth
+ * @param maxKeys - Maximum element count
+ * @param currentDepth - Current depth
+ * @param seen - Set for circular reference detection
+ * @returns Limited array
  *
  * @internal
  */
@@ -259,14 +259,14 @@ function processArray(
 }
 
 /**
- * オブジェクトデータの処理（純粋関数）
+ * Object data processing (pure function)
  *
- * @param input - 処理対象のオブジェクト
- * @param maxDepth - 最大深度
- * @param maxKeys - 最大キー数
- * @param currentDepth - 現在の深度
- * @param seen - 循環参照検出用のセット
- * @returns 制限されたオブジェクト
+ * @param input - Object to process
+ * @param maxDepth - Maximum depth
+ * @param maxKeys - Maximum key count
+ * @param currentDepth - Current depth
+ * @param seen - Set for circular reference detection
+ * @returns Limited object
  *
  * @internal
  */
@@ -296,15 +296,15 @@ function processObject(
 }
 
 /**
- * キー数制限されたオブジェクトの作成（純粋関数）
+ * Creation of key-limited object (pure function)
  *
- * @param entries - オブジェクトのキー・値ペア
- * @param maxDepth - 最大深度
- * @param maxKeys - 最大キー数
- * @param currentDepth - 現在の深度
- * @param seen - 循環参照検出用のセット
- * @param keyLimit - キー制限数
- * @returns 制限されたオブジェクト
+ * @param entries - Object key-value pairs
+ * @param maxDepth - Maximum depth
+ * @param maxKeys - Maximum key count
+ * @param currentDepth - Current depth
+ * @param seen - Set for circular reference detection
+ * @param keyLimit - Key limitation count
+ * @returns Limited object
  *
  * @internal
  */
@@ -335,14 +335,14 @@ function createLimitedObject(
 }
 
 /**
- * 完全なオブジェクトの作成（純粋関数）
+ * Creation of complete object (pure function)
  *
- * @param entries - オブジェクトのキー・値ペア
- * @param maxDepth - 最大深度
- * @param maxKeys - 最大キー数
- * @param currentDepth - 現在の深度
- * @param seen - 循環参照検出用のセット
- * @returns 処理されたオブジェクト
+ * @param entries - Object key-value pairs
+ * @param maxDepth - Maximum depth
+ * @param maxKeys - Maximum key count
+ * @param currentDepth - Current depth
+ * @param seen - Set for circular reference detection
+ * @returns Processed object
  *
  * @internal
  */

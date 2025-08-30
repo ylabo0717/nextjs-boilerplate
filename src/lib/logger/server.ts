@@ -1,17 +1,19 @@
 /**
- * Pinoベースサーバーサイドロガー実装
+ * Pino-based server-side logger implementation
  *
- * 高性能・構造化ログと統合セキュリティ機能を提供するサーバーサイドロガー。
- * Next.js 15 + Pino v9 による最適化されたログシステム。
+ * High-performance structured logger with integrated security features
+ * for server-side environments. Optimized logging system using
+ * Next.js 15 + Pino v9 for production-grade performance.
  *
- * 主要機能:
- * - 高性能な構造化ログ出力
- * - 自動セキュリティサニタイゼーション
- * - 機密情報の自動Redaction
- * - AsyncLocalStorage連携コンテキスト管理
- * - OpenTelemetry準拠のメタデータ
- * - 環境別Transport最適化
- */ import pino from 'pino';
+ * Key features:
+ * - High-performance structured log output
+ * - Automatic security sanitization
+ * - Automatic redaction of sensitive information
+ * - AsyncLocalStorage-integrated context management
+ * - OpenTelemetry-compliant metadata
+ * - Environment-specific transport optimization
+ */
+import pino from 'pino';
 
 import { loggerContextManager } from './context';
 import { incrementLogCounter, incrementErrorCounter } from './metrics';
@@ -20,55 +22,56 @@ import { getLogLevelFromEnv, createBaseProperties, REDACT_PATHS, serializeError 
 
 import type { Logger, LogArgument } from './types';
 
+// Create base properties using the utility function
+const baseProperties = createBaseProperties();
+
 /**
- * Pinoベースサーバーロガーの作成
+ * Create Pino-based server logger
  *
- * 本番環境向けに最適化されたPinoロガーインスタンスを作成。
- * セキュリティ機能、パフォーマンス最適化、構造化ログ機能を統合。
+ * Creates optimized Pino logger instance for production environments.
+ * Integrates security features, performance optimization, and structured
+ * logging capabilities for enterprise-grade server logging.
  *
- * 設定される機能:
- * - 環境変数ベースのログレベル制御
- * - ISO 8601準拠のタイムスタンプ
- * - 機密情報の自動Redaction
- * - カスタムシリアライザー（エラー、リクエスト、レスポンス）
- * - OpenTelemetry準拠のログフォーマット
- * - ログ出力前のセキュリティサニタイゼーション
+ * Configured features:
+ * - Environment variable-based log level control
+ * - ISO 8601 compliant timestamps
+ * - Automatic redaction of sensitive information
+ * - Custom serializers (error, request, response)
+ * - OpenTelemetry compliant log format
+ * - Security sanitization before log output
  *
- * @returns 設定済みPinoロガーインスタンス
+ * @returns Configured Pino logger instance
  *
  * @internal
  */
 function createServerLogger(): pino.Logger {
-  const baseProperties = createBaseProperties();
-
   const pinoOptions: pino.LoggerOptions = {
-    level: getLogLevelFromEnv(),
-    timestamp: pino.stdTimeFunctions.isoTime,
-    base: baseProperties,
+    name: baseProperties.app,
+    level: getLogLevelFromEnv() as pino.Level,
 
-    // 🚨 セキュリティ: 機密情報のRedaction設定
+    // 🚨 Security: Redacting sensitive information
     redact: {
       paths: REDACT_PATHS,
       censor: '[REDACTED]',
     },
 
-    // 標準シリアライザー + カスタムエラーシリアライザー
+    // Standard serializers + Custom error serializer
     serializers: {
       ...pino.stdSerializers,
       err: (error: Error | unknown) => serializeError(error),
       req: (req: unknown) => {
-        // リクエストオブジェクトのサニタイズ
+        // Request object sanitization
         const sanitized = sanitizeLogEntry('', req);
         return limitObjectSize(sanitized.data, 5, 50);
       },
       res: (res: unknown) => {
-        // レスポンスオブジェクトのサニタイズ
+        // Response object sanitization
         const sanitized = sanitizeLogEntry('', res);
         return limitObjectSize(sanitized.data, 3, 20);
       },
     },
 
-    // フォーマッターで追加情報を付与
+    // Formatter for additional information
     formatters: {
       level: (label: string, number: number) => ({
         level: label,
@@ -81,19 +84,19 @@ function createServerLogger(): pino.Logger {
       }),
     },
 
-    // ログ出力前の最終処理
+    // Final processing before log output
     hooks: {
       logMethod(inputArgs, method) {
-        // 🚨 セキュリティ: 全ログエントリのサニタイズ
+        // 🚨 Security: Sanitize all log entries
         if (!inputArgs || (inputArgs as unknown[]).length === 0) {
           return method.apply(this, inputArgs);
         }
 
-        // 引数を配列として扱う
+        // Treat arguments as array
         const args = Array.from(inputArgs);
         const [firstArg, ...restArgs] = args;
 
-        // 第一引数がstringの場合：(message, ...args)のパターン
+        // First argument is string: (message, ...args) pattern
         if (typeof firstArg === 'string') {
           const sanitized = sanitizeLogEntry(firstArg, {});
           const message: string = String(sanitized.message);
@@ -101,7 +104,7 @@ function createServerLogger(): pino.Logger {
           return method.apply(this, newArgs as Parameters<typeof method>);
         }
 
-        // 第一引数がobjectで、第二引数がstringの場合：(obj, message, ...args)のパターン
+        // First argument is object and second is string: (obj, message, ...args) pattern
         if (restArgs.length > 0 && typeof restArgs[0] === 'string') {
           const sanitized = sanitizeLogEntry(restArgs[0] as string, firstArg);
           const message: string = String(sanitized.message);
@@ -109,30 +112,47 @@ function createServerLogger(): pino.Logger {
           return method.apply(this, newArgs as Parameters<typeof method>);
         }
 
-        // その他の場合はそのまま実行
+        // Other cases: execute as-is
         return method.apply(this, inputArgs);
       },
     },
   };
 
-  // 環境に応じたTransport設定
+  // Environment-specific Transport configuration
   return createLoggerWithTransport(pinoOptions);
 }
 
 /**
- * 環境に応じたTransport設定でLoggerを作成
+ * Create logger with environment-specific transport configuration
  *
- * 実行環境（開発/本番、Next.jsランタイム）に応じて最適な
- * Transportを選択してPinoロガーを初期化。
+ * Initializes Pino with the optimal transport depending on the runtime
+ * (development/production, Next.js runtime).
  *
- * Transport選択ロジック:
- * - 開発環境 && 非Next.jsランタイム: pino-pretty（色付き）
- * - 本番環境 || Next.jsランタイム: 標準出力（JSON）
+ * Transport selection logic:
+ * - Development && non-Next.js runtime: pino-pretty (colored)
+ * - Production || Next.js runtime: standard output (JSON)
  *
- * pino-pretty初期化失敗時は自動的に標準出力にフォールバック。
+ * Automatically falls back to standard output when pino-pretty initialization fails.
  *
- * @param options - Pinoロガーオプション
- * @returns 設定済みPinoロガーインスタンス
+ * @param options - Pino logger options
+ * @returns Configured Pino logger instance
+ *
+ * @internal
+ */
+/**
+ * Create Logger with environment-specific Transport configuration
+ *
+ * Initialize Pino logger with optimal Transport selection based on
+ * runtime environment (development/production, Next.js runtime).
+ *
+ * Transport selection logic:
+ * - Development environment && non-Next.js runtime: pino-pretty (colored)
+ * - Production environment || Next.js runtime: standard output (JSON)
+ *
+ * Automatically falls back to standard output when pino-pretty initialization fails.
+ *
+ * @param options - Pino logger options
+ * @returns Configured Pino logger instance
  *
  * @internal
  */
@@ -140,7 +160,7 @@ function createLoggerWithTransport(options: pino.LoggerOptions): pino.Logger {
   const isDevelopment = process.env.NODE_ENV !== 'production';
   const isNextRuntime = typeof process.env.NEXT_RUNTIME !== 'undefined';
 
-  // 開発環境 かつ Next.jsランタイム以外の場合のみpino-prettyを使用
+  // Use pino-pretty only in development environment and outside Next.js runtime
   if (isDevelopment && !isNextRuntime) {
     try {
       const transport = pino.transport({
@@ -157,7 +177,7 @@ function createLoggerWithTransport(options: pino.LoggerOptions): pino.Logger {
 
       return pino(options, transport);
     } catch (error) {
-      // pino-pretty初期化失敗時のフォールバック
+      // Fallback when pino-pretty initialization fails
       console.warn('Failed to initialize pino-pretty transport, falling back to basic logger:', {
         error: serializeError(error),
         timestamp: new Date().toISOString(),
@@ -167,18 +187,18 @@ function createLoggerWithTransport(options: pino.LoggerOptions): pino.Logger {
     }
   }
 
-  // 本番環境またはNext.jsランタイム環境では標準出力
+  // Standard output in production or Next.js runtime environment
   return pino(options);
 }
 
-// Serverロガーインスタンスの作成
+// Create server logger instance
 /**
- * サーバーサイドメインロガーインスタンス
+ * Main server-side logger instance
  *
- * アプリケーション全体で使用されるPinoベースロガー。
- * 設定済みのセキュリティ機能とパフォーマンス最適化を含む。
+ * Pino-based logger used across the application.
+ * Includes built-in security features and performance optimizations.
  *
- * 直接使用よりもserverLoggerWrapperの使用を推奨。
+ * Prefer using a higher-level wrapper when available.
  *
  * @public
  */
@@ -219,22 +239,23 @@ function extractErrorType(mergedArgs: Record<string, unknown>): string {
   return 'application_error';
 }
 
+// (Removed duplicate non-English doc; see following English JSDoc)
 /**
- * 複数引数を適切にマージする関数
+ * Function to properly merge multiple arguments
  *
- * 🚨 セキュリティ強化: 引数の自動サニタイズ
+ * 🚨 Security Enhancement: Automatic argument sanitization
  *
- * ログメソッドに渡される複数の引数を統一的な構造に変換。
- * 型に応じた適切な処理とセキュリティサニタイゼーションを適用。
+ * Convert multiple arguments passed to log methods into unified structure.
+ * Apply appropriate processing and security sanitization based on type.
  *
- * 処理ルール:
- * - Error オブジェクト: errキーでserializeError適用
- * - Object型: サニタイズ後にマージ、サイズ制限適用
- * - その他: args配列にプリミティブ値として格納
- * - null/undefined: スキップ
+ * Processing rules:
+ * - Error objects: Apply serializeError with err key
+ * - Object type: Sanitize then merge, apply size limits
+ * - Others: Store as primitive values in args array
+ * - null/undefined: Skip
  *
- * @param args - ログメソッドの引数配列
- * @returns 統一された構造化データ
+ * @param args - Array of log method arguments
+ * @returns Unified structured data
  *
  * @internal
  */
@@ -247,15 +268,15 @@ function mergeLogArguments(args: LogArgument[]): Record<string, unknown> {
     }
 
     if (arg instanceof Error) {
-      // Error オブジェクトは err キーで格納（Pino標準）
+      // Error objects are stored with err key (Pino standard)
       result.err = serializeError(arg);
     } else if (typeof arg === 'object' && !Array.isArray(arg)) {
-      // オブジェクトはサニタイズしてマージ
+      // Objects are sanitized and merged
       const sanitized = sanitizeLogEntry('', arg);
       const limited = limitObjectSize(sanitized.data, 10, 100);
       Object.assign(result, limited);
     } else {
-      // その他の型は args 配列に格納
+      // Other types are stored in args array
       if (!result.args) {
         result.args = [];
       }
@@ -267,19 +288,19 @@ function mergeLogArguments(args: LogArgument[]): Record<string, unknown> {
 }
 
 /**
- * Logger インターフェース準拠のラッパー実装
+ * Logger interface compliant wrapper implementation
  *
- * 🚨 Child Logger + AsyncLocalStorage統合
+ * 🚨 Child Logger + AsyncLocalStorage integration
  *
- * 統一Loggerインターフェースに準拠したサーバーサイドロガー。
- * AsyncLocalStorageによるコンテキスト自動統合と
- * セキュリティサニタイゼーションを提供。
+ * Server-side logger following unified Logger interface.
+ * Provides automatic context integration via AsyncLocalStorage
+ * and security sanitization.
  *
- * すべてのログメソッドで以下を自動実行:
- * - 現在のAsyncLocalStorageコンテキスト取得
- * - 引数のマージとサニタイゼーション
- * - コンテキスト情報の自動付与
- * - Pinoロガーへの安全な転送
+ * All log methods automatically execute:
+ * - Get current AsyncLocalStorage context
+ * - Merge and sanitize arguments
+ * - Automatically attach context information
+ * - Safely forward to Pino logger
  *
  * @public
  */
@@ -356,24 +377,24 @@ export const serverLoggerWrapper: Logger = {
 };
 
 /**
- * 高レベルヘルパー関数群
+ * High-level helper functions
  *
- * よく使用されるログパターンの便利関数集。
- * パフォーマンス測定、セキュリティイベント、ユーザーアクション等の
- * 定型的なログ記録を簡単に実行可能。
+ * Collection of convenience functions for commonly used log patterns.
+ * Enables easy implementation of standard log recording for
+ * performance measurement, security events, user actions, etc.
  *
  * @public
  */
 export const serverLoggerHelpers = {
   /**
-   * パフォーマンス測定（同期関数用）
+   * Performance measurement (for synchronous functions)
    *
-   * 関数の実行時間を自動測定し、パフォーマンスログを記録。
-   * 例外発生時はエラーログと実行時間の両方を記録。
+   * Automatically measures function execution time and records performance logs.
+   * Records both error logs and execution time when exceptions occur.
    *
-   * @param name - 測定操作名
-   * @param fn - 測定対象の同期関数
-   * @returns 関数の実行結果
+   * @param name - Measurement operation name
+   * @param fn - Synchronous function to measure
+   * @returns Function execution result
    *
    * @public
    */
@@ -394,14 +415,14 @@ export const serverLoggerHelpers = {
   },
 
   /**
-   * パフォーマンス測定（非同期関数用）
+   * Performance measurement (for asynchronous functions)
    *
-   * Promise関数の実行時間を自動測定し、パフォーマンスログを記録。
-   * 例外発生時はエラーログと実行時間の両方を記録。
+   * Automatically measures Promise function execution time and records performance logs.
+   * Records both error logs and execution time when exceptions occur.
    *
-   * @param name - 測定操作名
-   * @param fn - 測定対象の非同期関数
-   * @returns 関数の実行結果Promise
+   * @param name - Measurement operation name
+   * @param fn - Asynchronous function to measure
+   * @returns Function execution result Promise
    *
    * @public
    */
@@ -422,13 +443,13 @@ export const serverLoggerHelpers = {
   },
 
   /**
-   * セキュリティイベントログ
+   * Security event log
    *
-   * セキュリティ関連イベントを高優先度で記録。
-   * 自動的にerrorレベルで出力し、監視システムでのアラート対象となる。
+   * Records security-related events with high priority.
+   * Automatically outputs at error level and becomes alert target for monitoring systems.
    *
-   * @param event - セキュリティイベント名
-   * @param details - イベント詳細情報
+   * @param event - Security event name
+   * @param details - Event detail information
    *
    * @public
    */
@@ -437,13 +458,13 @@ export const serverLoggerHelpers = {
   },
 
   /**
-   * ユーザーアクションログ
+   * User action log
    *
-   * ユーザー操作を構造化ログとして記録。
-   * ユーザー行動分析、A/Bテスト、メトリクス収集に使用。
+   * Records user operations as structured logs.
+   * Used for user behavior analysis, A/B testing, and metrics collection.
    *
-   * @param action - ユーザーアクション名
-   * @param details - アクション詳細情報
+   * @param action - User action name
+   * @param details - Action detail information
    *
    * @public
    */
@@ -452,13 +473,13 @@ export const serverLoggerHelpers = {
   },
 
   /**
-   * システムイベントログ
+   * System event log
    *
-   * アプリケーション内部イベントを構造化ログとして記録。
-   * システム監視、パフォーマンス分析、障害検知に使用。
+   * Records application internal events as structured logs.
+   * Used for system monitoring, performance analysis, and fault detection.
    *
-   * @param event - システムイベント名
-   * @param details - イベント詳細情報
+   * @param event - System event name
+   * @param details - Event detail information
    *
    * @public
    */
@@ -468,10 +489,10 @@ export const serverLoggerHelpers = {
 };
 
 /**
- * デフォルトサーバーロガーエクスポート
+ * Default server logger export
  *
- * 統一Loggerインターフェース準拠のサーバーサイドロガー。
- * 最も一般的な用途での推奨エクスポート。
+ * Server-side logger compliant with unified Logger interface.
+ * Recommended export for most common use cases.
  *
  * @public
  */

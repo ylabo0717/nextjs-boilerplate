@@ -85,7 +85,8 @@
       "Bash(pnpm docker:monitoring:*)",
       "WebFetch(domain:hub.docker.com)",
       "Bash(find:*)",
-      "Bash(pnpm typedoc:*)"
+      "Bash(pnpm typedoc:*)",
+      "Bash(gh pr:*)"
     ],
     "deny": [
       "Bash(sudo *)",

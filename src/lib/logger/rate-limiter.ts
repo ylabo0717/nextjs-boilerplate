@@ -11,163 +11,164 @@ import { getDefaultStorage } from './kv-storage';
 import type { LogLevel } from './types';
 
 /**
- * レート制限設定インターフェース（不変）
+ * Rate limiter configuration interface (immutable)
  *
- * Token Bucket + Exponential Backoff + Adaptive Sampling アルゴリズムの設定を定義します。
+ * Defines configuration for Token Bucket + Exponential Backoff + Adaptive Sampling algorithm.
  *
  * @public
  */
 export interface RateLimiterConfig {
-  /** 最大トークン数（バケットサイズ） */
+  /** Maximum number of tokens (bucket size) */
   readonly max_tokens: number;
-  /** max_tokensのエイリアス（互換性のため） */
+  /** Alias for max_tokens (for compatibility) */
   readonly bucket_size?: number;
-  /** トークン補充レート（トークン/秒） */
+  /** Token refill rate (tokens per second) */
   readonly refill_rate: number;
-  /** 補充間隔（ミリ秒）（互換性のため） */
+  /** Refill interval in milliseconds (for compatibility) */
   readonly refill_interval_ms?: number;
-  /** バースト許容量 */
+  /** Burst capacity allowance */
   readonly burst_capacity: number;
-  /** バックオフ乗数 */
+  /** Backoff multiplier */
   readonly backoff_multiplier: number;
-  /** 最大バックオフ時間（秒） */
+  /** Maximum backoff time in seconds */
   readonly max_backoff: number;
-  /** ログレベル別サンプリング率 */
+  /** Sampling rates by log level */
   readonly sampling_rates: Readonly<Record<string, number>>;
-  /** 適応的サンプリングの有効化 */
+  /** Enable adaptive sampling */
   readonly adaptive_sampling: boolean;
-  /** 適応的サンプリング発動しきい値（エラー数/分） */
+  /** Adaptive sampling trigger threshold (errors per minute) */
   readonly error_threshold: number;
-  /** 指数バックオフ有効化（互換性のため） */
+  /** Enable exponential backoff (for compatibility) */
   readonly enable_exponential_backoff?: boolean;
-  /** エンドポイント別制限設定 */
+  /** Per-endpoint limit settings */
   readonly endpoint_limits?: Record<string, { bucket_size?: number; refill_rate?: number }>;
-  /** テスト用のカスタム乱数生成関数 */
+  /** Custom random number generator function for testing */
   readonly randomFn?: () => number;
 }
 
 /**
- * レート制限状態インターフェース（関数型アプローチ）
+ * Rate limit state interface (functional approach)
  *
- * レートリミッターの現在状態を表す不変オブジェクトです。
+ * Immutable object representing the current state of the rate limiter.
  *
  * @public
  */
 export interface RateLimiterState {
-  /** 現在のトークン数 */
+  /** Current number of tokens */
   readonly tokens: number;
-  /** 最後のトークン補充時刻 */
+  /** Last token refill timestamp */
   readonly last_refill: number;
-  /** 連続拒否回数 */
+  /** Number of consecutive rejections */
   readonly consecutive_rejects: number;
-  /** バックオフ解除時刻 */
+  /** Backoff expiration timestamp */
   readonly backoff_until: number;
-  /** エラータイプ別カウント */
+  /** Error counts by error type */
   readonly error_counts: Readonly<Record<string, number>>;
-  /** エラー発生時刻の履歴 */
+  /** History of error occurrence timestamps */
   readonly error_timestamps: readonly number[];
-  /** 総リクエスト数 */
+  /** Total number of requests */
   readonly total_requests: number;
-  /** 成功リクエスト数 */
+  /** Number of successful requests */
   readonly successful_requests: number;
 }
 
 /**
- * レート制限判定結果
+ * Rate limit check result
  *
- * レートリミッターによる制限判定の結果を表します。
+ * Represents the result of a rate limit check by the rate limiter.
  *
  * @public
  */
 export interface RateLimitResult {
-  /** リクエストが許可されたかどうか */
+  /** Whether the request is allowed */
   readonly allowed: boolean;
-  /** 残りトークン数 */
+  /** Number of remaining tokens */
   readonly remaining_tokens: number;
-  /** リトライまでの待機時間（秒） */
+  /** Wait time until retry in seconds */
   readonly retry_after?: number;
-  /** サンプリングが適用されたかどうか */
+  /** Whether sampling was applied */
   readonly sampling_applied: boolean;
-  /** 判定理由 */
+  /** Reason for the decision */
   readonly reason: 'allowed' | 'tokens' | 'backoff' | 'sampling';
-  /** 更新後の状態 */
+  /** Updated state after the check */
   readonly new_state: RateLimiterState;
-  /** 適応的サンプリング率 */
+  /** Adaptive sampling rate */
   readonly adaptive_rate?: number;
 }
 
 /**
- * エラー頻度分析結果
+ * Error frequency analysis result
  *
- * エラー発生頻度の分析と適応的サンプリングの推奨設定を提供します。
+ * Provides analysis of error occurrence frequency and recommended settings for adaptive sampling.
  *
  * @public
  */
 export interface ErrorFrequencyAnalysis {
-  /** 総エラー数 */
+  /** Total number of errors */
   readonly total_errors: number;
-  /** 分あたりエラー数 */
+  /** Number of errors per minute */
   readonly errors_per_minute: number;
-  /** 上位エラータイプ */
+  /** Top error types by frequency */
   readonly top_error_types: readonly { type: string; count: number }[];
-  /** 適応的サンプリングの適用推奨 */
+  /** Whether adaptive sampling should be applied */
   readonly should_apply_adaptive: boolean;
-  /** 推奨サンプリング率 */
+  /** Recommended sampling rate */
   readonly recommended_sampling_rate: number;
 }
 
 /**
- * レートリミッター設定オプション
+ * Rate limiter configuration options
  *
- * レートリミッターの設定をカスタマイズするためのオプションインターフェースです。
- * プロダクション環境では環境変数から設定され、テスト環境ではこのオプションで上書きできます。
+ * Optional interface for customizing rate limiter configuration.
+ * In production environments, settings are loaded from environment variables,
+ * while in test environments, these options can override them.
  *
  * @public
  */
 export interface RateLimiterConfigOptions {
-  /** バケットサイズ（max_tokensのエイリアス） */
+  /** Bucket size (alias for max_tokens) */
   readonly bucket_size?: number;
-  /** 最大トークン数 */
+  /** Maximum number of tokens */
   readonly max_tokens?: number;
-  /** トークン補充レート（トークン/秒） */
+  /** Token refill rate (tokens per second) */
   readonly refill_rate?: number;
-  /** 補充間隔（ミリ秒）（互換性のため） */
+  /** Refill interval in milliseconds (for compatibility) */
   readonly refill_interval_ms?: number;
-  /** バースト許容量 */
+  /** Burst capacity allowance */
   readonly burst_capacity?: number;
-  /** バックオフ乗数 */
+  /** Backoff multiplier */
   readonly backoff_multiplier?: number;
-  /** 最大バックオフ時間（秒） */
+  /** Maximum backoff time in seconds */
   readonly max_backoff?: number;
-  /** 指数バックオフ有効化 */
+  /** Enable exponential backoff */
   readonly enable_exponential_backoff?: boolean;
-  /** ログレベル別サンプリング率 */
+  /** Sampling rates by log level */
   readonly sampling_rates?: Record<string, number>;
-  /** 適応的サンプリングの有効化 */
+  /** Enable adaptive sampling */
   readonly adaptive_sampling?: boolean;
-  /** 適応的サンプリング発動しきい値（エラー数/分） */
+  /** Adaptive sampling trigger threshold (errors per minute) */
   readonly error_threshold?: number;
-  /** エンドポイント別制限設定 */
+  /** Per-endpoint limit settings */
   readonly endpoint_limits?: Record<string, { bucket_size?: number; refill_rate?: number }>;
-  /** テスト用のカスタム乱数生成関数 */
+  /** Custom random number generator function for testing */
   readonly randomFn?: () => number;
 }
 
 /**
- * レートリミッター設定を作成する純粋関数
+ * Pure function to create rate limiter configuration
  *
- * 環境変数や指定されたオプションに基づいて、レートリミット設定を作成します。
- * Token Bucketアルゴリズム、指数バックオフ、アダプティブサンプリングの設定が含まれます。
+ * Creates rate limit configuration based on environment variables or specified options.
+ * Includes settings for Token Bucket algorithm, exponential backoff, and adaptive sampling.
  *
- * @param options - オプション設定（オプション）
- * @returns 不変のRateLimiterConfigオブジェクト
+ * @param options - Optional configuration settings
+ * @returns Immutable RateLimiterConfig object
  *
  * @example
  * ```typescript
- * // デフォルト設定で作成
+ * // Create with default settings
  * const config = createRateLimiterConfig();
  *
- * // カスタム設定で作成
+ * // Create with custom settings
  * const customConfig = createRateLimiterConfig({
  *   max_tokens: 50,
  *   refill_rate: 5,
@@ -217,19 +218,19 @@ export function createRateLimiterConfig(options?: RateLimiterConfigOptions): Rat
 }
 
 /**
- * レートリミッターの初期状態を作成する純粋関数
+ * Pure function to create initial rate limiter state
  *
- * トークンバケットの初期状態を作成します。初期トークン数、タイムスタンプ、
- * エラーカウントなどが含まれます。全てのフィールドは不変です。
+ * Creates the initial state of the token bucket. Includes initial token count,
+ * timestamps, error counts, etc. All fields are immutable.
  *
- * @returns 初期化された不変のRateLimiterStateオブジェクト
+ * @returns Initialized immutable RateLimiterState object
  *
  * @example
  * ```typescript
  * const initialState = createInitialState();
  * // {
  * //   tokens: 100,
- * //   last_refill: 現在時刻,
+ * //   last_refill: current_time,
  * //   consecutive_rejects: 0,
  * //   backoff_until: 0,
  * //   error_counts: {},
@@ -255,21 +256,22 @@ export function createInitialState(): RateLimiterState {
 }
 
 /**
- * レートリミッター設定の有効性を検証する純粋関数
+ * Pure function to validate rate limiter configuration
  *
- * 設定値の範囲、サンプリングレートの値などをチェックし、
- * 設定が正しいかどうかを判定します。不正な設定はレートリミットの誤動作を引き起こす可能性があります。
+ * Checks configuration value ranges, sampling rate values, etc.,
+ * and determines if the configuration is correct. Invalid configurations
+ * may cause rate limiter malfunction.
  *
- * @param config - 検証するレートリミッター設定
- * @returns 設定が有効な場合 true、無効な場合 false
+ * @param config - Rate limiter configuration to validate
+ * @returns true if configuration is valid, false if invalid
  *
  * @example
  * ```typescript
  * const config = createRateLimiterConfig();
  * if (validateRateLimiterConfig(config)) {
- *   console.log('設定は有効です');
+ *   console.log('Configuration is valid');
  * } else {
- *   console.error('設定にエラーがあります');
+ *   console.error('Configuration has errors');
  * }
  * ```
  *
@@ -326,21 +328,21 @@ export function resetRateLimiterState(
 }
 
 /**
- * 特定のクライアントとエンドポイントのレートリミット統計を取得する関数
+ * Function to get rate limit statistics for a specific client and endpoint
  *
- * KVストレージからレートリミッターの現在の状態を取得し、統計情報を返します。
- * デバッグや監視目的で現在のトークン数やリクエスト数を確認できます。
+ * Retrieves the current state of the rate limiter from KV storage and returns statistics.
+ * Useful for debugging and monitoring purposes to check current token count and request count.
  *
- * @param clientId - クライアント識別子
- * @param endpoint - 対象エンドポイント
- * @returns レートリミット統計オブジェクトまたはnull（データが存在しない場合）
+ * @param clientId - Client identifier
+ * @param endpoint - Target endpoint
+ * @returns Rate limit statistics object or null if no data exists
  *
  * @example
  * ```typescript
  * const stats = await getRateLimiterStats('client123', '/api/logs');
  * if (stats) {
- *   console.log(`現在のトークン数: ${stats.tokens}`);
- *   console.log(`総リクエスト数: ${stats.total_requests}`);
+ *   console.log(`Current tokens: ${stats.tokens}`);
+ *   console.log(`Total requests: ${stats.total_requests}`);
  * }
  * ```
  *
@@ -406,20 +408,20 @@ function calculateBackoff(config: RateLimiterConfig, consecutiveRejects: number)
 }
 
 /**
- * アダプティブサンプリングのためのエラー頻度を分析する純粋関数
+ * Pure function to analyze error frequency for adaptive sampling
  *
- * 直近のエラー発生頻度を分析し、アダプティブサンプリングを適用すべきかどうかを判定します。
- * エラー頻度が高い場合は、推奨サンプリングレートを低く設定してログ量を抑制します。
+ * Analyzes recent error occurrence frequency and determines whether adaptive sampling should be applied.
+ * When error frequency is high, sets the recommended sampling rate low to suppress log volume.
  *
- * @param state - 分析対象のレートリミッター状態
- * @param currentTime - 現在のタイムスタンプ（ミリ秒）
- * @returns エラー頻度分析結果
+ * @param state - Rate limiter state to analyze
+ * @param currentTime - Current timestamp in milliseconds
+ * @returns Error frequency analysis result
  *
  * @example
  * ```typescript
  * const analysis = analyzeErrorFrequency(state, Date.now());
  * if (analysis.should_apply_adaptive) {
- *   console.log(`アダプティブサンプリングを適用: ${analysis.recommended_sampling_rate}`);
+ *   console.log(`Apply adaptive sampling: ${analysis.recommended_sampling_rate}`);
  * }
  * ```
  *
@@ -518,25 +520,25 @@ function _cleanOldErrorTimestamps(
 }
 
 /**
- * 統合テスト用の高レベルレートリミットチェック関数
+ * High-level rate limit check function for integration testing
  *
- * クライアントIDとエンドポイントに基づいて状態を自動管理し、レートリミットチェックを実行します。
- * KVストレージから状態を読み込み、更新し、結果を返します。
- * エンドポイント固有の制限やストレージエラーのハンドリングも含まれます。
+ * Automatically manages state based on client ID and endpoint, and performs rate limit checks.
+ * Loads state from KV storage, updates it, and returns the result.
+ * Includes handling of endpoint-specific limits and storage errors.
  *
- * @param config - レートリミッター設定
- * @param clientId - クライアント識別子
- * @param endpoint - 対象エンドポイント
- * @param _logLevel - ログレベル（現在未使用）
- * @returns レートリミットチェック結果
+ * @param config - Rate limiter configuration
+ * @param clientId - Client identifier
+ * @param endpoint - Target endpoint
+ * @param _logLevel - Log level (currently unused)
+ * @returns Rate limit check result
  *
  * @example
  * ```typescript
  * const result = await checkRateLimit(config, 'client123', '/api/logs', 'info');
  * if (result.allowed) {
- *   console.log(`リクエスト許可。残りトークン: ${result.tokens_remaining}`);
+ *   console.log(`Request allowed. Remaining tokens: ${result.tokens_remaining}`);
  * } else {
- *   console.log(`リクエスト拒否。理由: ${result.reason}`);
+ *   console.log(`Request denied. Reason: ${result.reason}`);
  * }
  * ```
  *

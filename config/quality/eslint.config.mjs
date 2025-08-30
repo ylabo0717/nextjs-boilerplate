@@ -12,7 +12,7 @@ import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
 import importPlugin from 'eslint-plugin-import';
 import eslintPluginBetterTailwindcss from 'eslint-plugin-better-tailwindcss';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
-import vitestPlugin from 'eslint-plugin-vitest';
+import vitestPlugin from '@vitest/eslint-plugin';
 import ymlPlugin from 'eslint-plugin-yml';
 
 const __filename = fileURLToPath(import.meta.url);

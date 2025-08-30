@@ -399,7 +399,7 @@ This project uses [Gitleaks](https://github.com/gitleaks/gitleaks) to prevent se
 
 - **Pre-push hook**: Automatically scans for secrets before pushing
 - **CI/CD**: Additional scanning in GitHub Actions
-- **Configuration**: See `.gitleaks.toml` for detection rules
+- **Configuration**: See `config/security/.gitleaks.toml` for detection rules
 
 ### Gitleaks Installation
 
@@ -451,13 +451,13 @@ Download the latest binary from [Gitleaks Releases](https://github.com/gitleaks/
 
 ```bash
 # Scan entire repository
-gitleaks detect --config .gitleaks.toml
+gitleaks detect --config config/security/.gitleaks.toml
 
 # Scan staged changes only
-gitleaks protect --staged --config .gitleaks.toml
+gitleaks protect --staged --config config/security/.gitleaks.toml
 
 # Verbose output for debugging
-gitleaks detect --verbose --config .gitleaks.toml
+gitleaks detect --verbose --config config/security/.gitleaks.toml
 ```
 
 ## 📄 License

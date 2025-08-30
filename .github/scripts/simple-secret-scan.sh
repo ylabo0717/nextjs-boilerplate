@@ -106,7 +106,7 @@ if [ "$secrets_found" = true ]; then
     echo -e "$findings"
     echo ""
     echo "Please review the findings above and ensure no real secrets are committed."
-    echo "If these are false positives, consider updating the .gitleaks.toml configuration."
+    echo "If these are false positives, consider updating the config/security/.gitleaks.toml configuration."
     exit 1
 else
     echo "✅ No secrets detected"

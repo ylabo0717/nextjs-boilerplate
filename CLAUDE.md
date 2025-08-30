@@ -200,6 +200,17 @@ For detailed implementation standards, refer to the specialized guidelines:
 - **Testing:** Vitest (Unit) + Playwright (E2E)
 - **Architecture:** Pure functions first (stateless functions with no side effects, avoid classes except extreme cases)
 
+### Configuration Structure
+
+This project uses an organized configuration structure with settings grouped by functionality in the `config/` directory:
+
+- **`config/security/`** - Security-related configurations (Gitleaks, Semgrep)
+- **`config/quality/`** - Code quality tools (ESLint, Prettier, lint-staged)
+- **`config/performance/`** - Performance measurement (Lighthouse CI)
+- **`config/build/`** - Build-related configurations (PostCSS)
+
+For detailed information about each configuration file and its usage, see [`docs/developer_guide/configuration-structure.md`](docs/developer_guide/configuration-structure.md).
+
 ### Repository Setup for New Projects
 
 When using this boilerplate for a new project:

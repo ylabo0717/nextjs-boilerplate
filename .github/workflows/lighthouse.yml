@@ -5,7 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -42,7 +42,7 @@ jobs:
 
       - name: Run Lighthouse CI
         run: |
-          pnpm dlx @lhci/cli@0.15.x autorun
+          pnpm dlx @lhci/cli@0.15.x autorun --config=config/performance/.lighthouserc.json
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 

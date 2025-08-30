@@ -355,7 +355,7 @@ pnpm docs:check:raw
    - Exclusions (shadcn/ui, tests)
    - Validation rules
 
-2. **`eslint.config.mjs`** - ESLint configuration
+2. **`config/quality/eslint.config.mjs`** - ESLint configuration
    - TSDoc syntax validation
    - Staged strictness levels
 

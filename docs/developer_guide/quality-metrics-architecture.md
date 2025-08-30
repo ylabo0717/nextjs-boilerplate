@@ -327,7 +327,7 @@ Google公式のLighthouse CIでも、`lighthouse:recommended`プリセットで9
 
 - **測定対象URL**: `/`, `/example`（設定可能）
 - **実行回数**: 3回（平均値を算出）
-- **環境**: 既定はデスクトップ。モバイルは`.lighthouserc.mobile.json`を指定して任意実行（現行ワークフローでは未実行）。
+- **環境**: 既定はデスクトップ。モバイルは`config/performance/.lighthouserc.mobile.json`を指定して任意実行（現行ワークフローでは未実行）。
 - **タイムアウト**: 30秒
 
 ## 品質ゲートシステム

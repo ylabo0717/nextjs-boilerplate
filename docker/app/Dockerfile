@@ -64,7 +64,7 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 
 # Copy package files first for better layer caching
-COPY package.json pnpm-lock.yaml* next.config.ts tailwind.config.ts tsconfig.json postcss.config.mjs ./
+COPY package.json pnpm-lock.yaml* next.config.ts tsconfig.json postcss.config.mjs ./
 
 # Copy source code and essential files
 COPY src ./src

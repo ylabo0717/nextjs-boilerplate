@@ -27,7 +27,7 @@
 
 ```javascript
 // ✅ Good - Next.js推奨の設定
-// eslint.config.mjs
+// config/quality/eslint.config.mjs
 ...compat.extends('next/core-web-vitals', 'next/typescript')
 
 // ❌ Bad - サードパーティ設定の全面採用

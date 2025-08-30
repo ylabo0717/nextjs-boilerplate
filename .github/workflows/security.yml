@@ -166,17 +166,17 @@ jobs:
       - name: Run Semgrep
         run: |
           # Run Semgrep with custom config if available, otherwise use auto config
-          if [ -f .semgrep.yml ]; then
+          if [ -f config/security/.semgrep.yml ]; then
             echo "Using custom semgrep configuration"
-            semgrep scan --config=.semgrep.yml --sarif --output=semgrep.sarif . || true
+            semgrep scan --config=config/security/.semgrep.yml --sarif --output=semgrep.sarif . || true
           else
             echo "Using auto configuration"
             semgrep scan --config=auto --sarif --output=semgrep.sarif . || true
           fi
 
           # Also generate JSON output for additional processing
-          if [ -f .semgrep.yml ]; then
-            semgrep scan --config=.semgrep.yml --json --output=semgrep-results.json . || true
+          if [ -f config/security/.semgrep.yml ]; then
+            semgrep scan --config=config/security/.semgrep.yml --json --output=semgrep-results.json . || true
           else
             semgrep scan --config=auto --json --output=semgrep-results.json . || true
           fi
@@ -220,9 +220,9 @@ jobs:
         run: |
           # Run gitleaks with configuration
           set +e
-          if [ -f .gitleaks.toml ]; then
+          if [ -f config/security/.gitleaks.toml ]; then
             echo "Using custom gitleaks configuration"
-            gitleaks detect --source . --config .gitleaks.toml --verbose --report-format sarif --report-path gitleaks-report.sarif
+            gitleaks detect --source . --config config/security/.gitleaks.toml --verbose --report-format sarif --report-path gitleaks-report.sarif
           else
             echo "Using default gitleaks configuration"
             gitleaks detect --source . --verbose --report-format sarif --report-path gitleaks-report.sarif

@@ -421,11 +421,14 @@ async function analyzeDuplication(files: string[]): Promise<CodeQualityMetrics['
   }
 
   try {
-    // Run jscpd via CLI for better control
-    execSync('pnpm jscpd . --silent --reporters json --output ./metrics', {
-      encoding: 'utf-8',
-      stdio: 'pipe',
-    });
+    // Run jscpd via CLI for better control with explicit config path
+    execSync(
+      'pnpm jscpd . --silent --reporters json --output ./metrics --config config/quality/.jscpd.json',
+      {
+        encoding: 'utf-8',
+        stdio: 'pipe',
+      }
+    );
   } catch {
     // jscpd exits with non-zero if duplicates found, but that's ok
   }

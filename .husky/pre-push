@@ -29,7 +29,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 # Step 1: Secret scan
 print_step "1" "Scanning for secrets and sensitive data..."
-gitleaks detect --config .gitleaks.toml --log-level=error --no-banner 2>/dev/null
+gitleaks detect --config config/security/.gitleaks.toml --log-level=error --no-banner 2>/dev/null
 
 if [ $? -ne 0 ]; then
   print_error "Secrets or sensitive data detected!"

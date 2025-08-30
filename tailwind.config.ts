@@ -1,8 +1,4 @@
-// Minimal Tailwind config to satisfy eslint-plugin-tailwindcss resolution in pre-commit
-import type { Config } from 'tailwindcss';
+// Tailwind configuration proxy - points to organized config structure
+import config from './config/build/tailwind.config.js';
 
-export default {
-  content: [],
-  theme: { extend: {} },
-  plugins: [],
-} satisfies Config;
+export default config;

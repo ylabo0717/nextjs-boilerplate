@@ -1,5 +1,2 @@
-const config = {
-  plugins: ['@tailwindcss/postcss'],
-};
-
-export default config;
+// PostCSS configuration proxy - points to organized config structure
+module.exports = require('./config/build/postcss.config.mjs');

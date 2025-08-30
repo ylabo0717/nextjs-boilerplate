@@ -6,7 +6,7 @@
 # ==============================================================================
 
 # Playwright公式イメージをベースに使用（ブラウザ環境が最適化済み）
-FROM mcr.microsoft.com/playwright:v1.54.2-noble
+FROM mcr.microsoft.com/playwright:v1.55.0-noble
 
 # Enable corepack for pnpm
 RUN corepack enable

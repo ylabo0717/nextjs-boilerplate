@@ -45,42 +45,42 @@ const nextConfig: NextConfig = {
     return config;
   },
 
-  // Configure caching headers
-  async headers() {
-    return [
-      // Static assets - long cache
-      {
-        source: '/_next/static/(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      // Images and public assets - long cache
-      {
-        source: '/images/(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      // API routes should handle their own cache headers
-      // Explicitly avoid global caching for API routes
-      {
-        source: '/api/(.*)',
-        headers: [
-          {
-            key: 'X-Route-Type',
-            value: 'api',
-          },
-        ],
-      },
-    ];
-  },
+  // // Configure caching headers
+  // async headers() {
+  //   return [
+  //     // Static assets - long cache
+  //     {
+  //       source: '/_next/static/(.*)',
+  //       headers: [
+  //         {
+  //           key: 'Cache-Control',
+  //           value: 'public, max-age=31536000, immutable',
+  //         },
+  //       ],
+  //     },
+  //     // Images and public assets - long cache
+  //     {
+  //       source: '/images/(.*)',
+  //       headers: [
+  //         {
+  //           key: 'Cache-Control',
+  //           value: 'public, max-age=31536000, immutable',
+  //         },
+  //       ],
+  //     },
+  //     // API routes should handle their own cache headers
+  //     // Explicitly avoid global caching for API routes
+  //     {
+  //       source: '/api/(.*)',
+  //       headers: [
+  //         {
+  //           key: 'X-Route-Type',
+  //           value: 'api',
+  //         },
+  //       ],
+  //     },
+  //   ];
+  // },
 };
 
 export default nextConfig;

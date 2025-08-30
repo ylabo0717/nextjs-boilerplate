@@ -44,6 +44,21 @@ const nextConfig: NextConfig = {
 
     return config;
   },
+
+  // Configure font loading for CI environments
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

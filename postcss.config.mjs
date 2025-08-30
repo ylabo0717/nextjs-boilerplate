@@ -1,2 +1,4 @@
 // PostCSS configuration proxy - points to organized config structure
-module.exports = require('./config/build/postcss.config.mjs');
+import config from './config/build/postcss.config.mjs';
+
+export default config;

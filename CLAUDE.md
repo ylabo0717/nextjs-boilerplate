@@ -211,6 +211,15 @@ This project uses an organized configuration structure with settings grouped by 
 
 For detailed information about each configuration file and its usage, see [`docs/developer_guide/configuration-structure.md`](docs/developer_guide/configuration-structure.md).
 
+### Package Version Policy
+
+**@types/node Version Strategy:**
+
+- **Current Policy:** Maintain @types/node v20.x for compatibility with Node.js v20 & v22 environments
+- **Rationale:** Supports both Node.js LTS v20 and current v22 without compatibility issues
+- **Decision Date:** 2025-08-30
+- **Review Policy:** Re-evaluate when all environments migrate to Node.js v22+ exclusively
+
 ### Repository Setup for New Projects
 
 When using this boilerplate for a new project:

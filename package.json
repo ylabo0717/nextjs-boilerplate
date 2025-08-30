@@ -6,6 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
+    "start:test": "NODE_ENV=test next start",
     "lint": "next lint",
     "lint:ci": "cross-env CI=true next lint --max-warnings=0",
     "lint:pre-push": "cross-env PRE_PUSH=true next lint --max-warnings=0",
@@ -28,6 +29,7 @@
     "docs:check": "node scripts/check-docs.mjs",
     "changeset": "changeset",
     "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish",
     "release": "pnpm build && pnpm changeset:publish"
   },
   "dependencies": {

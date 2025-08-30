@@ -15,8 +15,8 @@ module.exports = {
   '**/*.{yml,yaml}': ['prettier --write', 'eslint --fix'],
 
   // TypeScript type checking (run on all TS files when any TS file changes)
-  '**/*.{ts,tsx}': () => 'npm run typecheck',
+  '**/*.{ts,tsx}': () => 'pnpm typecheck',
 
   // Format check - prevent commits with formatting issues
-  '**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts,css,scss,json,md,yml,yaml}': () => 'npm run format:check',
+  '**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts,css,scss,json,md,yml,yaml}': () => 'pnpm format:check',
 };

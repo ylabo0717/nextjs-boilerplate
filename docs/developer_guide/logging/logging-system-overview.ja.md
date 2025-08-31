@@ -550,7 +550,7 @@ Grafanaダッシュボード URL: `http://localhost:3001`
 
 ## 関連ドキュメント
 
-- [設定ガイド](./logging-configuration-guide.md)
-- [トラブルシューティング](./logging-troubleshooting-guide.md)
-- [API リファレンス](../api/logger/)
-- [統合計画書](../work_dir/structured-logging-unified-plan.md)
+- [設定ガイド](./logging-configuration-guide.ja.md)
+- [トラブルシューティング](./logging-troubleshooting-guide.ja.md)
+- [API リファレンス](../../api/logger/)
+- [統合計画書](../../work_dir/structured-logging-unified-plan.md)

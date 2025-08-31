@@ -43,7 +43,7 @@ This section explains how to set up the project quickly and verify it's working 
 
 ### 🐳 Docker Version (Recommended)
 
-The Docker version is recommended as it avoids environment-specific issues. See [Docker Installation Guide](#docker-installation) for detailed setup instructions.
+The Docker version is recommended as it avoids environment-specific issues. See [Docker Installation Guide](#docker-installation) below for detailed setup instructions.
 
 #### Quick Setup
 
@@ -58,6 +58,8 @@ cp .env.dev.example .env.dev
 
 # 3. Start development environment
 pnpm docker:dev
+# Or use Docker Compose directly if pnpm script is not available
+# docker compose -f docker/compose/docker-compose.yml --env-file .env.base --env-file .env.dev up
 ```
 
 #### Verification
@@ -77,7 +79,7 @@ pnpm docker:test:e2e         # E2E tests
 
 ### 💻 Local Development
 
-For local development without Docker. See [Tool Installation Guide](#tool-installation) for detailed setup instructions.
+For local development without Docker. See [Tool Installation Guide](#tool-installation) below for detailed setup instructions.
 
 #### Quick Setup
 

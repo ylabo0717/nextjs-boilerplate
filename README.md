@@ -93,7 +93,7 @@ sudo usermod -aG docker $USER
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/yourusername/nextjs-boilerplate.git
+git clone https://github.com/ylabo0717/nextjs-boilerplate.git
 cd nextjs-boilerplate
 
 # 2. Copy environment files
@@ -223,7 +223,7 @@ yay -S gitleaks
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/yourusername/nextjs-boilerplate.git
+git clone https://github.com/ylabo0717/nextjs-boilerplate.git
 cd nextjs-boilerplate
 
 # 2. Install dependencies
@@ -337,7 +337,7 @@ For detailed FAQ, see [docs/developer_guide/docker/faq.md](docs/developer_guide/
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/nextjs-boilerplate.git
+git clone https://github.com/ylabo0717/nextjs-boilerplate.git
 cd nextjs-boilerplate
 ```
 

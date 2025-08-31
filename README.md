@@ -2,20 +2,14 @@
 
 > **⚠️ This project is currently under active development and not yet production-ready. Features and APIs may change.**
 
-## Testing
-
-Run unit/integration tests with Vitest:
-
-```bash
-pnpm test            # all (unit+integration)
-pnpm test:unit       # unit only
-pnpm test:integration # integration only
-pnpm test:coverage   # coverage for unit+integration
-```
-
-E2E (Playwright) will be added in a separate step.
-
 A production-ready Next.js boilerplate with TypeScript, Tailwind CSS, shadcn/ui, and comprehensive development tooling.
+
+## 📋 Prerequisites
+
+- **Node.js 20.x or higher**
+- **pnpm 8.x or higher**
+- **Gitleaks** (for secret scanning)
+- **Docker & Docker Compose** (for containerized development)
 
 ## 🚀 Features
 
@@ -43,34 +37,178 @@ A production-ready Next.js boilerplate with TypeScript, Tailwind CSS, shadcn/ui,
 - Dark mode support with CSS variables
 - Tailwind CSS plugin for automatic class sorting
 
-## 📋 Prerequisites
+## 🚀 Quick Start
 
-- Node.js 20.x or higher
-- pnpm 8.x or higher
-- Gitleaks (for secret scanning) - [Installation](#gitleaks-installation)
+This section explains how to set up the project quickly and verify it's working correctly.
 
-## 🛠️ Installation
+### 🐳 Docker Version (Recommended)
 
-1. Clone the repository:
+The Docker version is recommended as it avoids environment-specific issues. See [Docker Installation Guide](#docker-installation) below for detailed setup instructions.
+
+#### Quick Setup
 
 ```bash
-git clone https://github.com/yourusername/nextjs-boilerplate.git
+# 1. Clone repository
+git clone https://github.com/ylabo0717/nextjs-boilerplate.git
 cd nextjs-boilerplate
+
+# 2. Copy environment files
+cp .env.base.example .env.base
+cp .env.dev.example .env.dev
+
+# 3. Start development environment
+pnpm docker:dev
+# Or use Docker Compose directly if pnpm script is not available
+# docker compose -f docker/compose/docker-compose.yml --env-file .env.base --env-file .env.dev up
 ```
 
-2. Install dependencies:
+#### Verification
 
 ```bash
+# Access application (open in browser)
+open http://localhost:3000
+
+# Run all tests in Docker environment
+pnpm docker:test
+
+# Run individual test types
+pnpm docker:test:unit        # Unit tests
+pnpm docker:test:integration # Integration tests
+pnpm docker:test:e2e         # E2E tests
+```
+
+### 💻 Local Development
+
+For local development without Docker. See [Tool Installation Guide](#tool-installation) below for detailed setup instructions.
+
+#### Quick Setup
+
+```bash
+# 1. Clone repository
+git clone https://github.com/ylabo0717/nextjs-boilerplate.git
+cd nextjs-boilerplate
+
+# 2. Install dependencies
 pnpm install
-```
 
-3. Start the development server:
+# 3. Install Playwright browsers
+pnpm exec playwright install
 
-```bash
+# 4. Copy environment files
+cp .env.base.example .env.base
+cp .env.dev.example .env.dev
+cp .env.test.example .env.test
+
+# 5. Start development server
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see your application.
+#### Verification
+
+```bash
+# Access application (open in browser)
+open http://localhost:3000
+
+# Code quality check
+pnpm precommit:check
+
+# Run tests
+pnpm test:unit           # Unit tests
+pnpm test:integration    # Integration tests
+pnpm test:e2e           # E2E tests
+pnpm test:coverage      # Test coverage
+```
+
+### 🔍 Git Hooks Verification
+
+The project has pre-commit and pre-push hooks configured:
+
+```bash
+# 1. Create a test file to verify hooks
+echo "console.log('test');" > test-file.js
+git add test-file.js
+
+# 2. Commit (pre-commit hook will run)
+git commit -m "test: check pre-commit hooks"
+# ESLint, Prettier, and TypeScript checks run automatically
+
+# 3. Push (pre-push hook will run)
+git push
+# Gitleaks secret scanning will run
+
+# 4. Clean up test file
+git rm test-file.js
+git commit -m "test: cleanup test file"
+```
+
+### ✅ Setup Completion Verification
+
+If all the following succeed, your setup is complete:
+
+- [ ] Application displays correctly at http://localhost:3000
+- [ ] `pnpm precommit:check` completes without errors
+- [ ] `pnpm test:unit` passes all tests
+- [ ] `pnpm test:integration` passes all tests
+- [ ] `pnpm test:e2e` passes all tests
+- [ ] Pre-commit hooks work on git commit
+- [ ] Pre-push hooks work on git push
+
+### 🚨 Troubleshooting
+
+**Node.js Version Issues:**
+
+```bash
+# Check current version
+node --version  # Should be 20.x.x or higher
+
+# If pnpm is missing
+npm install -g pnpm
+
+# Clear npm/pnpm cache if needed
+npm cache clean --force
+pnpm store prune
+```
+
+**Docker Issues:**
+
+```bash
+# Check Docker status
+docker --version
+docker compose version
+
+# Docker not running
+sudo systemctl start docker  # Linux
+# Start Docker Desktop # macOS/Windows
+
+# Port conflicts
+# Kill processes using port 3000
+lsof -ti:3000 | xargs kill -9
+```
+
+**Permission Errors:**
+
+```bash
+# Linux/macOS file permissions
+sudo chown -R $USER:$USER .
+chmod +x scripts/*.sh
+
+# Docker permission denied
+sudo usermod -aG docker $USER  # Logout required
+```
+
+**Test Environment Issues:**
+
+```bash
+# Reset test environment
+rm -rf node_modules
+pnpm install
+pnpm exec playwright install
+
+# For known test limitations
+SKIP_LOKI_TESTS=true pnpm test:integration
+```
+
+For detailed FAQ and advanced troubleshooting, see [docs/developer_guide/docker/faq.md](docs/developer_guide/docker/faq.md).
 
 ## 📦 Available Scripts
 
@@ -115,6 +253,34 @@ pnpm release           # Build and publish release
 # Commit-msg: Conventional commit validation
 ```
 
+## 🧪 Testing
+
+This project includes comprehensive testing with multiple frameworks and approaches.
+
+### Running Tests
+
+Run unit/integration tests with Vitest:
+
+```bash
+pnpm test            # all (unit+integration)
+pnpm test:unit       # unit only
+pnpm test:integration # integration only
+pnpm test:coverage   # coverage for unit+integration
+```
+
+Run end-to-end tests with Playwright:
+
+```bash
+pnpm test:e2e        # E2E tests
+```
+
+### Test Architecture
+
+- **Unit Tests**: Fast, isolated component/function tests
+- **Integration Tests**: Database and API integration testing with Docker containers
+- **E2E Tests**: Full user workflow testing with Playwright
+- **Coverage Reports**: Comprehensive code coverage analysis
+
 ## 🐳 Docker Support
 
 This project includes comprehensive Docker support for development, testing, and production environments.
@@ -138,9 +304,9 @@ Run all tests in Docker containers:
 pnpm docker:test
 
 # Individual test types
-pnpm docker:test:unit        # Unit tests (551 tests)
-pnpm docker:test:integration # Integration tests (177/179 tests)
-pnpm docker:test:e2e         # E2E tests (114 tests)
+pnpm docker:test:unit        # Unit tests
+pnpm docker:test:integration # Integration tests
+pnpm docker:test:e2e         # E2E tests
 
 # Clean up test containers
 pnpm docker:test:clean
@@ -409,15 +575,106 @@ This project uses [Gitleaks](https://github.com/gitleaks/gitleaks) to prevent se
 - **CI/CD**: Additional scanning in GitHub Actions
 - **Configuration**: See `config/security/.gitleaks.toml` for detection rules
 
+## 🛠️ Tool Installation
+
+### Docker Installation
+
+**macOS:**
+
+```bash
+# Docker Desktop for Mac
+# Download from https://docs.docker.com/desktop/mac/install/
+
+# Or using Homebrew
+brew install --cask docker
+```
+
+**Windows:**
+
+```bash
+# Docker Desktop for Windows
+# Download from https://docs.docker.com/desktop/windows/install/
+
+# Or using Chocolatey
+choco install docker-desktop
+```
+
+**Linux (Ubuntu/Debian):**
+
+```bash
+# Docker Engine
+sudo apt update
+sudo apt install docker.io docker-compose-plugin
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Add user to docker group
+sudo usermod -aG docker $USER
+# Logout and login again required
+```
+
+### Node.js & pnpm Installation
+
+**Node.js 20.x or higher:**
+
+**macOS:**
+
+```bash
+# Homebrew
+brew install node@20
+
+# Or using nodenv
+brew install nodenv
+nodenv install 20.x.x
+nodenv global 20.x.x
+```
+
+**Windows:**
+
+```bash
+# Chocolatey
+choco install nodejs --version=20.x.x
+
+# Or download from Node.js official site
+# https://nodejs.org/
+```
+
+**Linux:**
+
+```bash
+# NodeSource repository (Ubuntu/Debian)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Or using nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+nvm install 20
+nvm use 20
+```
+
+**pnpm 8.x or higher:**
+
+```bash
+# Install via npm
+npm install -g pnpm@latest
+
+# Or use corepack (Node.js 16.10+)
+corepack enable
+corepack prepare pnpm@latest --activate
+
+# Verify version
+pnpm --version
+```
+
 ### Gitleaks Installation
 
-#### macOS
+**macOS:**
 
 ```bash
 brew install gitleaks
 ```
 
-#### Windows
+**Windows:**
 
 ```bash
 # Using Chocolatey
@@ -429,7 +686,7 @@ scoop install gitleaks
 # Or download binary from GitHub releases
 ```
 
-#### Linux
+**Linux:**
 
 ```bash
 # Debian/Ubuntu
@@ -444,14 +701,14 @@ yay -S gitleaks
 # Or download binary from GitHub releases
 ```
 
-#### Docker
+**Docker:**
 
 ```bash
 docker pull zricethezav/gitleaks:latest
 docker run -v ${PWD}:/path zricethezav/gitleaks:latest detect --source="/path"
 ```
 
-#### Manual Installation
+**Manual Installation:**
 
 Download the latest binary from [Gitleaks Releases](https://github.com/gitleaks/gitleaks/releases) and add it to your PATH.
 
@@ -566,4 +823,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 Built with ❤️ using Next.js and modern web technologies
-test

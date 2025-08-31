@@ -43,6 +43,289 @@ A production-ready Next.js boilerplate with TypeScript, Tailwind CSS, shadcn/ui,
 - Dark mode support with CSS variables
 - Tailwind CSS plugin for automatic class sorting
 
+## 🚀 Quick Start
+
+このセクションでは、プロジェクトを最短でセットアップし、動作確認するまでの手順を説明します。
+
+### 🐳 Docker版（推奨）
+
+Docker版は環境の違いによる問題を避けられるため推奨です。
+
+#### 1. 必要なツールのインストール
+
+**Docker & Docker Compose:**
+
+**macOS:**
+
+```bash
+# Docker Desktop for Mac
+# https://docs.docker.com/desktop/mac/install/ からダウンロード
+
+# または Homebrew
+brew install --cask docker
+```
+
+**Windows:**
+
+```bash
+# Docker Desktop for Windows
+# https://docs.docker.com/desktop/windows/install/ からダウンロード
+
+# または Chocolatey
+choco install docker-desktop
+```
+
+**Linux (Ubuntu/Debian):**
+
+```bash
+# Docker Engine
+sudo apt update
+sudo apt install docker.io docker-compose-plugin
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# ユーザーをdockerグループに追加
+sudo usermod -aG docker $USER
+# ログアウトして再ログインが必要
+```
+
+#### 2. プロジェクトのセットアップ
+
+```bash
+# 1. リポジトリをクローン
+git clone https://github.com/yourusername/nextjs-boilerplate.git
+cd nextjs-boilerplate
+
+# 2. 環境変数ファイルをコピー
+cp .env.base.example .env.base
+cp .env.dev.example .env.dev
+
+# 3. 開発環境を起動
+pnpm docker:dev
+# または直接 Docker Compose を使用
+# docker compose --env-file .env.base --env-file .env.dev up
+```
+
+#### 3. 動作確認
+
+```bash
+# アプリケーションにアクセス（ブラウザで確認）
+open http://localhost:3000
+
+# テストの実行（すべてのテストを Docker 環境で実行）
+pnpm docker:test
+
+# 個別テストの実行
+pnpm docker:test:unit        # Unit tests
+pnpm docker:test:integration # Integration tests
+pnpm docker:test:e2e         # E2E tests
+```
+
+### 💻 非Docker版
+
+ローカル環境に直接セットアップする場合の手順です。
+
+#### 1. 必要なツールのインストール
+
+**Node.js 20.x以上:**
+
+**macOS:**
+
+```bash
+# Homebrew
+brew install node@20
+
+# または nodenv
+brew install nodenv
+nodenv install 20.x.x
+nodenv global 20.x.x
+```
+
+**Windows:**
+
+```bash
+# Chocolatey
+choco install nodejs --version=20.x.x
+
+# または Node.js公式サイトからダウンロード
+# https://nodejs.org/
+```
+
+**Linux:**
+
+```bash
+# NodeSource repository (Ubuntu/Debian)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# または nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+nvm install 20
+nvm use 20
+```
+
+**pnpm 8.x以上:**
+
+```bash
+# npm経由でインストール
+npm install -g pnpm@latest
+
+# または corepack を使用（Node.js 16.10+）
+corepack enable
+corepack prepare pnpm@latest --activate
+
+# バージョン確認
+pnpm --version
+```
+
+**Gitleaks（秘密情報スキャン用）:**
+
+**macOS:**
+
+```bash
+brew install gitleaks
+```
+
+**Windows:**
+
+```bash
+# Chocolatey
+choco install gitleaks
+
+# Scoop
+scoop install gitleaks
+```
+
+**Linux:**
+
+```bash
+# Debian/Ubuntu
+sudo apt install gitleaks
+
+# Fedora/RHEL
+sudo dnf install gitleaks
+
+# Arch Linux
+yay -S gitleaks
+
+# または GitHub Releases から手動インストール
+# https://github.com/gitleaks/gitleaks/releases
+```
+
+**Playwright（E2Eテスト用）:**
+
+```bash
+# Playwright のブラウザを後でインストール
+# （プロジェクトセットアップ後に実行）
+```
+
+#### 2. プロジェクトのセットアップ
+
+```bash
+# 1. リポジトリをクローン
+git clone https://github.com/yourusername/nextjs-boilerplate.git
+cd nextjs-boilerplate
+
+# 2. 依存関係をインストール
+pnpm install
+
+# 3. Playwright ブラウザをインストール
+pnpm exec playwright install
+
+# 4. 環境変数ファイルをコピー
+cp .env.base.example .env.base
+cp .env.dev.example .env.dev
+cp .env.test.example .env.test
+
+# 5. 開発サーバーを起動
+pnpm dev
+```
+
+#### 3. 動作確認
+
+```bash
+# アプリケーションにアクセス（ブラウザで確認）
+open http://localhost:3000
+
+# コード品質チェック
+pnpm precommit:check
+
+# テストの実行
+pnpm test:unit           # Unit tests
+pnpm test:integration    # Integration tests
+pnpm test:e2e           # E2E tests
+pnpm test:coverage      # テストカバレッジ
+```
+
+### 🔍 Git フックの動作確認
+
+プロジェクトには pre-commit と pre-push フックが設定されています：
+
+```bash
+# 1. テスト用のファイルを作成して動作確認
+echo "console.log('test');" > test-file.js
+git add test-file.js
+
+# 2. コミット（pre-commit フックが動作）
+git commit -m "test: check pre-commit hooks"
+# ESLint、Prettier、TypeScript チェックが自動実行される
+
+# 3. プッシュ（pre-push フックが動作）
+git push
+# Gitleaks による秘密情報スキャンが実行される
+
+# 4. テストファイルを削除
+git rm test-file.js
+git commit -m "test: cleanup test file"
+```
+
+### ✅ セットアップ完了の確認
+
+以下がすべて成功すれば、セットアップは完了です：
+
+- [ ] アプリケーションが http://localhost:3000 で正常に表示される
+- [ ] `pnpm precommit:check` がエラーなく完了する
+- [ ] `pnpm test:unit` が全テスト通過する
+- [ ] `pnpm test:integration` が全テスト通過する
+- [ ] `pnpm test:e2e` が全テスト通過する
+- [ ] Git commit 時に pre-commit フックが動作する
+- [ ] Git push 時に pre-push フックが動作する
+
+### 🚨 トラブルシューティング
+
+**よくある問題と解決方法:**
+
+**Node.js バージョンエラー:**
+
+```bash
+# バージョン確認
+node --version  # 20.x.x 以上であることを確認
+
+# pnpm がない場合
+npm install -g pnpm
+```
+
+**Docker 関連のエラー:**
+
+```bash
+# Docker が起動していない
+sudo systemctl start docker  # Linux
+# Docker Desktop を起動 # macOS/Windows
+
+# ポートが使用中
+# localhost:3000 が使用中の場合、他のアプリケーションを停止
+```
+
+**テスト失敗:**
+
+```bash
+# 一時的にスキップされるテストについて（既知の制約）
+# Integration tests で Loki 関連の 2 件のテストが失敗する場合：
+SKIP_LOKI_TESTS=true pnpm test:integration
+```
+
+詳細な FAQ は [docs/developer_guide/docker/faq.md](docs/developer_guide/docker/faq.md) を参照してください。
+
 ## 📋 Prerequisites
 
 - Node.js 20.x or higher

@@ -2,19 +2,6 @@
 
 > **⚠️ This project is currently under active development and not yet production-ready. Features and APIs may change.**
 
-## Testing
-
-Run unit/integration tests with Vitest:
-
-```bash
-pnpm test            # all (unit+integration)
-pnpm test:unit       # unit only
-pnpm test:integration # integration only
-pnpm test:coverage   # coverage for unit+integration
-```
-
-E2E (Playwright) will be added in a separate step.
-
 A production-ready Next.js boilerplate with TypeScript, Tailwind CSS, shadcn/ui, and comprehensive development tooling.
 
 ## 🚀 Features
@@ -397,6 +384,34 @@ pnpm release           # Build and publish release
 # Pre-commit: ESLint, Prettier, TypeScript checks
 # Commit-msg: Conventional commit validation
 ```
+
+## 🧪 Testing
+
+This project includes comprehensive testing with multiple frameworks and approaches.
+
+### Running Tests
+
+Run unit/integration tests with Vitest:
+
+```bash
+pnpm test            # all (unit+integration)
+pnpm test:unit       # unit only
+pnpm test:integration # integration only
+pnpm test:coverage   # coverage for unit+integration
+```
+
+Run end-to-end tests with Playwright:
+
+```bash
+pnpm test:e2e        # E2E tests
+```
+
+### Test Architecture
+
+- **Unit Tests**: Fast, isolated component/function tests
+- **Integration Tests**: Database and API integration testing with Docker containers
+- **E2E Tests**: Full user workflow testing with Playwright
+- **Coverage Reports**: Comprehensive code coverage analysis
 
 ## 🐳 Docker Support
 

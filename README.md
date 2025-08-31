@@ -45,13 +45,13 @@ A production-ready Next.js boilerplate with TypeScript, Tailwind CSS, shadcn/ui,
 
 ## 🚀 Quick Start
 
-このセクションでは、プロジェクトを最短でセットアップし、動作確認するまでの手順を説明します。
+This section explains how to set up the project quickly and verify it's working correctly.
 
-### 🐳 Docker版（推奨）
+### 🐳 Docker Version (Recommended)
 
-Docker版は環境の違いによる問題を避けられるため推奨です。
+The Docker version is recommended as it avoids environment-specific issues.
 
-#### 1. 必要なツールのインストール
+#### 1. Install Required Tools
 
 **Docker & Docker Compose:**
 
@@ -59,9 +59,9 @@ Docker版は環境の違いによる問題を避けられるため推奨です�
 
 ```bash
 # Docker Desktop for Mac
-# https://docs.docker.com/desktop/mac/install/ からダウンロード
+# Download from https://docs.docker.com/desktop/mac/install/
 
-# または Homebrew
+# Or using Homebrew
 brew install --cask docker
 ```
 
@@ -69,9 +69,9 @@ brew install --cask docker
 
 ```bash
 # Docker Desktop for Windows
-# https://docs.docker.com/desktop/windows/install/ からダウンロード
+# Download from https://docs.docker.com/desktop/windows/install/
 
-# または Chocolatey
+# Or using Chocolatey
 choco install docker-desktop
 ```
 
@@ -84,50 +84,50 @@ sudo apt install docker.io docker-compose-plugin
 sudo systemctl start docker
 sudo systemctl enable docker
 
-# ユーザーをdockerグループに追加
+# Add user to docker group
 sudo usermod -aG docker $USER
-# ログアウトして再ログインが必要
+# Logout and login again required
 ```
 
-#### 2. プロジェクトのセットアップ
+#### 2. Project Setup
 
 ```bash
-# 1. リポジトリをクローン
+# 1. Clone repository
 git clone https://github.com/yourusername/nextjs-boilerplate.git
 cd nextjs-boilerplate
 
-# 2. 環境変数ファイルをコピー
+# 2. Copy environment files
 cp .env.base.example .env.base
 cp .env.dev.example .env.dev
 
-# 3. 開発環境を起動
+# 3. Start development environment
 pnpm docker:dev
-# または直接 Docker Compose を使用
+# Or use Docker Compose directly
 # docker compose --env-file .env.base --env-file .env.dev up
 ```
 
-#### 3. 動作確認
+#### 3. Verification
 
 ```bash
-# アプリケーションにアクセス（ブラウザで確認）
+# Access application (open in browser)
 open http://localhost:3000
 
-# テストの実行（すべてのテストを Docker 環境で実行）
+# Run all tests in Docker environment
 pnpm docker:test
 
-# 個別テストの実行
+# Run individual test types
 pnpm docker:test:unit        # Unit tests
 pnpm docker:test:integration # Integration tests
 pnpm docker:test:e2e         # E2E tests
 ```
 
-### 💻 非Docker版
+### 💻 Non-Docker Version
 
-ローカル環境に直接セットアップする場合の手順です。
+Instructions for setting up directly in your local environment.
 
-#### 1. 必要なツールのインストール
+#### 1. Install Required Tools
 
-**Node.js 20.x以上:**
+**Node.js 20.x or higher:**
 
 **macOS:**
 
@@ -135,7 +135,7 @@ pnpm docker:test:e2e         # E2E tests
 # Homebrew
 brew install node@20
 
-# または nodenv
+# Or using nodenv
 brew install nodenv
 nodenv install 20.x.x
 nodenv global 20.x.x
@@ -147,7 +147,7 @@ nodenv global 20.x.x
 # Chocolatey
 choco install nodejs --version=20.x.x
 
-# または Node.js公式サイトからダウンロード
+# Or download from Node.js official site
 # https://nodejs.org/
 ```
 
@@ -158,27 +158,27 @@ choco install nodejs --version=20.x.x
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
-# または nvm
+# Or using nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 nvm install 20
 nvm use 20
 ```
 
-**pnpm 8.x以上:**
+**pnpm 8.x or higher:**
 
 ```bash
-# npm経由でインストール
+# Install via npm
 npm install -g pnpm@latest
 
-# または corepack を使用（Node.js 16.10+）
+# Or use corepack (Node.js 16.10+)
 corepack enable
 corepack prepare pnpm@latest --activate
 
-# バージョン確認
+# Verify version
 pnpm --version
 ```
 
-**Gitleaks（秘密情報スキャン用）:**
+**Gitleaks (for secret scanning):**
 
 **macOS:**
 
@@ -208,123 +208,123 @@ sudo dnf install gitleaks
 # Arch Linux
 yay -S gitleaks
 
-# または GitHub Releases から手動インストール
+# Or manual installation from GitHub Releases
 # https://github.com/gitleaks/gitleaks/releases
 ```
 
-**Playwright（E2Eテスト用）:**
+**Playwright (for E2E testing):**
 
 ```bash
-# Playwright のブラウザを後でインストール
-# （プロジェクトセットアップ後に実行）
+# Playwright browsers will be installed later
+# (run after project setup)
 ```
 
-#### 2. プロジェクトのセットアップ
+#### 2. Project Setup
 
 ```bash
-# 1. リポジトリをクローン
+# 1. Clone repository
 git clone https://github.com/yourusername/nextjs-boilerplate.git
 cd nextjs-boilerplate
 
-# 2. 依存関係をインストール
+# 2. Install dependencies
 pnpm install
 
-# 3. Playwright ブラウザをインストール
+# 3. Install Playwright browsers
 pnpm exec playwright install
 
-# 4. 環境変数ファイルをコピー
+# 4. Copy environment files
 cp .env.base.example .env.base
 cp .env.dev.example .env.dev
 cp .env.test.example .env.test
 
-# 5. 開発サーバーを起動
+# 5. Start development server
 pnpm dev
 ```
 
-#### 3. 動作確認
+#### 3. Verification
 
 ```bash
-# アプリケーションにアクセス（ブラウザで確認）
+# Access application (open in browser)
 open http://localhost:3000
 
-# コード品質チェック
+# Code quality check
 pnpm precommit:check
 
-# テストの実行
+# Run tests
 pnpm test:unit           # Unit tests
 pnpm test:integration    # Integration tests
 pnpm test:e2e           # E2E tests
-pnpm test:coverage      # テストカバレッジ
+pnpm test:coverage      # Test coverage
 ```
 
-### 🔍 Git フックの動作確認
+### 🔍 Git Hooks Verification
 
-プロジェクトには pre-commit と pre-push フックが設定されています：
+The project has pre-commit and pre-push hooks configured:
 
 ```bash
-# 1. テスト用のファイルを作成して動作確認
+# 1. Create a test file to verify hooks
 echo "console.log('test');" > test-file.js
 git add test-file.js
 
-# 2. コミット（pre-commit フックが動作）
+# 2. Commit (pre-commit hook will run)
 git commit -m "test: check pre-commit hooks"
-# ESLint、Prettier、TypeScript チェックが自動実行される
+# ESLint, Prettier, and TypeScript checks run automatically
 
-# 3. プッシュ（pre-push フックが動作）
+# 3. Push (pre-push hook will run)
 git push
-# Gitleaks による秘密情報スキャンが実行される
+# Gitleaks secret scanning will run
 
-# 4. テストファイルを削除
+# 4. Clean up test file
 git rm test-file.js
 git commit -m "test: cleanup test file"
 ```
 
-### ✅ セットアップ完了の確認
+### ✅ Setup Completion Verification
 
-以下がすべて成功すれば、セットアップは完了です：
+If all the following succeed, your setup is complete:
 
-- [ ] アプリケーションが http://localhost:3000 で正常に表示される
-- [ ] `pnpm precommit:check` がエラーなく完了する
-- [ ] `pnpm test:unit` が全テスト通過する
-- [ ] `pnpm test:integration` が全テスト通過する
-- [ ] `pnpm test:e2e` が全テスト通過する
-- [ ] Git commit 時に pre-commit フックが動作する
-- [ ] Git push 時に pre-push フックが動作する
+- [ ] Application displays correctly at http://localhost:3000
+- [ ] `pnpm precommit:check` completes without errors
+- [ ] `pnpm test:unit` passes all tests
+- [ ] `pnpm test:integration` passes all tests
+- [ ] `pnpm test:e2e` passes all tests
+- [ ] Pre-commit hooks work on git commit
+- [ ] Pre-push hooks work on git push
 
-### 🚨 トラブルシューティング
+### 🚨 Troubleshooting
 
-**よくある問題と解決方法:**
+**Common issues and solutions:**
 
-**Node.js バージョンエラー:**
+**Node.js version errors:**
 
 ```bash
-# バージョン確認
-node --version  # 20.x.x 以上であることを確認
+# Check version
+node --version  # Should be 20.x.x or higher
 
-# pnpm がない場合
+# If pnpm is missing
 npm install -g pnpm
 ```
 
-**Docker 関連のエラー:**
+**Docker-related errors:**
 
 ```bash
-# Docker が起動していない
+# Docker not running
 sudo systemctl start docker  # Linux
-# Docker Desktop を起動 # macOS/Windows
+# Start Docker Desktop # macOS/Windows
 
-# ポートが使用中
-# localhost:3000 が使用中の場合、他のアプリケーションを停止
+# Port already in use
+# If localhost:3000 is in use, stop other applications
 ```
 
-**テスト失敗:**
+**Test failures:**
 
 ```bash
-# 一時的にスキップされるテストについて（既知の制約）
-# Integration tests で Loki 関連の 2 件のテストが失敗する場合：
+# For temporary skipped tests (known limitations)
+# If 2 Loki-related integration tests fail:
 SKIP_LOKI_TESTS=true pnpm test:integration
 ```
 
-詳細な FAQ は [docs/developer_guide/docker/faq.md](docs/developer_guide/docker/faq.md) を参照してください。
+For detailed FAQ, see [docs/developer_guide/docker/faq.md](docs/developer_guide/docker/faq.md).
 
 ## 📋 Prerequisites
 

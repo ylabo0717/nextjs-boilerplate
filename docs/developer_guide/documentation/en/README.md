@@ -9,18 +9,21 @@ Code documentation, TSDoc, and API documentation creation guidelines for the Nex
 ## 📝 Documentation Standards
 
 ### TSDoc Integration
+
 - TypeScript native documentation
 - Rich metadata support with tags like `@remarks`, `@example`, `@public`
 - Excellent tooling support with TypeDoc and IDE IntelliSense
 - Industry standard for TypeScript projects
 
 ### What to Document
+
 - **Public APIs**: All exported functions, classes, and types
 - **Complex Logic**: Non-obvious business logic and algorithms
 - **Configuration**: Environment variables and configuration options
 - **Architecture Decisions**: Why certain patterns were chosen
 
 ### Validation Strategy
+
 - Staged validation approach balancing development speed with quality
 - Pre-commit hooks for documentation checks
 - CI/CD integration for comprehensive validation

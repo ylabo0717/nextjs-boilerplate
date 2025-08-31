@@ -11,17 +11,20 @@ Changeset、リリース自動化、CI/CD、GitHub Actionsに関するガイド�
 ## 🚀 リリースフロー
 
 ### Changeset管理
+
 1. 機能開発時にChangesetファイル作成
 2. PR作成・レビュー・マージ
 3. 自動リリースPR生成
 4. リリースPRマージで自動デプロイ
 
 ### バージョン管理
+
 - Semantic Versioning (X.Y.Z)
 - 自動バージョン更新
 - 自動CHANGELOG生成
 
 ### CI/CD パイプライン
+
 - 自動テスト実行
 - 品質ゲートチェック
 - 自動デプロイメント

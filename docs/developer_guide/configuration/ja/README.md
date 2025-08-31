@@ -10,18 +10,22 @@
 ## ⚙️ 設定カテゴリ
 
 ### セキュリティ設定
+
 - Gitleaks設定（シークレット検出）
 - Semgrep設定（静的解析）
 
 ### 品質設定
+
 - ESLint、Prettier設定
 - コード複製検出設定
 
 ### パフォーマンス設定
+
 - Lighthouse CI設定
 - ビルド最適化設定
 
 ### テスト設定
+
 - Vitest、Playwright設定
 - テスト環境設定
 

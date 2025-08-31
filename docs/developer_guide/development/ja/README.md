@@ -12,16 +12,19 @@
 ## 🔧 主要トピック
 
 ### 状態管理
+
 - Local First アプローチ
 - Server State と Client State の分離
 - React状態管理パターン
 
 ### エラーハンドリング
+
 - Error Boundary活用
 - 統一されたエラー型
 - ユーザーフレンドリーなエラー表示
 
 ### パフォーマンス
+
 - Next.js最適化
 - Tailwind CSS最適化
 - アクセシビリティ対応

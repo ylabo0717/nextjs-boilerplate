@@ -9,16 +9,19 @@ Next.js + React + TypeScript プロジェクトにおけるテスト戦略、単
 ## 🧪 テスト種類
 
 ### Unit Tests (単体テスト)
+
 - 個別の関数やコンポーネントのテスト
 - Jest + Vitest によるテスト実行
 - React Testing Library によるコンポーネントテスト
 
 ### Integration Tests (統合テスト)
+
 - 複数コンポーネント間の連携テスト
 - API統合テスト
 - データフロー確認
 
 ### E2E Tests (End-to-End テスト)
+
 - Playwright によるブラウザテスト
 - ユーザーフロー全体のテスト
 - 実環境に近い条件でのテスト

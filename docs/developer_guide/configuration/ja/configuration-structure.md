@@ -164,7 +164,7 @@ module.exports = require('./config/quality/.prettierrc.js');
 
 ## 📚 関連ドキュメント
 
-- [TypeScript Guidelines](./typescript-guidelines.md)
-- [Testing Guidelines](./testing-guidelines.md)
-- [Security Guidelines](./security-guidelines.md)
-- [Review Checklist](./review-checklist.md)
+- [TypeScript Guidelines](../../coding/ja/typescript-guidelines.md)
+- [Testing Guidelines](../../testing/ja/testing-guidelines.md)
+- [Security Guidelines](../../development/ja/security-guidelines.md)
+- [Review Checklist](../../development/ja/review-checklist.md)

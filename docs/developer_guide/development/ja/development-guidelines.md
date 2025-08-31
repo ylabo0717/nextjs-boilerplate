@@ -667,6 +667,6 @@ export const analytics: Analytics =
 **関連ガイドライン:**
 
 - [概要](./coding-guidelines-overview.md) - 基本方針とSSOT原則
-- [TypeScript](./typescript-guidelines.md) - 型安全な状態管理
-- [Next.js パターン](./nextjs-patterns.md) - Server/Client State の使い分け
+- [TypeScript](../../coding/ja/typescript-guidelines.md) - 型安全な状態管理
+- [Next.js パターン](../../coding/ja/nextjs-patterns.md) - Server/Client State の使い分け
 - [パフォーマンス](./performance-guidelines.md) - メモ化とスタイリング最適化

@@ -269,8 +269,8 @@ const MAX_RETRY_ATTEMPTS = process.env.MAX_RETRY_ATTEMPTS ?? 3;
 
 - 型安全なコードを書く → [TypeScript ガイドライン](./typescript-guidelines.md)
 - 効率的なNext.js開発 → [Next.js パターン](./nextjs-patterns.md)
-- セキュアなアプリ開発 → [セキュリティガイドライン](./security-guidelines.md)
-- パフォーマンス最適化 → [パフォーマンスガイドライン](./performance-guidelines.md)
+- セキュアなアプリ開発 → [セキュリティガイドライン](../../development/ja/security-guidelines.md)
+- パフォーマンス最適化 → [パフォーマンスガイドライン](../../development/ja/performance-guidelines.md)
 
 ---
 

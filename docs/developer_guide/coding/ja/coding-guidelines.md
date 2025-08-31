@@ -12,11 +12,11 @@
 - **[TypeScript](./typescript-guidelines.md)** - 型定義、命名規則、型ガード
 - **[Next.js パターン](./nextjs-patterns.md)** - Server/Client Components、ルーティング、React設計
 - **[アーキテクチャ設計](./architecture-guidelines.md)** - 関数型優先アプローチ、設計パターン
-- **[セキュリティ](./security-guidelines.md)** - セキュアな実装パターン、脆弱性対策
-- **[パフォーマンス](./performance-guidelines.md)** - 最適化、アクセシビリティ
-- **[開発・保守](./development-guidelines.md)** - 状態管理、エラーハンドリング、スタイリング
-- **[テスト](./testing-guidelines.md)** - テスト戦略、テストピラミッド
-- **[レビュー チェックリスト](./review-checklist.md)** - PRレビュー用の横断観点
+- **[セキュリティ](../../development/ja/security-guidelines.md)** - セキュアな実装パターン、脆弱性対策
+- **[パフォーマンス](../../development/ja/performance-guidelines.md)** - 最適化、アクセシビリティ
+- **[開発・保守](../../development/ja/development-guidelines.md)** - 状態管理、エラーハンドリング、スタイリング
+- **[テスト](../../testing/ja/testing-guidelines.md)** - テスト戦略、テストピラミッド
+- **[レビュー チェックリスト](../../development/ja/review-checklist.md)** - PRレビュー用の横断観点
 
 ---
 
@@ -28,10 +28,10 @@
 
 - **プロジェクト開始時** → [概要](./coding-guidelines-overview.md) + [アーキテクチャ設計](./architecture-guidelines.md)
 - **コンポーネント開発時** → [Next.js パターン](./nextjs-patterns.md) + [TypeScript](./typescript-guidelines.md)
-- **セキュリティ実装時** → [セキュリティ](./security-guidelines.md)
-- **パフォーマンス改善時** → [パフォーマンス](./performance-guidelines.md)
-- **テスト実装時** → [テスト](./testing-guidelines.md)
-- **日常開発時** → [開発・保守](./development-guidelines.md)
+- **セキュリティ実装時** → [セキュリティ](../../development/ja/security-guidelines.md)
+- **パフォーマンス改善時** → [パフォーマンス](../../development/ja/performance-guidelines.md)
+- **テスト実装時** → [テスト](../../testing/ja/testing-guidelines.md)
+- **日常開発時** → [開発・保守](../../development/ja/development-guidelines.md)
 
 ---
 

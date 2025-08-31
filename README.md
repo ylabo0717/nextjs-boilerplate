@@ -87,20 +87,28 @@ pnpm format:check # Check code formatting
 pnpm typecheck    # Run TypeScript type checking
 
 # Testing
-pnpm test              # Run all tests (unit + integration + e2e)
 pnpm test:unit         # Unit tests with Vitest
 pnpm test:integration  # Integration tests with Vitest
 pnpm test:coverage     # Generate test coverage report
+pnpm test:scripts      # Run scripts tests
 pnpm test:e2e          # End-to-end tests with Playwright
 
 # Docker Commands
-pnpm docker:test           # Run all Docker tests
-pnpm docker:test:unit      # Unit tests in Docker
-pnpm docker:test:integration # Integration tests in Docker
-pnpm docker:test:e2e       # E2E tests in Docker
-pnpm docker:prod           # Start production environment
-pnpm docker:prod:build     # Build production images
-pnpm docker:prod:down      # Stop production environment
+pnpm docker:test       # Run all Docker tests
+pnpm docker:dev        # Start development environment
+pnpm docker:prod       # Start production environment
+
+# Quality Metrics & Analysis
+pnpm metrics           # Measure project metrics
+pnpm quality:check     # Run quality gate checks
+pnpm quality:analyze   # Analyze code quality
+pnpm quality:report    # Generate quality report
+
+# Documentation & Release
+pnpm docs:check        # Check documentation completeness
+pnpm changeset         # Create changeset for version management
+pnpm changeset:version # Update version based on changesets
+pnpm release           # Build and publish release
 
 # Git Hooks (automatic)
 # Pre-commit: ESLint, Prettier, TypeScript checks

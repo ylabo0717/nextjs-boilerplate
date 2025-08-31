@@ -63,3 +63,4 @@ next-env.d.ts
 *.log
 .env.prod
 .env.test
+package-lock.json

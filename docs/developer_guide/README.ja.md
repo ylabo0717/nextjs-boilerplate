@@ -14,7 +14,7 @@
 - **[アーキテクチャガイドライン](./core/architecture-guidelines.ja.md)** - 純粋関数ファースト、設計パターン
 - **[コーディングガイドライン](./core/coding-guidelines.ja.md)** - 全体概要とガイド構成
 - **[コーディングガイドライン概要](./core/coding-guidelines-overview.ja.md)** - SSOT原則、基本方針
-- **[TypeScriptガイドライン](./core/typescript-guidelines.ja.md)** - 型定義、命名規則、型ガード  
+- **[TypeScriptガイドライン](./core/typescript-guidelines.ja.md)** - 型定義、命名規則、型ガード
 - **[Next.jsパターン](./core/nextjs-patterns.ja.md)** - Server/Client Components、ルーティング
 
 ### 🎯 [Quality - 品質・テスト・レビュー](./quality/)

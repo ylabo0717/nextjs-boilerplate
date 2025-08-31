@@ -92,9 +92,9 @@
 
 **📚 作成されたドキュメント**
 
-- `docs/developer_guide/logging-system-overview.md` - 機能概要・使い方・実装ガイド
-- `docs/developer_guide/logging-configuration-guide.md` - 環境変数・設定・チューニング
-- `docs/developer_guide/logging-troubleshooting-guide.md` - 問題解決・デバッグ・緊急対応
+- `docs/developer_guide/logging/logging-system-overview.ja.md` - 機能概要・使い方・実装ガイド
+- `docs/developer_guide/logging/logging-configuration-guide.ja.md` - 環境変数・設定・チューニング
+- `docs/developer_guide/logging/logging-troubleshooting-guide.ja.md` - 問題解決・デバッグ・緊急対応
 
 #### 運用準備 ✅ **大部分完了**
 
@@ -425,9 +425,9 @@
 
 **📚 開発者向けドキュメント (2024-08-15作成)**
 
-- **ロギングシステム概要**: `docs/developer_guide/logging-system-overview.md`
-- **設定ガイド**: `docs/developer_guide/logging-configuration-guide.md`
-- **トラブルシューティングガイド**: `docs/developer_guide/logging-troubleshooting-guide.md`
+- **ロギングシステム概要**: `docs/developer_guide/logging/logging-system-overview.ja.md`
+- **設定ガイド**: `docs/developer_guide/logging/logging-configuration-guide.ja.md`
+- **トラブルシューティングガイド**: `docs/developer_guide/logging/logging-troubleshooting-guide.ja.md`
 
 **📋 実装・設計ドキュメント**
 

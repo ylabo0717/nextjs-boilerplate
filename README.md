@@ -208,7 +208,7 @@ pnpm exec playwright install
 SKIP_LOKI_TESTS=true pnpm test:integration
 ```
 
-For detailed FAQ and advanced troubleshooting, see [docs/developer_guide/docker/faq.md](docs/developer_guide/docker/faq.md).
+For detailed FAQ and advanced troubleshooting, see [docs/developer_guide/infrastructure/docker/faq.ja.md](docs/developer_guide/infrastructure/docker/faq.ja.md).
 
 ## 📦 Available Scripts
 
@@ -563,7 +563,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3000/api
 - ❌ Test additions/modifications
 - ❌ Documentation updates (unless significant)
 
-For detailed instructions, see [Changeset Developer Guide](./docs/developer_guide/changeset-developer-guide.md).
+For detailed instructions, see [Changeset Developer Guide](./docs/developer_guide/development/changeset-developer-guide.ja.md).
 
 ## 🔐 Security
 

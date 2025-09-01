@@ -27,7 +27,7 @@
 
 - 重要指摘3点（navigation のミスマッチ、health の Content-Type 厳密一致、home の固定文言）を優先修正
 - Unit/Scripts の一部ケースに短い意図コメントを追加（粒度は e2e に準拠）
-- 用語と表現の統一ルールを tests/ 用の軽量ガイドとして追記（既存の docs/developer_guide/testing-guidelines.md への追補も可）
+- 用語と表現の統一ルールを tests/ 用の軽量ガイドとして追記（既存の docs/developer_guide/quality/testing-guidelines.ja.md への追補も可）
 
 ---
 

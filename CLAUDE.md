@@ -122,7 +122,7 @@ Running these checks before committing prevents failures in the pre-commit hooks
 
 **All Pull Requests must follow the comprehensive review checklist:**
 
-📋 **Review Checklist**: [`docs/developer_guide/review-checklist.md`](docs/developer_guide/review-checklist.md)
+📋 **Review Checklist**: [`docs/developer_guide/quality/review-checklist.ja.md`](docs/developer_guide/quality/review-checklist.ja.md)
 
 **For PR Authors:**
 
@@ -153,7 +153,7 @@ Running these checks before committing prevents failures in the pre-commit hooks
    - Commit the generated `.changeset/*.md` file along with your code changes
    - This ensures your changes are properly documented for the next release
 
-For detailed instructions, see [Changeset Developer Guide](docs/developer_guide/changeset-developer-guide.md).
+For detailed instructions, see [Changeset Developer Guide](docs/developer_guide/development/changeset-developer-guide.ja.md).
 
 ### IMPORTANT: Follow Project Standards
 
@@ -172,23 +172,23 @@ For detailed implementation standards, refer to the specialized guidelines:
 
 ### Core Standards
 
-- 📖 [**Coding Guidelines**](docs/developer_guide/coding-guidelines.md) - SSOT principles, architecture patterns, pure functions
-- 📝 [**TypeScript Guidelines**](docs/developer_guide/typescript-guidelines.md) - Type safety, TSDoc standards, Zod validation
-- ⚛️ [**Next.js Patterns**](docs/developer_guide/nextjs-patterns.md) - Server/Client Components, async params, data fetching
-- 🏗️ [**Architecture Guidelines**](docs/developer_guide/architecture-guidelines.md) - Pure functions first, functional design patterns
+- 📖 [**Coding Guidelines**](docs/developer_guide/core/coding-guidelines.ja.md) - SSOT principles, architecture patterns, pure functions
+- 📝 [**TypeScript Guidelines**](docs/developer_guide/core/typescript-guidelines.ja.md) - Type safety, TSDoc standards, Zod validation
+- ⚛️ [**Next.js Patterns**](docs/developer_guide/core/nextjs-patterns.ja.md) - Server/Client Components, async params, data fetching
+- 🏗️ [**Architecture Guidelines**](docs/developer_guide/core/architecture-guidelines.ja.md) - Pure functions first, functional design patterns
 
 ### Quality & Security
 
-- 🔒 [**Security Guidelines**](docs/developer_guide/security-guidelines.md) - Secure implementation, authentication patterns
-- 🚀 [**Performance Guidelines**](docs/developer_guide/performance-guidelines.md) - Optimization, accessibility standards
-- 🧪 [**Testing Guidelines**](docs/developer_guide/testing-guidelines.md) - Test pyramid, constants management
-- 📋 [**Review Checklist**](docs/developer_guide/review-checklist.md) - PR review standards and templates
+- 🔒 [**Security Guidelines**](docs/developer_guide/security/security-guidelines.ja.md) - Secure implementation, authentication patterns
+- 🚀 [**Performance Guidelines**](docs/developer_guide/quality/performance-guidelines.ja.md) - Optimization, accessibility standards
+- 🧪 [**Testing Guidelines**](docs/developer_guide/quality/testing-guidelines.ja.md) - Test pyramid, constants management
+- 📋 [**Review Checklist**](docs/developer_guide/quality/review-checklist.ja.md) - PR review standards and templates
 
 ### Documentation & Process
 
-- 📚 [**Documentation Guidelines**](docs/developer_guide/documentation-guidelines.md) - TSDoc standards, validation strategy
-- 🔄 [**Development Guidelines**](docs/developer_guide/development-guidelines.md) - State management, error handling, styling
-- 📦 [**Changeset Developer Guide**](docs/developer_guide/changeset-developer-guide.md) - Release management process
+- 📚 [**Documentation Guidelines**](docs/developer_guide/development/documentation-guidelines.ja.md) - TSDoc standards, validation strategy
+- 🔄 [**Development Guidelines**](docs/developer_guide/development/development-guidelines.ja.md) - State management, error handling, styling
+- 📦 [**Changeset Developer Guide**](docs/developer_guide/development/changeset-developer-guide.ja.md) - Release management process
 
 ## Project Configuration
 
@@ -209,7 +209,7 @@ This project uses an organized configuration structure with settings grouped by 
 - **`config/performance/`** - Performance measurement (Lighthouse CI)
 - **`config/build/`** - Build-related configurations (PostCSS)
 
-For detailed information about each configuration file and its usage, see [`docs/developer_guide/configuration-structure.md`](docs/developer_guide/configuration-structure.md).
+For detailed information about each configuration file and its usage, see [`docs/developer_guide/development/configuration-structure.ja.md`](docs/developer_guide/development/configuration-structure.ja.md).
 
 ### Package Version Policy
 

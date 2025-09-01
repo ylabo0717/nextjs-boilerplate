@@ -3,7 +3,7 @@
 対象:
 
 - コード: `src/lib/logger/**`
-- ドキュメント: `docs/developer_guide/logging-system-overview.md`, `logging-configuration-guide.md`, `logging-troubleshooting-guide.md`
+- ドキュメント: `docs/developer_guide/logging/logging-system-overview.ja.md`, `logging-configuration-guide.ja.md`, `logging-troubleshooting-guide.ja.md`
 
 以下、番号付きで指摘事項を記載します（各項目に「指摘内容」「指摘の意図」「重要度」を明記）。
 

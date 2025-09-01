@@ -73,7 +73,7 @@ if (shouldSkip) {
       it('設定ガイドにGrafanaセキュリティ設定が含まれている', () => {
         const configGuidePath = resolve(
           process.cwd(),
-          'docs/developer_guide/logging-configuration-guide.md'
+          'docs/developer_guide/logging/logging-configuration-guide.ja.md'
         );
         const configGuideContent = readFileSync(configGuidePath, 'utf-8');
 

@@ -684,7 +684,7 @@ export LOKI_BATCH_SIZE=100
 
 ## 関連ドキュメント
 
-- [システム概要](./logging-system-overview.md)
-- [設定ガイド](./logging-configuration-guide.md)
-- [API リファレンス](../api/logger/)
-- [統合計画書](../work_dir/structured-logging-unified-plan.md)
+- [システム概要](./logging-system-overview.ja.md)
+- [設定ガイド](./logging-configuration-guide.ja.md)
+- [API リファレンス](../../api/logger/)
+- [統合計画書](../../work_dir/structured-logging-unified-plan.md)

@@ -496,7 +496,7 @@ curl http://localhost:3000/api/test-loki
 
 ## 関連ドキュメント
 
-- [システム概要](./logging-system-overview.md)
-- [トラブルシューティングガイド](./logging-troubleshooting-guide.md)
-- [API リファレンス](../api/logger/)
-- [統合計画書](../work_dir/structured-logging-unified-plan.md)
+- [システム概要](./logging-system-overview.ja.md)
+- [トラブルシューティングガイド](./logging-troubleshooting-guide.ja.md)
+- [API リファレンス](../../api/logger/)
+- [統合計画書](../../work_dir/structured-logging-unified-plan.md)

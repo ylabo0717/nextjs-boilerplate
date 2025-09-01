@@ -843,8 +843,8 @@ Access Points:
 **成果物** ✅ **完了**:
 
 - ✅ **README.md更新**: Docker使用方法完全記載
-- ✅ **トラブルシューティングガイド**: `docs/developer_guide/docker/troubleshooting.md`
-- ✅ **開発者向けFAQ**: `docs/developer_guide/docker/faq.md`
+- ✅ **トラブルシューティングガイド**: `docs/developer_guide/infrastructure/docker/troubleshooting.ja.md`
+- ✅ **開発者向けFAQ**: `docs/developer_guide/infrastructure/docker/faq.ja.md`
 
 #### 5.3 技術的成果 ✅ **完了**
 
@@ -1188,5 +1188,5 @@ pnpm docker:prod:down                # 本番環境停止
 ### サポートドキュメント
 
 - **基本使用方法**: README.md
-- **トラブルシューティング**: `docs/developer_guide/docker/troubleshooting.md`
-- **よくある質問**: `docs/developer_guide/docker/faq.md`
+- **トラブルシューティング**: `docs/developer_guide/infrastructure/docker/troubleshooting.ja.md`
+- **よくある質問**: `docs/developer_guide/infrastructure/docker/faq.ja.md`

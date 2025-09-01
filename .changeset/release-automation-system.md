@@ -36,7 +36,7 @@ Add comprehensive release automation system with GitHub Actions
 
 ### Documentation
 
-- Comprehensive release automation guide in `docs/developer_guide/release-automation-system.md`
+- Comprehensive release automation guide in `docs/developer_guide/infrastructure/release-automation-system.ja.md`
 - Detailed workflow documentation and best practices
 - Troubleshooting guide for common issues
 

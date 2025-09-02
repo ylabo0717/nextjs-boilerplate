@@ -19,7 +19,7 @@ describe('Logger Context Basic', () => {
 
   describe('Context manager functions', () => {
     it('should execute loggerContextManager methods', async () => {
-      const { loggerContextManager } = await import('../../../src/lib/logger/context');
+      const { loggerContextManager } = await import('@/lib/logger/context');
 
       const mockLogger = {
         trace: vi.fn(),
@@ -71,7 +71,7 @@ describe('Logger Context Basic', () => {
     });
 
     it('should handle context manager with default config', async () => {
-      const { loggerContextManager } = await import('../../../src/lib/logger/context');
+      const { loggerContextManager } = await import('@/lib/logger/context');
 
       const testContext = { requestId: 'manager-test' };
       let contextInsideRun;
@@ -85,7 +85,7 @@ describe('Logger Context Basic', () => {
     });
 
     it('should handle context updates gracefully', async () => {
-      const { loggerContextManager } = await import('../../../src/lib/logger/context');
+      const { loggerContextManager } = await import('@/lib/logger/context');
 
       const testContext = { requestId: 'update-test' };
 
@@ -102,7 +102,7 @@ describe('Logger Context Basic', () => {
   describe('Compatibility functions', () => {
     it('should provide backwards compatibility', async () => {
       const { runWithLoggerContextCompat, getLoggerContextCompat, createContextualLoggerCompat } =
-        await import('../../../src/lib/logger/context');
+        await import('@/lib/logger/context');
 
       const mockLogger = {
         trace: vi.fn(),
@@ -128,7 +128,7 @@ describe('Logger Context Basic', () => {
 
     it('should execute compatibility wrapper functions', async () => {
       const { runWithLoggerContextCompat, getLoggerContextCompat, createContextualLoggerCompat } =
-        await import('../../../src/lib/logger/context');
+        await import('@/lib/logger/context');
 
       const testContext = { requestId: 'compat-execution-test' };
       let result;
@@ -146,7 +146,7 @@ describe('Logger Context Basic', () => {
 
   describe('Context creation and configuration', () => {
     it('should create logger context config', async () => {
-      const { createLoggerContextConfig } = await import('../../../src/lib/logger/context');
+      const { createLoggerContextConfig } = await import('@/lib/logger/context');
 
       const config = createLoggerContextConfig();
 
@@ -155,7 +155,7 @@ describe('Logger Context Basic', () => {
     });
 
     it('should provide default logger context config', async () => {
-      const { defaultLoggerContextConfig } = await import('../../../src/lib/logger/context');
+      const { defaultLoggerContextConfig } = await import('@/lib/logger/context');
 
       expect(defaultLoggerContextConfig).toBeDefined();
       expect(defaultLoggerContextConfig.storage).toBeDefined();
@@ -163,7 +163,7 @@ describe('Logger Context Basic', () => {
 
     it('should run functions with logger context', async () => {
       const { runWithLoggerContext, createLoggerContextConfig } = await import(
-        '../../../src/lib/logger/context'
+        '@/lib/logger/context'
       );
 
       const config = createLoggerContextConfig();
@@ -181,7 +181,7 @@ describe('Logger Context Basic', () => {
 
     it('should get logger context from config', async () => {
       const { getLoggerContext, createLoggerContextConfig } = await import(
-        '../../../src/lib/logger/context'
+        '@/lib/logger/context'
       );
 
       const config = createLoggerContextConfig();
@@ -197,7 +197,7 @@ describe('Logger Context Basic', () => {
   describe('Contextual logger creation', () => {
     it('should create contextual logger with config', async () => {
       const { createContextualLogger, createLoggerContextConfig } = await import(
-        '../../../src/lib/logger/context'
+        '@/lib/logger/context'
       );
 
       const config = createLoggerContextConfig();
@@ -225,7 +225,7 @@ describe('Logger Context Basic', () => {
 
     it('should execute contextual logger methods', async () => {
       const { createContextualLogger, createLoggerContextConfig } = await import(
-        '../../../src/lib/logger/context'
+        '@/lib/logger/context'
       );
 
       const config = createLoggerContextConfig();
@@ -264,7 +264,7 @@ describe('Logger Context Basic', () => {
         logErrorEvent,
         logPerformanceMetric,
         createLoggerContextConfig,
-      } = await import('../../../src/lib/logger/context');
+      } = await import('@/lib/logger/context');
 
       const config = createLoggerContextConfig();
       const mockLogger = {
@@ -296,7 +296,7 @@ describe('Logger Context Basic', () => {
 
     it('should handle different error types in logErrorEvent', async () => {
       const { logErrorEvent, createLoggerContextConfig } = await import(
-        '../../../src/lib/logger/context'
+        '@/lib/logger/context'
       );
 
       const config = createLoggerContextConfig();
@@ -331,7 +331,7 @@ describe('Logger Context Basic', () => {
 
     it('should handle performance metrics with default unit', async () => {
       const { logPerformanceMetric, createLoggerContextConfig } = await import(
-        '../../../src/lib/logger/context'
+        '@/lib/logger/context'
       );
 
       const config = createLoggerContextConfig();
@@ -369,7 +369,7 @@ describe('Logger Context Basic', () => {
   describe('Context manipulation functions', () => {
     it('should handle trace context setting', async () => {
       const { setTraceContext, createLoggerContextConfig } = await import(
-        '../../../src/lib/logger/context'
+        '@/lib/logger/context'
       );
 
       const config = createLoggerContextConfig();
@@ -383,7 +383,7 @@ describe('Logger Context Basic', () => {
 
     it('should handle debug logger context', async () => {
       const { debugLoggerContext, createLoggerContextConfig } = await import(
-        '../../../src/lib/logger/context'
+        '@/lib/logger/context'
       );
 
       const config = createLoggerContextConfig();
@@ -406,7 +406,7 @@ describe('Logger Context Basic', () => {
 
     it('should handle context updates', async () => {
       const { updateLoggerContext, createLoggerContextConfig } = await import(
-        '../../../src/lib/logger/context'
+        '@/lib/logger/context'
       );
 
       const config = createLoggerContextConfig();

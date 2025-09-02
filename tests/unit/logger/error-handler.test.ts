@@ -15,9 +15,9 @@ import {
   handleUnhandledRejection,
   handleUncaughtException,
   errorHandlerUtils,
-} from '../../../src/lib/logger/error-handler';
+} from '@/lib/logger/error-handler';
 
-import type { Logger } from '../../../src/lib/logger/types';
+import type { Logger } from '@/lib/logger/types';
 
 // モックLogger
 const mockLogger: Logger = {

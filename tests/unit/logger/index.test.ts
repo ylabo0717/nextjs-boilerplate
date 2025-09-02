@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LOGGER_TEST_DATA } from '../../constants/test-constants';
 
 // Mock modules before importing
-vi.mock('../../../src/lib/logger/client', () => ({
+vi.mock('@/lib/logger/client', () => ({
   getClientLogger: vi.fn(() => ({
     info: vi.fn(),
     warn: vi.fn(),
@@ -32,7 +32,7 @@ vi.mock('../../../src/lib/logger/client', () => ({
   },
 }));
 
-vi.mock('../../../src/lib/logger/server', () => ({
+vi.mock('@/lib/logger/server', () => ({
   getServerLogger: vi.fn(() => ({
     info: vi.fn(),
     warn: vi.fn(),
@@ -55,7 +55,7 @@ vi.mock('../../../src/lib/logger/server', () => ({
   },
 }));
 
-vi.mock('../../../src/lib/logger/error-handler', () => ({
+vi.mock('@/lib/logger/error-handler', () => ({
   setupGlobalErrorHandlers: vi.fn(),
   errorHandler: {
     handleUncaughtException: vi.fn(),
@@ -64,7 +64,7 @@ vi.mock('../../../src/lib/logger/error-handler', () => ({
   },
 }));
 
-vi.mock('../../../src/lib/logger/loki-client', () => ({
+vi.mock('@/lib/logger/loki-client', () => ({
   createLokiConfigFromEnv: vi.fn(() => ({
     host: 'http://localhost:3100',
     labels: { app: 'test' },
@@ -72,7 +72,7 @@ vi.mock('../../../src/lib/logger/loki-client', () => ({
   initializeLokiTransport: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('../../../src/lib/logger/context', () => ({
+vi.mock('@/lib/logger/context', () => ({
   loggerContextManager: {
     runWithContext: vi.fn((context, fn) => fn()),
     getContext: vi.fn(() => null),
@@ -104,7 +104,7 @@ describe('Logger Index', () => {
 
   describe('logger instance (environment detection)', () => {
     it('should create appropriate logger based on environment', async () => {
-      const { logger } = await import('../../../src/lib/logger/index');
+      const { logger } = await import('@/lib/logger/index');
 
       expect(logger).toBeDefined();
       expect(typeof logger.info).toBe('function');
@@ -116,7 +116,7 @@ describe('Logger Index', () => {
 
   describe('logger instance', () => {
     it('should export a logger instance', async () => {
-      const { logger } = await import('../../../src/lib/logger/index');
+      const { logger } = await import('@/lib/logger/index');
 
       expect(logger).toBeDefined();
       expect(typeof logger.info).toBe('function');
@@ -126,7 +126,7 @@ describe('Logger Index', () => {
     });
 
     it('should export logger as default export', async () => {
-      const defaultExport = await import('../../../src/lib/logger/index');
+      const defaultExport = await import('@/lib/logger/index');
 
       expect(defaultExport.default).toBeDefined();
       expect(defaultExport.default).toBe(defaultExport.logger);
@@ -135,49 +135,49 @@ describe('Logger Index', () => {
 
   describe('utility functions', () => {
     it('should export logError function', async () => {
-      const { logError } = await import('../../../src/lib/logger/index');
+      const { logError } = await import('@/lib/logger/index');
 
       expect(typeof logError).toBe('function');
     });
 
     it('should export logUserAction function', async () => {
-      const { logUserAction } = await import('../../../src/lib/logger/index');
+      const { logUserAction } = await import('@/lib/logger/index');
 
       expect(typeof logUserAction).toBe('function');
     });
 
     it('should export measurePerformance function', async () => {
-      const { measurePerformance } = await import('../../../src/lib/logger/index');
+      const { measurePerformance } = await import('@/lib/logger/index');
 
       expect(typeof measurePerformance).toBe('function');
     });
 
     it('should export measurePerformanceAsync function', async () => {
-      const { measurePerformanceAsync } = await import('../../../src/lib/logger/index');
+      const { measurePerformanceAsync } = await import('@/lib/logger/index');
 
       expect(typeof measurePerformanceAsync).toBe('function');
     });
 
     it('should export getLoggerWithContext function', async () => {
-      const { getLoggerWithContext } = await import('../../../src/lib/logger/index');
+      const { getLoggerWithContext } = await import('@/lib/logger/index');
 
       expect(typeof getLoggerWithContext).toBe('function');
     });
 
     it('should export initializeLogger function', async () => {
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       expect(typeof initializeLogger).toBe('function');
     });
 
     it('should export initializeLogger function which includes error handler setup', async () => {
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       expect(typeof initializeLogger).toBe('function');
     });
 
     it('should export debugLogger function', async () => {
-      const { debugLogger } = await import('../../../src/lib/logger/index');
+      const { debugLogger } = await import('@/lib/logger/index');
 
       expect(typeof debugLogger).toBe('function');
     });
@@ -186,7 +186,7 @@ describe('Logger Index', () => {
   describe('environment integration', () => {
     it('should create appropriate logger based on detected environment', async () => {
       // Import after setting up mocks
-      const { logger } = await import('../../../src/lib/logger/index');
+      const { logger } = await import('@/lib/logger/index');
 
       expect(logger).toBeDefined();
       expect(typeof logger.info).toBe('function');
@@ -200,13 +200,13 @@ describe('Logger Index', () => {
 
     it('should handle logger creation errors gracefully', async () => {
       // Should not throw when importing
-      await expect(import('../../../src/lib/logger/index')).resolves.toBeDefined();
+      await expect(import('@/lib/logger/index')).resolves.toBeDefined();
     });
   });
 
   describe('performance functions', () => {
     it('should measure synchronous performance', async () => {
-      const { measurePerformance } = await import('../../../src/lib/logger/index');
+      const { measurePerformance } = await import('@/lib/logger/index');
 
       const testFunction = vi.fn(() => 'test result');
       const result = measurePerformance('test-operation', testFunction);
@@ -216,7 +216,7 @@ describe('Logger Index', () => {
     });
 
     it('should measure asynchronous performance', async () => {
-      const { measurePerformanceAsync } = await import('../../../src/lib/logger/index');
+      const { measurePerformanceAsync } = await import('@/lib/logger/index');
 
       const testFunction = vi.fn(async () => 'async result');
       const result = await measurePerformanceAsync('test-operation', testFunction);
@@ -226,7 +226,7 @@ describe('Logger Index', () => {
     });
 
     it('should handle performance measurement errors', async () => {
-      const { measurePerformance } = await import('../../../src/lib/logger/index');
+      const { measurePerformance } = await import('@/lib/logger/index');
 
       const testFunction = vi.fn(() => {
         throw new Error('Test error');
@@ -237,7 +237,7 @@ describe('Logger Index', () => {
     });
 
     it('should handle async performance measurement errors', async () => {
-      const { measurePerformanceAsync } = await import('../../../src/lib/logger/index');
+      const { measurePerformanceAsync } = await import('@/lib/logger/index');
 
       const testFunction = vi.fn(async () => {
         throw new Error('Async test error');
@@ -252,7 +252,7 @@ describe('Logger Index', () => {
 
   describe('context functions', () => {
     it('should create logger with context', async () => {
-      const { getLoggerWithContext } = await import('../../../src/lib/logger/index');
+      const { getLoggerWithContext } = await import('@/lib/logger/index');
 
       const contextLogger = getLoggerWithContext({ userId: '123', action: 'test' });
 
@@ -261,7 +261,7 @@ describe('Logger Index', () => {
     });
 
     it('should initialize logger with configuration', async () => {
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       const config = {
         enableGlobalErrorHandlers: false,
@@ -273,7 +273,7 @@ describe('Logger Index', () => {
     });
 
     it('should setup global error handlers via initializeLogger', async () => {
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       // Should not throw when initializing with error handlers enabled
       expect(() =>
@@ -284,7 +284,7 @@ describe('Logger Index', () => {
 
   describe('debugging functions', () => {
     it('should call debug logger function', async () => {
-      const { debugLogger } = await import('../../../src/lib/logger/index');
+      const { debugLogger } = await import('@/lib/logger/index');
 
       expect(typeof debugLogger).toBe('function');
       // Should not throw when called
@@ -294,7 +294,7 @@ describe('Logger Index', () => {
 
   describe('error logging', () => {
     it('should log errors with context', async () => {
-      const { logError } = await import('../../../src/lib/logger/index');
+      const { logError } = await import('@/lib/logger/index');
 
       const error = new Error('Test error');
       const context = { userId: '123', action: 'test' };
@@ -304,7 +304,7 @@ describe('Logger Index', () => {
     });
 
     it('should log user actions', async () => {
-      const { logUserAction } = await import('../../../src/lib/logger/index');
+      const { logUserAction } = await import('@/lib/logger/index');
 
       const action = 'user-login';
       const metadata = { userId: '123', timestamp: new Date().toISOString() };
@@ -325,7 +325,7 @@ describe('Logger Index', () => {
       delete (global as any).window;
 
       // Import the module fresh to trigger environment detection
-      const indexModule = await import('../../../src/lib/logger/index');
+      const indexModule = await import('@/lib/logger/index');
 
       expect(indexModule.logger).toBeDefined();
     });
@@ -340,7 +340,7 @@ describe('Logger Index', () => {
 
       // Clear cache and import fresh
       vi.resetModules();
-      const indexModule = await import('../../../src/lib/logger/index');
+      const indexModule = await import('@/lib/logger/index');
 
       expect(indexModule.logger).toBeDefined();
     });
@@ -351,7 +351,7 @@ describe('Logger Index', () => {
 
       // Import fresh
       vi.resetModules();
-      const indexModule = await import('../../../src/lib/logger/index');
+      const indexModule = await import('@/lib/logger/index');
 
       expect(indexModule.logger).toBeDefined();
     });
@@ -363,7 +363,7 @@ describe('Logger Index', () => {
     });
 
     it('should initialize logger with default options', async () => {
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       expect(() => initializeLogger()).not.toThrow();
     });
@@ -372,7 +372,7 @@ describe('Logger Index', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       // Mock initializeLokiTransport to throw an error
-      vi.doMock('../../../src/lib/logger/loki-client', () => ({
+      vi.doMock('@/lib/logger/loki-client', () => ({
         createLokiConfigFromEnv: vi.fn(() => ({
           host: 'http://localhost:3100',
           labels: { app: 'test' },
@@ -380,7 +380,7 @@ describe('Logger Index', () => {
         initializeLokiTransport: vi.fn().mockRejectedValue(new Error('Loki initialization failed')),
       }));
 
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       initializeLogger({ enableLoki: true });
 
@@ -393,11 +393,11 @@ describe('Logger Index', () => {
       );
 
       consoleWarnSpy.mockRestore();
-      vi.doUnmock('../../../src/lib/logger/loki-client');
+      vi.doUnmock('@/lib/logger/loki-client');
     });
 
     it('should initialize logger with custom context', async () => {
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       const context = {
         requestId: 'test-request-123',
@@ -409,7 +409,7 @@ describe('Logger Index', () => {
     });
 
     it('should initialize logger with disabled error handlers', async () => {
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       expect(() => {
         initializeLogger({ enableGlobalErrorHandlers: false });
@@ -417,7 +417,7 @@ describe('Logger Index', () => {
     });
 
     it('should initialize logger with disabled Loki', async () => {
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       expect(() => {
         initializeLogger({ enableLoki: false });
@@ -425,7 +425,7 @@ describe('Logger Index', () => {
     });
 
     it('should initialize logger with custom Loki config', async () => {
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       const lokiConfig = {
         enabled: true,
@@ -440,7 +440,7 @@ describe('Logger Index', () => {
     });
 
     it('should handle Loki initialization failures gracefully', async () => {
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       expect(() => {
         initializeLogger({ enableLoki: true });
@@ -455,7 +455,7 @@ describe('Logger Index', () => {
         removeEventListener: vi.fn(),
       };
 
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       const context = { requestId: 'browser-request' };
 
@@ -469,7 +469,7 @@ describe('Logger Index', () => {
       process.env.LOKI_ENABLED = 'false';
 
       try {
-        const { initializeLogger } = await import('../../../src/lib/logger/index');
+        const { initializeLogger } = await import('@/lib/logger/index');
 
         expect(() => {
           initializeLogger(); // Should not enable Loki
@@ -489,7 +489,7 @@ describe('Logger Index', () => {
       delete (global as any).window;
       vi.resetModules();
 
-      const { logger } = await import('../../../src/lib/logger/index');
+      const { logger } = await import('@/lib/logger/index');
 
       expect(logger).toBeDefined();
       expect(typeof logger.info).toBe('function');
@@ -506,7 +506,7 @@ describe('Logger Index', () => {
       };
       vi.resetModules();
 
-      const { logger } = await import('../../../src/lib/logger/index');
+      const { logger } = await import('@/lib/logger/index');
 
       expect(logger).toBeDefined();
       expect(typeof logger.info).toBe('function');
@@ -517,7 +517,7 @@ describe('Logger Index', () => {
       // Simulate edge runtime by mocking server logger to throw
       vi.resetModules();
 
-      const { logger } = await import('../../../src/lib/logger/index');
+      const { logger } = await import('@/lib/logger/index');
 
       expect(logger).toBeDefined();
     });
@@ -525,7 +525,7 @@ describe('Logger Index', () => {
 
   describe('context management', () => {
     it('should get logger with context correctly', async () => {
-      const { getLoggerWithContext } = await import('../../../src/lib/logger/index');
+      const { getLoggerWithContext } = await import('@/lib/logger/index');
 
       const context = {
         requestId: 'test-request',
@@ -543,7 +543,7 @@ describe('Logger Index', () => {
     });
 
     it('should handle empty context in getLoggerWithContext', async () => {
-      const { getLoggerWithContext } = await import('../../../src/lib/logger/index');
+      const { getLoggerWithContext } = await import('@/lib/logger/index');
 
       const contextLogger = getLoggerWithContext({});
 
@@ -554,7 +554,7 @@ describe('Logger Index', () => {
 
   describe('debug functionality', () => {
     it('should execute debug logger without errors', async () => {
-      const { debugLogger } = await import('../../../src/lib/logger/index');
+      const { debugLogger } = await import('@/lib/logger/index');
 
       expect(() => debugLogger()).not.toThrow();
     });
@@ -564,7 +564,7 @@ describe('Logger Index', () => {
       delete (global as any).window;
       vi.resetModules();
 
-      const { debugLogger } = await import('../../../src/lib/logger/index');
+      const { debugLogger } = await import('@/lib/logger/index');
 
       expect(() => debugLogger()).not.toThrow();
 
@@ -576,7 +576,7 @@ describe('Logger Index', () => {
       };
       vi.resetModules();
 
-      const clientModule = await import('../../../src/lib/logger/index');
+      const clientModule = await import('@/lib/logger/index');
 
       expect(() => clientModule.debugLogger()).not.toThrow();
     });
@@ -584,7 +584,7 @@ describe('Logger Index', () => {
 
   describe('performance measurement edge cases', () => {
     it('should handle performance measurement with complex return values', async () => {
-      const { measurePerformance } = await import('../../../src/lib/logger/index');
+      const { measurePerformance } = await import('@/lib/logger/index');
 
       const complexResult = { data: 'test', numbers: [1, 2, 3], nested: { value: true } };
       const testFunction = vi.fn(() => complexResult);
@@ -596,7 +596,7 @@ describe('Logger Index', () => {
     });
 
     it('should handle async performance measurement with Promise rejections', async () => {
-      const { measurePerformanceAsync } = await import('../../../src/lib/logger/index');
+      const { measurePerformanceAsync } = await import('@/lib/logger/index');
 
       const testFunction = vi.fn(async () => {
         await new Promise((resolve) => setTimeout(resolve, 1));
@@ -610,7 +610,7 @@ describe('Logger Index', () => {
     });
 
     it('should handle performance measurement with undefined return values', async () => {
-      const { measurePerformance } = await import('../../../src/lib/logger/index');
+      const { measurePerformance } = await import('@/lib/logger/index');
 
       const testFunction = vi.fn(() => undefined);
       const result = measurePerformance('undefined-operation', testFunction);
@@ -622,7 +622,7 @@ describe('Logger Index', () => {
 
   describe('error handling edge cases', () => {
     it('should handle logError with complex error objects', async () => {
-      const { logError } = await import('../../../src/lib/logger/index');
+      const { logError } = await import('@/lib/logger/index');
 
       const complexError = new Error('Complex error');
       complexError.stack = 'Stack trace here';
@@ -633,7 +633,7 @@ describe('Logger Index', () => {
     });
 
     it('should handle logUserAction with various metadata types', async () => {
-      const { logUserAction } = await import('../../../src/lib/logger/index');
+      const { logUserAction } = await import('@/lib/logger/index');
 
       const metadata = {
         userId: '123',
@@ -649,7 +649,7 @@ describe('Logger Index', () => {
     });
 
     it('should handle logError with null or undefined errors', async () => {
-      const { logError } = await import('../../../src/lib/logger/index');
+      const { logError } = await import('@/lib/logger/index');
 
       expect(() => logError(null as any)).not.toThrow();
       expect(() => logError(undefined as any)).not.toThrow();
@@ -671,7 +671,7 @@ describe('Logger Index', () => {
       delete (global as any).window;
       vi.resetModules();
 
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       initializeLogger({ enableGlobalErrorHandlers: true });
 
@@ -695,7 +695,7 @@ describe('Logger Index', () => {
 
       vi.resetModules();
 
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       initializeLogger({ enableGlobalErrorHandlers: true });
 
@@ -712,7 +712,7 @@ describe('Logger Index', () => {
       delete (global as any).window;
       vi.resetModules();
 
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       initializeLogger({ enableGlobalErrorHandlers: true });
 
@@ -737,7 +737,7 @@ describe('Logger Index', () => {
       delete (global as any).window;
       vi.resetModules();
 
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       initializeLogger({ enableGlobalErrorHandlers: true });
 
@@ -768,7 +768,7 @@ describe('Logger Index', () => {
 
       vi.resetModules();
 
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       initializeLogger({ enableGlobalErrorHandlers: true });
 
@@ -803,7 +803,7 @@ describe('Logger Index', () => {
 
       vi.resetModules();
 
-      const { initializeLogger } = await import('../../../src/lib/logger/index');
+      const { initializeLogger } = await import('@/lib/logger/index');
 
       initializeLogger({ enableGlobalErrorHandlers: true });
 

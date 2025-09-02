@@ -9,8 +9,8 @@ import {
   validateIPHashSecret,
   defaultIPHashConfig,
   createTestIPHashConfig,
-} from '../../../src/lib/logger/crypto';
-import type { IPHashConfig } from '../../../src/lib/logger/crypto';
+} from '@/lib/logger/crypto';
+import type { IPHashConfig } from '@/lib/logger/crypto';
 
 describe('IP Hash - GDPR Compliance (Pure Functions)', () => {
   const originalEnv = process.env;

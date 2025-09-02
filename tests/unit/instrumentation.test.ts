@@ -8,11 +8,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock the imported modules before importing register
-vi.mock('../../src/lib/logger/metrics', () => ({
+vi.mock('@/lib/logger/metrics', () => ({
   initializeMetrics: vi.fn(),
 }));
 
-vi.mock('../../src/lib/logger/enhanced-metrics', () => ({
+vi.mock('@/lib/logger/enhanced-metrics', () => ({
   initializePhase3Metrics: vi.fn(),
 }));
 
@@ -34,8 +34,8 @@ describe('instrumentation.ts', () => {
       const originalRuntime = process.env.NEXT_RUNTIME;
       process.env.NEXT_RUNTIME = 'nodejs';
 
-      const { initializeMetrics } = await import('../../src/lib/logger/metrics');
-      const { initializePhase3Metrics } = await import('../../src/lib/logger/enhanced-metrics');
+      const { initializeMetrics } = await import('@/lib/logger/metrics');
+      const { initializePhase3Metrics } = await import('@/lib/logger/enhanced-metrics');
 
       // Mock successful initialization
       vi.mocked(initializeMetrics).mockResolvedValue(undefined);
@@ -75,8 +75,8 @@ describe('instrumentation.ts', () => {
       const originalRuntime = process.env.NEXT_RUNTIME;
       process.env.NEXT_RUNTIME = 'edge';
 
-      const { initializeMetrics } = await import('../../src/lib/logger/metrics');
-      const { initializePhase3Metrics } = await import('../../src/lib/logger/enhanced-metrics');
+      const { initializeMetrics } = await import('@/lib/logger/metrics');
+      const { initializePhase3Metrics } = await import('@/lib/logger/enhanced-metrics');
 
       // Import and call register
       const { register } = await import('../../instrumentation');
@@ -95,8 +95,8 @@ describe('instrumentation.ts', () => {
       const originalRuntime = process.env.NEXT_RUNTIME;
       delete process.env.NEXT_RUNTIME;
 
-      const { initializeMetrics } = await import('../../src/lib/logger/metrics');
-      const { initializePhase3Metrics } = await import('../../src/lib/logger/enhanced-metrics');
+      const { initializeMetrics } = await import('@/lib/logger/metrics');
+      const { initializePhase3Metrics } = await import('@/lib/logger/enhanced-metrics');
 
       // Import and call register
       const { register } = await import('../../instrumentation');
@@ -115,8 +115,8 @@ describe('instrumentation.ts', () => {
       const originalRuntime = process.env.NEXT_RUNTIME;
       process.env.NEXT_RUNTIME = 'nodejs';
 
-      const { initializeMetrics } = await import('../../src/lib/logger/metrics');
-      const { initializePhase3Metrics } = await import('../../src/lib/logger/enhanced-metrics');
+      const { initializeMetrics } = await import('@/lib/logger/metrics');
+      const { initializePhase3Metrics } = await import('@/lib/logger/enhanced-metrics');
 
       // Mock initializeMetrics to throw error
       const testError = new Error('Metrics initialization failed');
@@ -159,8 +159,8 @@ describe('instrumentation.ts', () => {
       const originalRuntime = process.env.NEXT_RUNTIME;
       process.env.NEXT_RUNTIME = 'nodejs';
 
-      const { initializeMetrics } = await import('../../src/lib/logger/metrics');
-      const { initializePhase3Metrics } = await import('../../src/lib/logger/enhanced-metrics');
+      const { initializeMetrics } = await import('@/lib/logger/metrics');
+      const { initializePhase3Metrics } = await import('@/lib/logger/enhanced-metrics');
 
       // Mock successful initializeMetrics but failing initializePhase3Metrics
       vi.mocked(initializeMetrics).mockResolvedValue(undefined);
@@ -187,8 +187,8 @@ describe('instrumentation.ts', () => {
       const originalRuntime = process.env.NEXT_RUNTIME;
       process.env.NEXT_RUNTIME = 'edge';
 
-      const { initializeMetrics } = await import('../../src/lib/logger/metrics');
-      const { initializePhase3Metrics } = await import('../../src/lib/logger/enhanced-metrics');
+      const { initializeMetrics } = await import('@/lib/logger/metrics');
+      const { initializePhase3Metrics } = await import('@/lib/logger/enhanced-metrics');
 
       vi.clearAllMocks();
 

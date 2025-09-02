@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Vitest環境ではクライアントロガーを直接インポート
-import { clientLoggerWrapper } from '../../../src/lib/logger/client';
+import { clientLoggerWrapper } from '@/lib/logger/client';
 
 // テスト用の関数を個別に定義（実際の実装をシミュレート）
 const mockInitializeLogger = vi.fn((options?: any) => {

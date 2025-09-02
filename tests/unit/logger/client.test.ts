@@ -13,7 +13,7 @@ import {
   isLevelEnabled,
   log,
   defaultClientLoggerConfig,
-} from '../../../src/lib/logger/client';
+} from '@/lib/logger/client';
 
 // コンソールモック
 const mockConsole = {

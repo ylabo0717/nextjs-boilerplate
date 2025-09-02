@@ -20,7 +20,7 @@ describe('Server Logger Basic', () => {
 
   describe('serverLogger exports', () => {
     it('should export serverLogger instance', async () => {
-      const { serverLogger } = await import('../../../src/lib/logger/server');
+      const { serverLogger } = await import('@/lib/logger/server');
 
       expect(serverLogger).toBeDefined();
       expect(typeof serverLogger.info).toBe('function');
@@ -32,7 +32,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should export default logger', async () => {
-      const module = await import('../../../src/lib/logger/server');
+      const module = await import('@/lib/logger/server');
 
       expect(module.default).toBeDefined();
       // Default export should be a logger instance
@@ -43,7 +43,7 @@ describe('Server Logger Basic', () => {
 
   describe('serverLoggerWrapper', () => {
     it('should export wrapped logger functions', async () => {
-      const { serverLoggerWrapper } = await import('../../../src/lib/logger/server');
+      const { serverLoggerWrapper } = await import('@/lib/logger/server');
 
       expect(serverLoggerWrapper).toBeDefined();
       expect(typeof serverLoggerWrapper.info).toBe('function');
@@ -53,7 +53,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should execute wrapper methods without throwing', async () => {
-      const { serverLoggerWrapper } = await import('../../../src/lib/logger/server');
+      const { serverLoggerWrapper } = await import('@/lib/logger/server');
 
       expect(() => {
         serverLoggerWrapper.info('Test info message');
@@ -66,7 +66,7 @@ describe('Server Logger Basic', () => {
 
   describe('serverLoggerHelpers', () => {
     it('should export helper functions', async () => {
-      const { serverLoggerHelpers } = await import('../../../src/lib/logger/server');
+      const { serverLoggerHelpers } = await import('@/lib/logger/server');
 
       expect(serverLoggerHelpers).toBeDefined();
       expect(typeof serverLoggerHelpers.measurePerformance).toBe('function');
@@ -77,7 +77,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should execute helper methods without throwing', async () => {
-      const { serverLoggerHelpers } = await import('../../../src/lib/logger/server');
+      const { serverLoggerHelpers } = await import('@/lib/logger/server');
 
       expect(() => {
         serverLoggerHelpers.logUserAction('test-action', { test: 'data' });
@@ -87,7 +87,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should measure performance synchronously', async () => {
-      const { serverLoggerHelpers } = await import('../../../src/lib/logger/server');
+      const { serverLoggerHelpers } = await import('@/lib/logger/server');
 
       const testFunction = () => {
         let sum = 0;
@@ -103,7 +103,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should measure performance asynchronously', async () => {
-      const { serverLoggerHelpers } = await import('../../../src/lib/logger/server');
+      const { serverLoggerHelpers } = await import('@/lib/logger/server');
 
       const asyncFunction = async () => {
         await new Promise((resolve) => setTimeout(resolve, LOGGER_TEST_DATA.ASYNC_DELAY_SHORT));
@@ -116,7 +116,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should handle performance measurement errors', async () => {
-      const { serverLoggerHelpers } = await import('../../../src/lib/logger/server');
+      const { serverLoggerHelpers } = await import('@/lib/logger/server');
 
       const errorFunction = () => {
         throw new Error('Performance test error');
@@ -128,7 +128,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should handle async performance measurement errors', async () => {
-      const { serverLoggerHelpers } = await import('../../../src/lib/logger/server');
+      const { serverLoggerHelpers } = await import('@/lib/logger/server');
 
       const asyncErrorFunction = async () => {
         throw new Error('Async performance test error');
@@ -142,7 +142,7 @@ describe('Server Logger Basic', () => {
 
   describe('Logger basic functionality', () => {
     it('should handle basic logging without errors', async () => {
-      const { serverLogger } = await import('../../../src/lib/logger/server');
+      const { serverLogger } = await import('@/lib/logger/server');
 
       expect(() => {
         serverLogger.info('Basic info test');
@@ -155,7 +155,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should handle logging with objects', async () => {
-      const { serverLogger } = await import('../../../src/lib/logger/server');
+      const { serverLogger } = await import('@/lib/logger/server');
 
       expect(() => {
         serverLogger.info({ userId: '123', action: 'test' }, 'User action test');
@@ -164,7 +164,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should handle logging with various data types', async () => {
-      const { serverLogger } = await import('../../../src/lib/logger/server');
+      const { serverLogger } = await import('@/lib/logger/server');
 
       expect(() => {
         serverLogger.info('String message');
@@ -180,7 +180,7 @@ describe('Server Logger Basic', () => {
     it('should work in Node.js environment', async () => {
       process.env.NEXT_RUNTIME = 'nodejs';
 
-      const { serverLogger } = await import('../../../src/lib/logger/server');
+      const { serverLogger } = await import('@/lib/logger/server');
 
       expect(() => {
         serverLogger.info('Node.js environment test');
@@ -190,7 +190,7 @@ describe('Server Logger Basic', () => {
     it('should work in Edge environment', async () => {
       process.env.NEXT_RUNTIME = 'edge';
 
-      const { serverLogger } = await import('../../../src/lib/logger/server');
+      const { serverLogger } = await import('@/lib/logger/server');
 
       expect(() => {
         serverLogger.info('Edge environment test');
@@ -200,7 +200,7 @@ describe('Server Logger Basic', () => {
     it('should work with undefined environment', async () => {
       delete process.env.NEXT_RUNTIME;
 
-      const { serverLogger } = await import('../../../src/lib/logger/server');
+      const { serverLogger } = await import('@/lib/logger/server');
 
       expect(() => {
         serverLogger.info('Undefined environment test');
@@ -222,7 +222,7 @@ describe('Server Logger Basic', () => {
       try {
         // Re-import to trigger initialization in dev mode without Next runtime
         vi.resetModules();
-        const { serverLogger } = await import('../../../src/lib/logger/server');
+        const { serverLogger } = await import('@/lib/logger/server');
 
         expect(serverLogger).toBeDefined();
         expect(typeof serverLogger.info).toBe('function');
@@ -242,7 +242,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should handle serializer edge cases', async () => {
-      const { serverLoggerWrapper } = await import('../../../src/lib/logger/server');
+      const { serverLoggerWrapper } = await import('@/lib/logger/server');
 
       // Test with null and undefined objects
       expect(() => {
@@ -263,7 +263,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should test mergeLogArguments with various argument types', async () => {
-      const { serverLoggerWrapper } = await import('../../../src/lib/logger/server');
+      const { serverLoggerWrapper } = await import('@/lib/logger/server');
 
       // Test with error objects
       const testError = new Error('Test error');
@@ -285,7 +285,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should test extractErrorType functionality', async () => {
-      const { serverLoggerWrapper } = await import('../../../src/lib/logger/server');
+      const { serverLoggerWrapper } = await import('@/lib/logger/server');
 
       // Test with named error
       const namedError = new Error('Test error');
@@ -315,7 +315,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should handle performance measurement errors', async () => {
-      const { serverLoggerHelpers } = await import('../../../src/lib/logger/server');
+      const { serverLoggerHelpers } = await import('@/lib/logger/server');
 
       const errorFunction = () => {
         throw new Error('Performance test error');
@@ -327,7 +327,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should handle async performance measurement errors', async () => {
-      const { serverLoggerHelpers } = await import('../../../src/lib/logger/server');
+      const { serverLoggerHelpers } = await import('@/lib/logger/server');
 
       const asyncErrorFunction = async () => {
         throw new Error('Async performance test error');
@@ -345,7 +345,7 @@ describe('Server Logger Basic', () => {
 
       try {
         vi.resetModules();
-        const { serverLogger } = await import('../../../src/lib/logger/server');
+        const { serverLogger } = await import('@/lib/logger/server');
 
         expect(serverLogger).toBeDefined();
         expect(() => {
@@ -363,7 +363,7 @@ describe('Server Logger Basic', () => {
 
       try {
         vi.resetModules();
-        const { serverLogger } = await import('../../../src/lib/logger/server');
+        const { serverLogger } = await import('@/lib/logger/server');
 
         expect(serverLogger).toBeDefined();
         expect(() => {
@@ -379,7 +379,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should handle logMethod hook with no arguments', async () => {
-      const { serverLogger } = await import('../../../src/lib/logger/server');
+      const { serverLogger } = await import('@/lib/logger/server');
 
       // Test with empty args (should hit the early return path)
       expect(() => {
@@ -388,7 +388,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should handle logMethod hook with object first argument', async () => {
-      const { serverLogger } = await import('../../../src/lib/logger/server');
+      const { serverLogger } = await import('@/lib/logger/server');
 
       // Test with object as first argument followed by string
       expect(() => {
@@ -397,7 +397,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should handle various log levels with context', async () => {
-      const { serverLoggerWrapper } = await import('../../../src/lib/logger/server');
+      const { serverLoggerWrapper } = await import('@/lib/logger/server');
 
       // Test all log levels to increase coverage
       expect(() => {
@@ -411,7 +411,7 @@ describe('Server Logger Basic', () => {
     });
 
     it('should test isLevelEnabled function', async () => {
-      const { serverLoggerWrapper } = await import('../../../src/lib/logger/server');
+      const { serverLoggerWrapper } = await import('@/lib/logger/server');
 
       expect(typeof serverLoggerWrapper.isLevelEnabled('info')).toBe('boolean');
       expect(typeof serverLoggerWrapper.isLevelEnabled('debug')).toBe('boolean');

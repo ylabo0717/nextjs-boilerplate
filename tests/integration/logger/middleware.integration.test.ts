@@ -22,13 +22,13 @@ describe('Logger Middleware Integration', () => {
     it('should import middleware functions without errors', async () => {
       // Test that middleware modules can be imported without errors
       expect(async () => {
-        await import('../../../src/lib/logger/middleware');
+        await import('@/lib/logger/middleware');
       }).not.toThrow();
     });
 
     it('should handle middleware creation', async () => {
       try {
-        const middleware = await import('../../../src/lib/logger/middleware');
+        const middleware = await import('@/lib/logger/middleware');
         expect(middleware).toBeDefined();
       } catch (error) {
         // If middleware doesn't exist, that's okay for now

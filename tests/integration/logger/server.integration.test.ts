@@ -22,13 +22,13 @@ describe('Server Logger Integration', () => {
     it('should import server logger without errors', async () => {
       // Test that server modules can be imported without errors
       expect(async () => {
-        await import('../../../src/lib/logger/server');
+        await import('@/lib/logger/server');
       }).not.toThrow();
     });
 
     it('should handle server logger creation', async () => {
       try {
-        const server = await import('../../../src/lib/logger/server');
+        const server = await import('@/lib/logger/server');
         expect(server).toBeDefined();
       } catch (error) {
         // If server doesn't exist, that's okay for now

@@ -17,7 +17,7 @@ describe('Logger Context Integration', () => {
 
   describe('Basic context operations', () => {
     it('should run context operations without errors', async () => {
-      const { loggerContextManager } = await import('../../../src/lib/logger/context');
+      const { loggerContextManager } = await import('@/lib/logger/context');
 
       const testContext = {
         requestId: 'test-request-123',
@@ -34,7 +34,7 @@ describe('Logger Context Integration', () => {
     });
 
     it('should handle context without errors', async () => {
-      const { loggerContextManager } = await import('../../../src/lib/logger/context');
+      const { loggerContextManager } = await import('@/lib/logger/context');
 
       // Should not throw when getting context outside of a run
       expect(() => loggerContextManager.getContext()).not.toThrow();
@@ -42,7 +42,7 @@ describe('Logger Context Integration', () => {
 
     it('should create contextual logger', async () => {
       const { createContextualLogger, defaultLoggerContextConfig } = await import(
-        '../../../src/lib/logger/context'
+        '@/lib/logger/context'
       );
 
       const baseLogger = {
@@ -69,7 +69,7 @@ describe('Logger Context Integration', () => {
         logSecurityEvent,
         logErrorEvent,
         defaultLoggerContextConfig,
-      } = await import('../../../src/lib/logger/context');
+      } = await import('@/lib/logger/context');
 
       // Should not throw when logging events
       const mockLogger = {
@@ -96,7 +96,7 @@ describe('Logger Context Integration', () => {
     });
 
     it('should create logger context config', async () => {
-      const { createLoggerContextConfig } = await import('../../../src/lib/logger/context');
+      const { createLoggerContextConfig } = await import('@/lib/logger/context');
 
       const config = createLoggerContextConfig();
 
@@ -105,7 +105,7 @@ describe('Logger Context Integration', () => {
     });
 
     it('should set trace context', async () => {
-      const { loggerContextManager } = await import('../../../src/lib/logger/context');
+      const { loggerContextManager } = await import('@/lib/logger/context');
 
       await loggerContextManager.runWithContext({ requestId: 'test' }, async () => {
         // Should not throw when setting trace context

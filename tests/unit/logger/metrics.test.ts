@@ -15,7 +15,7 @@ import {
   getMetricsInstances,
   isMetricsInitialized,
   resetMetrics,
-} from '../../../src/lib/logger/metrics';
+} from '@/lib/logger/metrics';
 
 // Mock OpenTelemetry modules
 vi.mock('@opentelemetry/api', () => ({

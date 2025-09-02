@@ -9,7 +9,7 @@ import {
   sanitizeLogEntry,
   limitObjectSize,
   sanitizeNewlines,
-} from '../../../src/lib/logger/sanitizer';
+} from '@/lib/logger/sanitizer';
 import { LOGGER_TEST_DATA } from '../../constants/test-constants';
 
 describe('LogSanitizer - ログインジェクション攻撃防止', () => {

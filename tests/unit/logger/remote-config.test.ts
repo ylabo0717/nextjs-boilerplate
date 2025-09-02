@@ -21,7 +21,7 @@ describe('Remote Config', () => {
 
   describe('Configuration validation', () => {
     it('should validate remote config structure', async () => {
-      const { validateRemoteConfig } = await import('../../../src/lib/logger/remote-config');
+      const { validateRemoteConfig } = await import('@/lib/logger/remote-config');
 
       const validConfig = {
         enabled: true,
@@ -45,7 +45,7 @@ describe('Remote Config', () => {
     });
 
     it('should reject invalid config structure', async () => {
-      const { validateRemoteConfig } = await import('../../../src/lib/logger/remote-config');
+      const { validateRemoteConfig } = await import('@/lib/logger/remote-config');
 
       const invalidConfig = {
         global_level: 'invalid-level',
@@ -59,7 +59,7 @@ describe('Remote Config', () => {
     });
 
     it('should reject null config', async () => {
-      const { validateRemoteConfig } = await import('../../../src/lib/logger/remote-config');
+      const { validateRemoteConfig } = await import('@/lib/logger/remote-config');
 
       const result = validateRemoteConfig(null);
       expect(result.valid).toBe(false);
@@ -69,7 +69,7 @@ describe('Remote Config', () => {
 
   describe('Configuration merging', () => {
     it('should merge configurations correctly', async () => {
-      const { mergeConfigurations } = await import('../../../src/lib/logger/remote-config');
+      const { mergeConfigurations } = await import('@/lib/logger/remote-config');
 
       const baseConfig = {
         global_level: 'info' as const,
@@ -105,7 +105,7 @@ describe('Remote Config', () => {
 
   describe('Configuration utilities', () => {
     it('should get effective log level', async () => {
-      const { getEffectiveLogLevel } = await import('../../../src/lib/logger/remote-config');
+      const { getEffectiveLogLevel } = await import('@/lib/logger/remote-config');
 
       const config = {
         enabled: true,
@@ -125,7 +125,7 @@ describe('Remote Config', () => {
     });
 
     it('should create default configuration', async () => {
-      const { createDefaultConfig } = await import('../../../src/lib/logger/remote-config');
+      const { createDefaultConfig } = await import('@/lib/logger/remote-config');
 
       const defaultConfig = createDefaultConfig();
 
@@ -138,7 +138,7 @@ describe('Remote Config', () => {
     });
 
     it('should handle configuration summary', async () => {
-      const { getConfigSummary } = await import('../../../src/lib/logger/remote-config');
+      const { getConfigSummary } = await import('@/lib/logger/remote-config');
 
       const config = {
         enabled: true,
@@ -167,7 +167,7 @@ describe('Remote Config', () => {
 
   describe('Cache operations', () => {
     it('should manage cache operations', async () => {
-      const { clearConfigCache } = await import('../../../src/lib/logger/remote-config');
+      const { clearConfigCache } = await import('@/lib/logger/remote-config');
 
       // Should not throw when clearing cache
       expect(() => clearConfigCache()).not.toThrow();

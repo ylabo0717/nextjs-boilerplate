@@ -180,9 +180,7 @@ describe('Logger Context Basic', () => {
     });
 
     it('should get logger context from config', async () => {
-      const { getLoggerContext, createLoggerContextConfig } = await import(
-        '@/lib/logger/context'
-      );
+      const { getLoggerContext, createLoggerContextConfig } = await import('@/lib/logger/context');
 
       const config = createLoggerContextConfig();
 
@@ -295,9 +293,7 @@ describe('Logger Context Basic', () => {
     });
 
     it('should handle different error types in logErrorEvent', async () => {
-      const { logErrorEvent, createLoggerContextConfig } = await import(
-        '@/lib/logger/context'
-      );
+      const { logErrorEvent, createLoggerContextConfig } = await import('@/lib/logger/context');
 
       const config = createLoggerContextConfig();
       const mockLogger = {
@@ -368,9 +364,7 @@ describe('Logger Context Basic', () => {
 
   describe('Context manipulation functions', () => {
     it('should handle trace context setting', async () => {
-      const { setTraceContext, createLoggerContextConfig } = await import(
-        '@/lib/logger/context'
-      );
+      const { setTraceContext, createLoggerContextConfig } = await import('@/lib/logger/context');
 
       const config = createLoggerContextConfig();
 

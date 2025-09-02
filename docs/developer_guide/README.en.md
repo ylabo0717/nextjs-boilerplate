@@ -11,52 +11,52 @@ This directory contains comprehensive developer documentation for Next.js 15.x +
 
 Defines fundamental design principles and architectural guidelines for the project.
 
-- **[Architecture Guidelines](./core/architecture-guidelines.ja.md)** - Pure functions first, design patterns
-- **[Coding Guidelines](./core/coding-guidelines.ja.md)** - Overall overview and guide structure
-- **[Coding Guidelines Overview](./core/coding-guidelines-overview.ja.md)** - SSOT principles, basic policies
-- **[TypeScript Guidelines](./core/typescript-guidelines.ja.md)** - Type definitions, naming conventions, type guards
-- **[Next.js Patterns](./core/nextjs-patterns.ja.md)** - Server/Client Components, routing
+- **[Architecture Guidelines](./core/architecture-guidelines.en.md)** - Pure functions first, design patterns
+- **[Coding Guidelines](./core/coding-guidelines.en.md)** - Overall overview and guide structure
+- **[Coding Guidelines Overview](./core/coding-guidelines-overview.en.md)** - SSOT principles, basic policies
+- **[TypeScript Guidelines](./core/typescript-guidelines.en.md)** - Type definitions, naming conventions, type guards
+- **[Next.js Patterns](./core/nextjs-patterns.en.md)** - Server/Client Components, routing
 
 ### 🎯 [Quality - Quality, Testing & Review](./quality/)
 
 Testing strategies and review guidelines to ensure code quality.
 
-- **[Testing Guidelines](./quality/testing-guidelines.ja.md)** - Test strategy, test pyramid
-- **[Review Checklist](./quality/review-checklist.ja.md)** - Cross-cutting concerns for PR reviews
-- **[Quality Metrics](./quality/quality-metrics-architecture.ja.md)** - Quality gate system
-- **[Performance Guidelines](./quality/performance-guidelines.ja.md)** - Optimization, accessibility
+- **[Testing Guidelines](./quality/testing-guidelines.en.md)** - Test strategy, test pyramid
+- **[Review Checklist](./quality/review-checklist.en.md)** - Cross-cutting concerns for PR reviews
+- **[Quality Metrics](./quality/quality-metrics-architecture.en.md)** - Quality gate system
+- **[Performance Guidelines](./quality/performance-guidelines.en.md)** - Optimization, accessibility
 
 ### 🔒 [Security - Security](./security/)
 
 Guidelines for secure implementation practices.
 
-- **[Security Guidelines](./security/security-guidelines.ja.md)** - Secure implementation patterns, vulnerability countermeasures
+- **[Security Guidelines](./security/security-guidelines.en.md)** - Secure implementation patterns, vulnerability countermeasures
 
 ### 🛠️ [Development - Development & Operations Tools](./development/)
 
 Guidelines for tools and processes in daily development work.
 
-- **[Development Guidelines](./development/development-guidelines.ja.md)** - State management, error handling, styling
-- **[Documentation Guidelines](./development/documentation-guidelines.ja.md)** - TSDoc standards, validation strategy
-- **[Configuration Structure](./development/configuration-structure.ja.md)** - Project configuration organization
-- **[Changeset Developer Guide](./development/changeset-developer-guide.ja.md)** - Release management process
+- **[Development Guidelines](./development/development-guidelines.en.md)** - State management, error handling, styling
+- **[Documentation Guidelines](./development/documentation-guidelines.en.md)** - TSDoc standards, validation strategy
+- **[Configuration Structure](./development/configuration-structure.en.md)** - Project configuration organization
+- **[Changeset Developer Guide](./development/changeset-developer-guide.en.md)** - Release management process
 
 ### 🚀 [Infrastructure - Infrastructure & CI/CD](./infrastructure/)
 
 Guidelines for CI/CD, deployment, and infrastructure.
 
-- **[GitHub Actions Best Practices](./infrastructure/github-actions-best-practices.ja.md)** - CI/CD workflow design
-- **[Release Automation System](./infrastructure/release-automation-system.ja.md)** - Automated release process
-- **[YAML Guidelines](./infrastructure/yaml-guidelines.ja.md)** - YAML configuration file standards
+- **[GitHub Actions Best Practices](./infrastructure/github-actions-best-practices.en.md)** - CI/CD workflow design
+- **[Release Automation System](./infrastructure/release-automation-system.en.md)** - Automated release process
+- **[YAML Guidelines](./infrastructure/yaml-guidelines.en.md)** - YAML configuration file standards
 - **[Docker](./infrastructure/docker/)** - Docker-related FAQ and troubleshooting
 
 ### 📊 [Logging - Logging](./logging/)
 
 Guidelines for logging system design and operations.
 
-- **[Logging System Overview](./logging/logging-system-overview.ja.md)** - Complete logging architecture overview
-- **[Logging Configuration Guide](./logging/logging-configuration-guide.ja.md)** - How to configure logging
-- **[Logging Troubleshooting](./logging/logging-troubleshooting-guide.ja.md)** - Logging-related problem solving
+- **[Logging System Overview](./logging/logging-system-overview.en.md)** - Complete logging architecture overview
+- **[Logging Configuration Guide](./logging/logging-configuration-guide.en.md)** - How to configure logging
+- **[Logging Troubleshooting](./logging/logging-troubleshooting-guide.en.md)** - Logging-related problem solving
 
 ## 🚀 Quick Start
 
@@ -64,12 +64,12 @@ Guidelines for logging system design and operations.
 
 Refer to the following guidelines according to your development stage:
 
-- **Project Start** → [Coding Guidelines Overview](./core/coding-guidelines-overview.ja.md) + [Architecture Guidelines](./core/architecture-guidelines.ja.md)
-- **Component Development** → [Next.js Patterns](./core/nextjs-patterns.ja.md) + [TypeScript Guidelines](./core/typescript-guidelines.ja.md)
-- **Security Implementation** → [Security Guidelines](./security/security-guidelines.ja.md)
-- **Performance Improvement** → [Performance Guidelines](./quality/performance-guidelines.ja.md)
-- **Test Implementation** → [Testing Guidelines](./quality/testing-guidelines.ja.md)
-- **Daily Development** → [Development Guidelines](./development/development-guidelines.ja.md)
+- **Project Start** → [Coding Guidelines Overview](./core/coding-guidelines-overview.en.md) + [Architecture Guidelines](./core/architecture-guidelines.en.md)
+- **Component Development** → [Next.js Patterns](./core/nextjs-patterns.en.md) + [TypeScript Guidelines](./core/typescript-guidelines.en.md)
+- **Security Implementation** → [Security Guidelines](./security/security-guidelines.en.md)
+- **Performance Improvement** → [Performance Guidelines](./quality/performance-guidelines.en.md)
+- **Test Implementation** → [Testing Guidelines](./quality/testing-guidelines.en.md)
+- **Daily Development** → [Development Guidelines](./development/development-guidelines.en.md)
 
 ### Key Principles (Excerpts)
 

@@ -192,10 +192,10 @@ export LOKI_FLUSH_INTERVAL=2000
 import { logger } from '@/lib/logger';
 
 logger.info('Redaction test', {
-  password: 'secret123',      // Should be [REDACTED]
-  token: 'bearer-token',      // Should be [REDACTED]
-  creditCard: '4111-1111',    // Should be [REDACTED]
-  normalData: 'public info',  // Should remain visible
+  password: 'secret123', // Should be [REDACTED]
+  token: 'bearer-token', // Should be [REDACTED]
+  creditCard: '4111-1111', // Should be [REDACTED]
+  normalData: 'public info', // Should remain visible
 });
 ```
 
@@ -339,6 +339,7 @@ pnpm dev 2>&1 | tee debug-output.log
 **Cause**: Environment variables not properly configured
 
 **Solution**:
+
 ```bash
 # Check required environment variables
 if [ -z "$LOG_IP_HASH_SECRET" ]; then
@@ -354,6 +355,7 @@ export NEXT_PUBLIC_LOG_LEVEL=warn
 **Cause**: Too many log calls in short time
 
 **Solution**:
+
 ```bash
 # Temporarily increase rate limits
 export LOG_RATE_LIMIT_MAX_TOKENS=500
@@ -368,6 +370,7 @@ export LOG_RATE_LIMIT_ADAPTIVE=false
 **Cause**: Loki server unavailable or configuration error
 
 **Solution**:
+
 ```bash
 # Check Loki status
 curl "${LOKI_URL}/ready"
@@ -385,6 +388,7 @@ docker compose restart loki
 **Cause**: Client-side logging blocked by CORS
 
 **Solution**:
+
 ```typescript
 // Use server-side logging for sensitive operations
 // Client-side logging is for development only
@@ -435,7 +439,7 @@ benchmarkLogging();
 // Monitor memory usage
 const monitorMemory = () => {
   const usage = process.memoryUsage();
-  
+
   logger.info('Memory usage', {
     rss: `${Math.round(usage.rss / 1024 / 1024)}MB`,
     heapTotal: `${Math.round(usage.heapTotal / 1024 / 1024)}MB`,
@@ -455,7 +459,7 @@ setInterval(monitorMemory, 30000);
 const monitorRateLimit = () => {
   // This would be implemented in the actual rate limiter
   const stats = getRateLimitStats();
-  
+
   logger.info('Rate limit stats', {
     tokensRemaining: stats.tokens,
     requestsBlocked: stats.blocked,
@@ -556,23 +560,23 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "High error rate in logs"
-          
+          summary: 'High error rate in logs'
+
       - alert: LoggingSystemDown
         expr: up{job="nextjs-app"} == 0
         for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "Logging system is down"
-          
+          summary: 'Logging system is down'
+
       - alert: LokiIngestionLag
         expr: loki_ingestion_lag_seconds > 60
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Loki ingestion lag detected"
+          summary: 'Loki ingestion lag detected'
 ```
 
 ### 🔔 Automated Health Checks
@@ -587,7 +591,7 @@ export async function GET() {
     memoryUsage: checkMemoryUsage(),
   };
 
-  const isHealthy = Object.values(healthChecks).every(check => check.status === 'ok');
+  const isHealthy = Object.values(healthChecks).every((check) => check.status === 'ok');
 
   return NextResponse.json(
     {
@@ -613,7 +617,7 @@ async function checkLokiHealth() {
     const response = await fetch(`${process.env.LOKI_URL}/ready`, {
       timeout: 5000,
     });
-    
+
     if (response.ok) {
       return { status: 'ok', message: 'Loki reachable' };
     } else {
@@ -638,6 +642,7 @@ This troubleshooting guide provides:
 5. **Proactive Monitoring** - Early warning systems and health checks
 
 By following these procedures, you can:
+
 - Quickly identify and resolve logging issues
 - Maintain optimal system performance
 - Ensure security and compliance

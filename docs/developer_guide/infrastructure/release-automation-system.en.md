@@ -27,10 +27,10 @@ This system **almost fully automates** these tasks:
 
 This system has **two types of PRs (Pull Requests)**:
 
-| PR Type           | Creator                | Content                    | When Merged                                    |
-| ----------------- | ---------------------- | -------------------------- | ---------------------------------------------- |
-| **Development PR** | Developer (human)      | Code changes + Changeset   | Code is reflected in main (**not released yet**) |
-| **Release PR**     | GitHub Actions (auto)  | Version update + CHANGELOG | **Actually released**                          |
+| PR Type            | Creator               | Content                    | When Merged                                      |
+| ------------------ | --------------------- | -------------------------- | ------------------------------------------------ |
+| **Development PR** | Developer (human)     | Code changes + Changeset   | Code is reflected in main (**not released yet**) |
+| **Release PR**     | GitHub Actions (auto) | Version update + CHANGELOG | **Actually released**                            |
 
 This distinction is most important. **Merging a development PR does not trigger a release**.
 
@@ -67,11 +67,11 @@ If released immediately, versions would become too granular: v0.1.1, v0.1.2, v0.
 
 ### 3.1 Actors and Roles
 
-| Actor                    | Role                        | Required Work                               |
-| ------------------------ | --------------------------- | ------------------------------------------- |
-| **Developer**            | Feature development & Changeset creation | Create changeset files and include in PR |
-| **GitHub Actions**       | Automation processing       | Release PR creation, version calculation, release execution |
-| **Project Administrator** | Release decisions           | Review and merge release PRs               |
+| Actor                     | Role                                     | Required Work                                               |
+| ------------------------- | ---------------------------------------- | ----------------------------------------------------------- |
+| **Developer**             | Feature development & Changeset creation | Create changeset files and include in PR                    |
+| **GitHub Actions**        | Automation processing                    | Release PR creation, version calculation, release execution |
+| **Project Administrator** | Release decisions                        | Review and merge release PRs                                |
 
 ### 3.2 Overall Release Flow
 
@@ -107,6 +107,7 @@ sequenceDiagram
 #### Phase 1: Daily Development (Developer Work)
 
 **What Happens**:
+
 1. Developer develops features/fixes bugs
 2. Developer creates changeset describing the change
 3. Developer creates PR including code + changeset
@@ -117,6 +118,7 @@ sequenceDiagram
 #### Phase 2: Release Preparation (Automated)
 
 **What Happens**:
+
 1. GitHub Actions detects accumulated changesets
 2. Automatically calculates new version number
 3. Generates CHANGELOG from changeset content
@@ -127,6 +129,7 @@ sequenceDiagram
 #### Phase 3: Release Execution (Administrator Decision)
 
 **What Happens**:
+
 1. Administrator reviews release PR content
 2. Administrator decides release timing and merges PR
 3. GitHub Actions automatically executes release
@@ -154,6 +157,7 @@ Add dark mode toggle feature
 ```
 
 **File Structure**:
+
 - **Frontmatter**: Version type specification (`major` | `minor` | `patch`)
 - **Body**: User-friendly change description
 
@@ -161,13 +165,14 @@ Add dark mode toggle feature
 
 **Semantic Versioning (X.Y.Z)**:
 
-| Change Type | Version Impact | Example                    |
-| ----------- | -------------- | -------------------------- |
-| `major`     | X.0.0          | Breaking changes           |
-| `minor`     | 0.X.0          | New features               |
-| `patch`     | 0.0.X          | Bug fixes                  |
+| Change Type | Version Impact | Example          |
+| ----------- | -------------- | ---------------- |
+| `major`     | X.0.0          | Breaking changes |
+| `minor`     | 0.X.0          | New features     |
+| `patch`     | 0.0.X          | Bug fixes        |
 
 **Calculation Algorithm**:
+
 ```
 Multiple changesets → Take highest impact
 patch + minor + patch → minor version up
@@ -191,7 +196,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Create Release Pull Request
         uses: changesets/action@v1
         with:
@@ -215,11 +220,13 @@ jobs:
 # Release v0.2.0
 
 ## Changes
+
 - Add dark mode feature (@developer1)
 - Fix login bug (@developer2)
 - Improve performance (@developer3)
 
 ## Package Changes
+
 - nextjs-boilerplate: 0.1.0 → 0.2.0
 ```
 
@@ -277,6 +284,7 @@ Fixed stuff
 ```
 
 **Writing Guidelines**:
+
 - **Be specific**: Describe what users will experience
 - **Use user perspective**: Not technical implementation details
 - **Include context**: Why this change was needed
@@ -290,7 +298,7 @@ graph TD
     B -->|No| D{New features?}
     D -->|Yes| E[minor]
     D -->|No| F[patch]
-    
+
     C --> G[Examples:<br/>- Remove API endpoints<br/>- Change function signatures<br/>- Modify database schema]
     E --> H[Examples:<br/>- Add new components<br/>- New API endpoints<br/>- New configuration options]
     F --> I[Examples:<br/>- Bug fixes<br/>- Performance improvements<br/>- Documentation updates]
@@ -310,6 +318,7 @@ graph TD
 ### 6.2 Release Timing Strategies
 
 **Regular Release Schedule**:
+
 ```
 Weekly releases: Every Friday
 Sprint releases: End of each sprint
@@ -318,18 +327,19 @@ Emergency releases: Critical bugs only
 
 **Release Decision Matrix**:
 
-| Situation | Action |
-| --------- | ------ |
-| Critical bug fixes | Release immediately |
-| Minor features | Wait for weekly schedule |
-| Major features | Plan dedicated release |
-| Breaking changes | Coordinate with team |
+| Situation          | Action                   |
+| ------------------ | ------------------------ |
+| Critical bug fixes | Release immediately      |
+| Minor features     | Wait for weekly schedule |
+| Major features     | Plan dedicated release   |
+| Breaking changes   | Coordinate with team     |
 
 ### 6.3 Emergency Release Process
 
 **When Needed**: Critical security vulnerabilities, production-breaking bugs
 
 **Process**:
+
 1. Create hotfix branch from main
 2. Apply minimal fix with changeset
 3. Create PR and merge immediately
@@ -340,12 +350,14 @@ Emergency releases: Critical bugs only
 ### 7.1 Release Health Monitoring
 
 **Key Metrics**:
+
 - Release frequency
 - Time from changeset to release
 - Number of reverted releases
 - Changeset quality scores
 
 **Monitoring Commands**:
+
 ```bash
 # Check pending changesets
 pnpm changeset status
@@ -362,6 +374,7 @@ git tag --sort=-version:refname | head -10
 **Issue**: Release PR not created
 
 **Diagnosis**:
+
 ```bash
 # Check for changesets
 ls .changeset/
@@ -423,16 +436,19 @@ echo "Pre-release checks passed!"
 ### 9.1 System Benefits
 
 **For Developers**:
+
 - Focus on code, not release mechanics
 - Consistent contribution tracking
 - Clear change attribution
 
 **For Project Management**:
+
 - Predictable release process
 - Clear change visibility
 - Risk reduction through automation
 
 **For Users**:
+
 - Regular, planned releases
 - Clear changelog communication
 - Stable version progression
@@ -440,16 +456,19 @@ echo "Pre-release checks passed!"
 ### 9.2 Best Practices
 
 **Changeset Creation**:
+
 - Create changesets for every user-facing change
 - Write clear, user-focused descriptions
 - Choose appropriate version types
 
 **Release Management**:
+
 - Review release PRs thoroughly
 - Maintain regular release schedule
 - Communicate releases to stakeholders
 
 **Team Coordination**:
+
 - Train team on changeset workflow
 - Establish version type guidelines
 - Document release decision criteria
@@ -461,6 +480,7 @@ echo "Pre-release checks passed!"
 **Scenario**: Forgot to add changeset
 
 **Solution**:
+
 ```bash
 # Add changeset separately
 pnpm changeset:add
@@ -470,6 +490,7 @@ pnpm changeset:add
 **Scenario**: Wrong version type selected
 
 **Solution**:
+
 ```bash
 # Edit changeset file directly
 vim .changeset/[changeset-file].md
@@ -483,6 +504,7 @@ vim .changeset/[changeset-file].md
 ### 10.2 Emergency Procedures
 
 **Revert Release**:
+
 ```bash
 # Revert Git tag
 git tag -d v1.2.3
@@ -493,6 +515,7 @@ gh release delete v1.2.3
 ```
 
 **Hotfix Release**:
+
 ```bash
 # Create hotfix branch
 git checkout -b hotfix/critical-bug main

@@ -116,18 +116,21 @@ graph LR
 #### 1. Code Quality Metrics
 
 **Test Coverage**
+
 - **Measurement**: Line coverage, branch coverage, function coverage
 - **Target**: ≥80% for production code
 - **Quality Gate**: ≥60% (fails below this threshold)
 - **Scientific Basis**: Studies show coverage above 80% significantly reduces bug rates
 
 **Code Complexity**
+
 - **Measurement**: Cyclomatic complexity per function
 - **Target**: ≤10 per function
 - **Quality Gate**: No functions >20 complexity
 - **Scientific Basis**: McCabe's research on maintainability correlation
 
 **Code Duplication**
+
 - **Measurement**: Percentage of duplicated code blocks
 - **Target**: ≤3%
 - **Quality Gate**: ≤5%
@@ -136,12 +139,14 @@ graph LR
 #### 2. Performance Metrics
 
 **Bundle Size**
+
 - **Measurement**: Main bundle size and chunk sizes
 - **Target**: <250KB main bundle
 - **Quality Gate**: <500KB main bundle
 - **Impact**: Direct correlation with loading performance
 
 **Core Web Vitals**
+
 - **LCP (Largest Contentful Paint)**: ≤2.5s
 - **FID (First Input Delay)**: ≤100ms
 - **CLS (Cumulative Layout Shift)**: ≤0.1
@@ -150,11 +155,13 @@ graph LR
 #### 3. Maintainability Metrics
 
 **Type Safety**
+
 - **Measurement**: TypeScript strict mode compliance
 - **Target**: 0 type errors
 - **Quality Gate**: 0 type errors (strict enforcement)
 
 **Code Style Compliance**
+
 - **Measurement**: ESLint violations
 - **Target**: 0 violations
 - **Quality Gate**: 0 errors, <10 warnings
@@ -194,40 +201,40 @@ export const QUALITY_GATE_THRESHOLDS = {
   // Critical thresholds (build fails if not met)
   testCoverage: {
     minimum: 60, // Must have at least 60% coverage
-    target: 80,  // Target for health score
+    target: 80, // Target for health score
   },
   typeErrors: {
-    maximum: 0,  // No type errors allowed
+    maximum: 0, // No type errors allowed
   },
   eslintErrors: {
-    maximum: 0,  // No ESLint errors allowed
+    maximum: 0, // No ESLint errors allowed
   },
   complexityMax: {
     maximum: 20, // No function can exceed 20 complexity
   },
-  
+
   // Performance thresholds
   bundleSize: {
     maximum: 500 * 1024, // 500KB maximum
-    target: 250 * 1024,   // 250KB target
+    target: 250 * 1024, // 250KB target
   },
   buildTime: {
     maximum: 300, // 5 minutes maximum
-    target: 120,  // 2 minutes target
+    target: 120, // 2 minutes target
   },
-  
+
   // Core Web Vitals (Lighthouse)
   performance: {
-    minimum: 0.90, // 90% minimum score
+    minimum: 0.9, // 90% minimum score
   },
   accessibility: {
-    minimum: 0.90, // 90% minimum score
+    minimum: 0.9, // 90% minimum score
   },
   bestPractices: {
-    minimum: 0.90, // 90% minimum score
+    minimum: 0.9, // 90% minimum score
   },
   seo: {
-    minimum: 0.90, // 90% minimum score
+    minimum: 0.9, // 90% minimum score
   },
 };
 ```
@@ -246,9 +253,9 @@ sequenceDiagram
     CI->>Metrics: Run all measurements
     Metrics->>Metrics: Collect metrics
     Metrics->>QG: Send results
-    
+
     QG->>QG: Evaluate against thresholds
-    
+
     alt All criteria pass
         QG->>CI: PASS
         CI->>Report: Generate success report
@@ -309,11 +316,11 @@ export const calculateHealthScore = (metrics: QualityMetrics): HealthScore => {
     reliability: calculateReliabilityScore(metrics),
   };
 
-  const totalScore = 
-    (components.codeQuality * 0.30) +
-    (components.performance * 0.25) +
-    (components.maintainability * 0.25) +
-    (components.reliability * 0.20);
+  const totalScore =
+    components.codeQuality * 0.3 +
+    components.performance * 0.25 +
+    components.maintainability * 0.25 +
+    components.reliability * 0.2;
 
   return {
     overall: Math.round(totalScore),
@@ -340,18 +347,28 @@ const getGrade = (score: number): string => {
 const calculateCodeQualityScore = (metrics: QualityMetrics): number => {
   // Test Coverage (40% of code quality)
   const coverageScore = Math.min(100, (metrics.testCoverage / 0.8) * 100);
-  
-  // Complexity (30% of code quality)
-  const complexityScore = metrics.averageComplexity <= 5 ? 100 :
-    metrics.averageComplexity <= 10 ? 80 :
-    metrics.averageComplexity <= 15 ? 60 : 30;
-  
-  // Duplication (30% of code quality)
-  const duplicationScore = metrics.duplicationRate <= 0.03 ? 100 :
-    metrics.duplicationRate <= 0.05 ? 80 :
-    metrics.duplicationRate <= 0.10 ? 60 : 30;
 
-  return (coverageScore * 0.4) + (complexityScore * 0.3) + (duplicationScore * 0.3);
+  // Complexity (30% of code quality)
+  const complexityScore =
+    metrics.averageComplexity <= 5
+      ? 100
+      : metrics.averageComplexity <= 10
+        ? 80
+        : metrics.averageComplexity <= 15
+          ? 60
+          : 30;
+
+  // Duplication (30% of code quality)
+  const duplicationScore =
+    metrics.duplicationRate <= 0.03
+      ? 100
+      : metrics.duplicationRate <= 0.05
+        ? 80
+        : metrics.duplicationRate <= 0.1
+          ? 60
+          : 30;
+
+  return coverageScore * 0.4 + complexityScore * 0.3 + duplicationScore * 0.3;
 };
 ```
 
@@ -360,19 +377,24 @@ const calculateCodeQualityScore = (metrics: QualityMetrics): number => {
 ```typescript
 const calculatePerformanceScore = (metrics: QualityMetrics): number => {
   // Bundle Size (30% of performance)
-  const bundleScore = metrics.bundleSize <= 250000 ? 100 :
-    metrics.bundleSize <= 400000 ? 80 :
-    metrics.bundleSize <= 500000 ? 60 : 30;
-  
-  // Web Vitals (70% of performance)
-  const vitalsScore = (
-    (metrics.lighthouse.performance * 100) +
-    (metrics.lighthouse.lcp <= 2.5 ? 100 : 50) +
-    (metrics.lighthouse.fid <= 100 ? 100 : 50) +
-    (metrics.lighthouse.cls <= 0.1 ? 100 : 50)
-  ) / 4;
+  const bundleScore =
+    metrics.bundleSize <= 250000
+      ? 100
+      : metrics.bundleSize <= 400000
+        ? 80
+        : metrics.bundleSize <= 500000
+          ? 60
+          : 30;
 
-  return (bundleScore * 0.3) + (vitalsScore * 0.7);
+  // Web Vitals (70% of performance)
+  const vitalsScore =
+    (metrics.lighthouse.performance * 100 +
+      (metrics.lighthouse.lcp <= 2.5 ? 100 : 50) +
+      (metrics.lighthouse.fid <= 100 ? 100 : 50) +
+      (metrics.lighthouse.cls <= 0.1 ? 100 : 50)) /
+    4;
+
+  return bundleScore * 0.3 + vitalsScore * 0.7;
 };
 ```
 
@@ -397,40 +419,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-      
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
+
       - name: Run type checking
         run: pnpm typecheck
-      
+
       - name: Run linting
         run: pnpm lint:ci
-      
+
       - name: Run tests with coverage
         run: pnpm test:coverage
-      
+
       - name: Build application
         run: pnpm build
-      
+
       - name: Analyze bundle size
         run: pnpm analyze:bundle
-      
+
       - name: Run Lighthouse CI
         run: pnpm lighthouse:ci
-      
+
       - name: Run quality gate evaluation
         run: pnpm quality:gate
-      
+
       - name: Generate quality report
         run: pnpm quality:report
-        
+
       - name: Upload quality report
         uses: actions/upload-artifact@v4
         with:
@@ -441,38 +463,36 @@ jobs:
 ### Quality Report Generation
 
 ```typescript
-export const generateQualityReport = async (
-  metrics: QualityMetrics
-): Promise<QualityReport> => {
+export const generateQualityReport = async (metrics: QualityMetrics): Promise<QualityReport> => {
   const qualityGateResult = evaluateQualityGate(metrics);
   const healthScore = calculateHealthScore(metrics);
-  
+
   const report: QualityReport = {
     timestamp: new Date().toISOString(),
     commit: process.env.GITHUB_SHA,
     branch: process.env.GITHUB_REF_NAME,
-    
+
     qualityGate: qualityGateResult,
     healthScore,
     metrics,
-    
+
     recommendations: generateRecommendations(healthScore),
     trends: await calculateTrends(metrics),
-    
+
     artifacts: {
       coverageReport: 'reports/coverage/index.html',
       lighthouseReport: 'reports/lighthouse/index.html',
       bundleReport: 'reports/bundle/index.html',
     },
   };
-  
+
   // Generate markdown summary for PR comments
   const summary = generateMarkdownSummary(report);
-  
+
   // Save detailed JSON report
   await fs.writeFile('reports/quality/report.json', JSON.stringify(report, null, 2));
   await fs.writeFile('reports/quality/summary.md', summary);
-  
+
   return report;
 };
 ```
@@ -504,7 +524,7 @@ scripts/
 // scripts/quality/measure-metrics.ts
 export const collectMetrics = async (): Promise<QualityMetrics> => {
   const startTime = Date.now();
-  
+
   // Collect all metrics in parallel for efficiency
   const [
     testCoverage,
@@ -521,25 +541,25 @@ export const collectMetrics = async (): Promise<QualityMetrics> => {
     collectLighthouseMetrics(),
     collectBuildMetrics(),
   ]);
-  
+
   const collectionTime = Date.now() - startTime;
-  
+
   return {
     timestamp: new Date().toISOString(),
     collectionTimeMs: collectionTime,
-    
+
     // Code Quality
     testCoverage,
     complexity: complexityMetrics,
     duplication: duplicationMetrics,
-    
+
     // Performance
     bundle: bundleMetrics,
     lighthouse: lighthouseMetrics,
-    
+
     // Build & Infrastructure
     build: buildMetrics,
-    
+
     // Metadata
     environment: {
       nodeVersion: process.version,
@@ -556,56 +576,69 @@ export const collectMetrics = async (): Promise<QualityMetrics> => {
 // scripts/quality/quality-gate.ts
 export const evaluateQualityGate = (metrics: QualityMetrics): QualityGateResult => {
   const checks: QualityCheck[] = [];
-  
+
   // Critical checks that must pass
   checks.push(
-    createCheck('Test Coverage', 'reliability', 
-      metrics.testCoverage.overall, 
+    createCheck(
+      'Test Coverage',
+      'reliability',
+      metrics.testCoverage.overall,
       THRESHOLDS.testCoverage.minimum
     ),
-    createCheck('Type Errors', 'maintainability',
+    createCheck(
+      'Type Errors',
+      'maintainability',
       metrics.typescript.errors,
       THRESHOLDS.typeErrors.maximum,
       'lte' // Less than or equal
     ),
-    createCheck('ESLint Errors', 'maintainability',
+    createCheck(
+      'ESLint Errors',
+      'maintainability',
       metrics.eslint.errors,
       THRESHOLDS.eslintErrors.maximum,
       'lte'
     ),
-    createCheck('Bundle Size', 'performance',
+    createCheck(
+      'Bundle Size',
+      'performance',
       metrics.bundle.mainSize,
       THRESHOLDS.bundleSize.maximum,
       'lte'
-    ),
+    )
   );
-  
+
   // Performance checks
   if (metrics.lighthouse) {
     checks.push(
-      createCheck('Performance Score', 'performance',
+      createCheck(
+        'Performance Score',
+        'performance',
         metrics.lighthouse.performance,
         THRESHOLDS.performance.minimum
       ),
-      createCheck('Accessibility Score', 'performance',
+      createCheck(
+        'Accessibility Score',
+        'performance',
         metrics.lighthouse.accessibility,
         THRESHOLDS.accessibility.minimum
-      ),
+      )
     );
   }
-  
-  const failedChecks = checks.filter(check => check.status === 'fail');
-  const criticalFailures = failedChecks.filter(check => 
-    check.category === 'security' || 
-    (check.category === 'maintainability' && check.name.includes('Error'))
+
+  const failedChecks = checks.filter((check) => check.status === 'fail');
+  const criticalFailures = failedChecks.filter(
+    (check) =>
+      check.category === 'security' ||
+      (check.category === 'maintainability' && check.name.includes('Error'))
   );
-  
+
   return {
     passed: failedChecks.length === 0,
     checks,
     summary: {
       totalChecks: checks.length,
-      passedChecks: checks.filter(c => c.status === 'pass').length,
+      passedChecks: checks.filter((c) => c.status === 'pass').length,
       failedChecks: failedChecks.length,
       criticalFailures: criticalFailures.length,
     },
@@ -648,6 +681,7 @@ Quality reports are generated in multiple formats:
 ### Improving Quality Scores
 
 #### Test Coverage Improvement
+
 ```bash
 # Identify uncovered files
 pnpm test:coverage:detailed
@@ -657,6 +691,7 @@ pnpm test:coverage -- src/components/Button.tsx
 ```
 
 #### Complexity Reduction
+
 ```bash
 # Find high-complexity functions
 pnpm analyze:complexity
@@ -666,6 +701,7 @@ pnpm analyze:complexity:detailed
 ```
 
 #### Bundle Size Optimization
+
 ```bash
 # Analyze bundle composition
 pnpm analyze:bundle
@@ -682,27 +718,27 @@ Quality thresholds can be customized in `scripts/constants/quality-metrics.ts`:
 export const QUALITY_THRESHOLDS = {
   // Adjust for your project needs
   testCoverage: {
-    minimum: 60,  // Quality gate threshold
-    target: 80,   // Health score target
+    minimum: 60, // Quality gate threshold
+    target: 80, // Health score target
     excellent: 90, // Excellent rating
   },
-  
+
   complexity: {
-    functionMax: 10,    // Per function
-    fileAverage: 5,     // Average per file
-    projectAverage: 3,  // Project-wide average
+    functionMax: 10, // Per function
+    fileAverage: 5, // Average per file
+    projectAverage: 3, // Project-wide average
   },
-  
+
   performance: {
     bundleSize: {
-      main: 250 * 1024,     // 250KB
-      chunks: 100 * 1024,   // 100KB per chunk
+      main: 250 * 1024, // 250KB
+      chunks: 100 * 1024, // 100KB per chunk
     },
     lighthouse: {
-      performance: 0.90,
+      performance: 0.9,
       accessibility: 0.95,
-      bestPractices: 0.90,
-      seo: 0.90,
+      bestPractices: 0.9,
+      seo: 0.9,
     },
   },
 };
@@ -728,7 +764,7 @@ export const collectCustomMetrics = async (): Promise<CustomMetrics> => {
 export const collectMetrics = async (): Promise<QualityMetrics> => {
   // ... existing metrics
   const customMetrics = await collectCustomMetrics();
-  
+
   return {
     // ... existing metrics
     custom: customMetrics,

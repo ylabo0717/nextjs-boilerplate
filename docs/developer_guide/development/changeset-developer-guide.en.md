@@ -161,11 +161,11 @@ git push origin feature/add-dark-mode
 
 ### Semantic Versioning (X.Y.Z)
 
-| Type      | Version Change | Use Case           | Example                                           |
-| --------- | -------------- | ------------------ | ------------------------------------------------- |
-| **major** | X.0.0          | Breaking changes   | API removal, argument changes, major behavior changes |
-| **minor** | 0.X.0          | New features       | New components, new options                       |
-| **patch** | 0.0.X          | Bug fixes          | Error fixes, typo fixes, small improvements      |
+| Type      | Version Change | Use Case         | Example                                               |
+| --------- | -------------- | ---------------- | ----------------------------------------------------- |
+| **major** | X.0.0          | Breaking changes | API removal, argument changes, major behavior changes |
+| **minor** | 0.X.0          | New features     | New components, new options                           |
+| **patch** | 0.0.X          | Bug fixes        | Error fixes, typo fixes, small improvements           |
 
 ### Decision Flowchart
 
@@ -278,6 +278,7 @@ A: All changesets in the same release will be included together, so dependencies
 ### Problem: `pnpm changeset` command not found
 
 **Solution:**
+
 ```bash
 # Install changesets CLI
 pnpm install -g @changesets/cli
@@ -289,16 +290,19 @@ npx changeset
 ### Problem: Changeset not appearing in release PR
 
 **Causes:**
+
 - Changeset not committed to main branch
 - Changeset file format is incorrect
 
 **Solution:**
+
 - Verify changeset file exists in `.changeset/` directory
 - Check file format matches examples above
 
 ### Problem: Wrong version bump applied
 
 **Solution:**
+
 - Edit the changeset file directly
 - Change the version type in the frontmatter
 

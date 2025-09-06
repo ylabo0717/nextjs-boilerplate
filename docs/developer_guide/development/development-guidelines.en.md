@@ -41,11 +41,7 @@ export const SearchForm = ({ onSearch }: { onSearch: (query: string) => void }) 
 
   return (
     <form onSubmit={handleSubmit}>
-      <input 
-        value={query} 
-        onChange={(e) => setQuery(e.target.value)} 
-        disabled={isLoading} 
-      />
+      <input value={query} onChange={(e) => setQuery(e.target.value)} disabled={isLoading} />
       <button type="submit" disabled={isLoading}>
         {isLoading ? 'Searching...' : 'Search'}
       </button>
@@ -81,11 +77,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   }, []);
 
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>;
 };
 
 export const useTheme = () => {
@@ -174,13 +166,13 @@ export const useUser = (userId: string) => {
 
 export const useUpdateUser = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: updateUser,
     onSuccess: (updatedUser) => {
       // Update cache
       queryClient.setQueryData(['user', updatedUser.id], updatedUser);
-      
+
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
@@ -241,10 +233,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: any) {
     console.error('Error caught by boundary:', error, errorInfo);
-    
+
     // Report to error tracking service
     this.props.onError?.(error, errorInfo);
-    
+
     // Log to monitoring service
     if (typeof window !== 'undefined') {
       // Only in browser environment
@@ -260,9 +252,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <h2>Something went wrong</h2>
             <details className="mt-4">
               <summary>Error details</summary>
-              <pre className="mt-2 whitespace-pre-wrap">
-                {this.state.error?.toString()}
-              </pre>
+              <pre className="mt-2 whitespace-pre-wrap">{this.state.error?.toString()}</pre>
             </details>
             <button
               onClick={() => this.setState({ hasError: false })}
@@ -343,14 +333,9 @@ class ApiClient {
       if (error instanceof ApiError) {
         throw error;
       }
-      
+
       // Network or other errors
-      throw new ApiError(
-        'Network error occurred',
-        'NETWORK_ERROR',
-        0,
-        error
-      );
+      throw new ApiError('Network error occurred', 'NETWORK_ERROR', 0, error);
     }
   }
 
@@ -382,7 +367,7 @@ export const UserProfile = ({ userId }: { userId: string }) => {
       } catch (err) {
         if (err instanceof ApiError) {
           setError(err);
-          
+
           // Handle specific error codes
           if (err.code === 'USER_NOT_FOUND') {
             // Redirect to 404
@@ -435,10 +420,10 @@ export const UserForm = ({ onSubmit }: { onSubmit: (data: UserFormData) => Promi
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     // Clear previous errors
     setErrors({});
-    
+
     // Validate form data
     const result = userSchema.safeParse(formData);
     if (!result.success) {
@@ -478,7 +463,7 @@ export const UserForm = ({ onSubmit }: { onSubmit: (data: UserFormData) => Promi
         <input
           type="text"
           value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+          onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
           placeholder="Name"
           className={errors.name ? 'border-red-500' : ''}
         />
@@ -489,7 +474,7 @@ export const UserForm = ({ onSubmit }: { onSubmit: (data: UserFormData) => Promi
         <input
           type="email"
           value={formData.email}
-          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+          onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
           placeholder="Email"
           className={errors.email ? 'border-red-500' : ''}
         />
@@ -500,7 +485,7 @@ export const UserForm = ({ onSubmit }: { onSubmit: (data: UserFormData) => Promi
         <input
           type="number"
           value={formData.age}
-          onChange={(e) => setFormData(prev => ({ ...prev, age: parseInt(e.target.value) }))}
+          onChange={(e) => setFormData((prev) => ({ ...prev, age: parseInt(e.target.value) }))}
           placeholder="Age"
           className={errors.age ? 'border-red-500' : ''}
         />
@@ -538,22 +523,23 @@ interface ButtonProps {
   onClick?: () => void;
 }
 
-export const Button = ({ 
-  variant = 'primary', 
-  size = 'md', 
-  children, 
-  className, 
+export const Button = ({
+  variant = 'primary',
+  size = 'md',
+  children,
+  className,
   disabled,
-  onClick 
+  onClick,
 }: ButtonProps) => {
-  const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50';
-  
+  const baseClasses =
+    'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50';
+
   const variantClasses = {
     primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
     secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
     danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
   };
-  
+
   const sizeClasses = {
     sm: 'h-9 px-3 text-sm',
     md: 'h-10 px-4 py-2',
@@ -562,12 +548,7 @@ export const Button = ({
 
   return (
     <button
-      className={cn(
-        baseClasses,
-        variantClasses[variant],
-        sizeClasses[size],
-        className
-      )}
+      className={cn(baseClasses, variantClasses[variant], sizeClasses[size], className)}
       disabled={disabled}
       onClick={onClick}
     >
@@ -580,9 +561,15 @@ export const Button = ({
 export const ActionButtons = () => {
   return (
     <div className="flex gap-2">
-      <Button variant="primary" size="md">Save</Button>
-      <Button variant="secondary" size="md">Cancel</Button>
-      <Button variant="danger" size="sm">Delete</Button>
+      <Button variant="primary" size="md">
+        Save
+      </Button>
+      <Button variant="secondary" size="md">
+        Cancel
+      </Button>
+      <Button variant="danger" size="sm">
+        Delete
+      </Button>
     </div>
   );
 };
@@ -614,21 +601,17 @@ export const ProductCard = ({ product }: { product: Product }) => {
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
         />
       </div>
-      
+
       <div className="p-4">
         <h3 className="font-semibold text-gray-900 text-sm md:text-base line-clamp-2">
           {product.name}
         </h3>
-        
-        <p className="text-gray-600 text-sm mt-1 line-clamp-2">
-          {product.description}
-        </p>
-        
+
+        <p className="text-gray-600 text-sm mt-1 line-clamp-2">{product.description}</p>
+
         <div className="flex items-center justify-between mt-4">
-          <span className="font-bold text-lg text-gray-900">
-            ${product.price}
-          </span>
-          
+          <span className="font-bold text-lg text-gray-900">${product.price}</span>
+
           <Button size="sm" variant="primary">
             Add to Cart
           </Button>
@@ -648,19 +631,19 @@ export const ProductCard = ({ product }: { product: Product }) => {
   .card {
     @apply bg-white rounded-lg shadow-sm border border-gray-200;
   }
-  
+
   .card-header {
     @apply px-6 py-4 border-b border-gray-200;
   }
-  
+
   .card-content {
     @apply px-6 py-4;
   }
-  
+
   .btn-loading {
     @apply relative text-transparent;
   }
-  
+
   .btn-loading::after {
     @apply absolute inset-0 flex items-center justify-center text-current;
     content: '';
@@ -777,7 +760,7 @@ const UserDashboard = lazy(() => import('@/components/UserDashboard'));
 const AdminPanel = lazy(() => import('@/components/AdminPanel'));
 
 // Lazy load with named exports
-const ChartComponent = lazy(() => 
+const ChartComponent = lazy(() =>
   import('@/components/Chart').then(module => ({ default: module.Chart }))
 );
 
@@ -830,7 +813,7 @@ export const FeatureToggle = ({ feature }: { feature: string }) => {
   }, [feature]);
 
   if (!Component) return <FeatureSkeleton />;
-  
+
   return <Component />;
 };
 ```
@@ -847,6 +830,7 @@ This development guideline emphasizes:
 4. **Code Organization** - Clean imports/exports with path aliases
 
 By following these guidelines, you can maintain:
+
 - Clean and maintainable code structure
 - Robust error handling and user experience
 - Consistent styling and responsive design

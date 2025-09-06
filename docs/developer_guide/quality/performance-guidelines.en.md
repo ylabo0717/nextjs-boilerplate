@@ -104,7 +104,7 @@ export const ChartComponent = ({ data }: { data: any[] }) => {
           import('chart.js'),
           import('react-chartjs-2'),
         ]);
-        
+
         setChart(() => Bar);
       } catch (error) {
         console.error('Failed to load chart library:', error);
@@ -154,7 +154,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
           priority={product.featured} // For above-the-fold images
         />
       </div>
-      
+
       <div className="product-info">
         <h3>{product.name}</h3>
         <p>${product.price}</p>
@@ -208,11 +208,11 @@ export const Hero = ({ heroImage }: { heroImage: string }) => {
 import { useState } from 'react';
 import Image from 'next/image';
 
-export const ProgressiveImage = ({ 
-  src, 
-  alt, 
-  width, 
-  height 
+export const ProgressiveImage = ({
+  src,
+  alt,
+  width,
+  height,
 }: {
   src: string;
   alt: string;
@@ -228,15 +228,11 @@ export const ProgressiveImage = ({
         alt={alt}
         width={width}
         height={height}
-        className={`transition-opacity duration-700 ${
-          isLoading ? 'opacity-0' : 'opacity-100'
-        }`}
+        className={`transition-opacity duration-700 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         onLoad={() => setIsLoading(false)}
       />
-      
-      {isLoading && (
-        <div className="absolute inset-0 bg-gray-200 animate-pulse" />
-      )}
+
+      {isLoading && <div className="absolute inset-0 bg-gray-200 animate-pulse" />}
     </div>
   );
 };
@@ -273,17 +269,20 @@ export const UserCard = memo(({ user, onEdit }: UserCardProps) => {
 UserCard.displayName = 'UserCard';
 
 // Custom comparison function for complex props
-export const UserCardOptimized = memo(({ user, onEdit }: UserCardProps) => {
-  return <UserCard user={user} onEdit={onEdit} />;
-}, (prevProps, nextProps) => {
-  // Only re-render if user data actually changed
-  return (
-    prevProps.user.id === nextProps.user.id &&
-    prevProps.user.name === nextProps.user.name &&
-    prevProps.user.email === nextProps.user.email &&
-    prevProps.user.avatar === nextProps.user.avatar
-  );
-});
+export const UserCardOptimized = memo(
+  ({ user, onEdit }: UserCardProps) => {
+    return <UserCard user={user} onEdit={onEdit} />;
+  },
+  (prevProps, nextProps) => {
+    // Only re-render if user data actually changed
+    return (
+      prevProps.user.id === nextProps.user.id &&
+      prevProps.user.name === nextProps.user.name &&
+      prevProps.user.email === nextProps.user.email &&
+      prevProps.user.avatar === nextProps.user.avatar
+    );
+  }
+);
 ```
 
 ### useMemo and useCallback
@@ -299,9 +298,10 @@ export const UserList = ({ users }: { users: User[] }) => {
   // Memoize expensive calculations
   const filteredAndSortedUsers = useMemo(() => {
     return users
-      .filter(user => 
-        user.name.toLowerCase().includes(filter.toLowerCase()) ||
-        user.email.toLowerCase().includes(filter.toLowerCase())
+      .filter(
+        (user) =>
+          user.name.toLowerCase().includes(filter.toLowerCase()) ||
+          user.email.toLowerCase().includes(filter.toLowerCase())
       )
       .sort((a, b) => a[sortBy].localeCompare(b[sortBy]));
   }, [users, filter, sortBy]);
@@ -323,21 +323,14 @@ export const UserList = ({ users }: { users: User[] }) => {
         onChange={(e) => handleFilterChange(e.target.value)}
         placeholder="Search users..."
       />
-      
-      <select
-        value={sortBy}
-        onChange={(e) => setSortBy(e.target.value as 'name' | 'email')}
-      >
+
+      <select value={sortBy} onChange={(e) => setSortBy(e.target.value as 'name' | 'email')}>
         <option value="name">Sort by Name</option>
         <option value="email">Sort by Email</option>
       </select>
 
-      {filteredAndSortedUsers.map(user => (
-        <UserCard
-          key={user.id}
-          user={user}
-          onEdit={handleUserEdit}
-        />
+      {filteredAndSortedUsers.map((user) => (
+        <UserCard key={user.id} user={user} onEdit={handleUserEdit} />
       ))}
     </div>
   );
@@ -348,7 +341,7 @@ export const BadUserList = ({ users }: { users: User[] }) => {
   // Unnecessary memoization for simple operations
   const userCount = useMemo(() => users.length, [users]);
   const hasUsers = useMemo(() => users.length > 0, [users]);
-  
+
   return <div>{/* ... */}</div>;
 };
 ```
@@ -375,11 +368,11 @@ export default function HomePage() {
         priority // Critical for LCP
         sizes="100vw"
       />
-      
+
       {/* Critical above-the-fold content */}
       <h1>Welcome to Our Site</h1>
       <p>Important content visible immediately</p>
-      
+
       {/* Non-critical content loaded later */}
       <Suspense fallback={<Skeleton />}>
         <BelowFoldContent />
@@ -390,11 +383,7 @@ export default function HomePage() {
 
 // Optimize web fonts for LCP
 // In layout.tsx or _document.tsx
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
@@ -426,7 +415,7 @@ export const OptimizedList = ({ items }: { items: Item[] }) => {
   const handleItemClick = useCallback((event: React.MouseEvent) => {
     const target = event.target as HTMLElement;
     const itemId = target.closest('[data-item-id]')?.getAttribute('data-item-id');
-    
+
     if (itemId) {
       // Use startTransition for non-urgent updates
       startTransition(() => {
@@ -437,7 +426,7 @@ export const OptimizedList = ({ items }: { items: Item[] }) => {
 
   return (
     <div onClick={handleItemClick}>
-      {items.map(item => (
+      {items.map((item) => (
         <div key={item.id} data-item-id={item.id} className="item">
           <h3>{item.title}</h3>
           <button>Action</button>
@@ -451,7 +440,7 @@ export const OptimizedList = ({ items }: { items: Item[] }) => {
 export const BadList = ({ items }: { items: Item[] }) => {
   return (
     <div>
-      {items.map(item => (
+      {items.map((item) => (
         <div key={item.id} className="item">
           <h3>{item.title}</h3>
           {/* Each button creates a new event listener */}
@@ -479,14 +468,14 @@ export const StableLayout = () => {
           className="object-cover"
         />
       </div>
-      
+
       {/* Reserve space for dynamic content */}
       <div className="min-h-[200px]">
         <Suspense fallback={<ContentSkeleton />}>
           <DynamicContent />
         </Suspense>
       </div>
-      
+
       {/* Fixed dimensions for loading states */}
       <div className="h-16 w-full">
         <Suspense fallback={<div className="h-16 bg-gray-200 animate-pulse" />}>
@@ -531,32 +520,30 @@ export const ArticlePage = ({ article }: { article: Article }) => {
           <h1>{article.title}</h1>
           <p>
             Published on{' '}
-            <time dateTime={article.publishedAt}>
-              {formatDate(article.publishedAt)}
-            </time>
+            <time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time>
           </p>
         </header>
-        
+
         <section>
           <h2>Introduction</h2>
           <p>{article.excerpt}</p>
         </section>
-        
+
         <section>
           <h2>Content</h2>
           <div dangerouslySetInnerHTML={{ __html: article.content }} />
         </section>
-        
+
         <footer>
           <p>Author: {article.author}</p>
         </footer>
       </article>
-      
+
       <aside>
         <h2>Related Articles</h2>
         <nav aria-label="Related articles">
           <ul>
-            {article.relatedArticles.map(related => (
+            {article.relatedArticles.map((related) => (
               <li key={related.id}>
                 <a href={`/articles/${related.slug}`}>{related.title}</a>
               </li>
@@ -607,36 +594,20 @@ export const SearchForm = () => {
           aria-expanded={results.length > 0}
           aria-haspopup="listbox"
         />
-        
-        <button
-          type="submit"
-          aria-label="Submit search"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <span aria-hidden="true">⏳</span>
-          ) : (
-            <span aria-hidden="true">🔍</span>
-          )}
+
+        <button type="submit" aria-label="Submit search" disabled={isLoading}>
+          {isLoading ? <span aria-hidden="true">⏳</span> : <span aria-hidden="true">🔍</span>}
         </button>
       </div>
-      
+
       <div id="search-description" className="sr-only">
         Enter keywords to search the site
       </div>
-      
+
       {results.length > 0 && (
-        <ul
-          role="listbox"
-          aria-label="Search results"
-          aria-live="polite"
-        >
+        <ul role="listbox" aria-label="Search results" aria-live="polite">
           {results.map((result, index) => (
-            <li
-              key={result.id}
-              role="option"
-              aria-selected={false}
-            >
+            <li key={result.id} role="option" aria-selected={false}>
               <a href={result.url}>{result.title}</a>
             </li>
           ))}
@@ -655,10 +626,10 @@ export const SearchForm = () => {
 
 import { useRef, useEffect } from 'react';
 
-export const Modal = ({ 
-  isOpen, 
-  onClose, 
-  children 
+export const Modal = ({
+  isOpen,
+  onClose,
+  children,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -671,26 +642,26 @@ export const Modal = ({
     if (isOpen) {
       // Store the previously focused element
       previousFocusRef.current = document.activeElement;
-      
+
       // Focus the modal
       modalRef.current?.focus();
-      
+
       // Trap focus within modal
       const handleKeyDown = (event: KeyboardEvent) => {
         if (event.key === 'Escape') {
           onClose();
         }
-        
+
         if (event.key === 'Tab') {
           trapFocus(event, modalRef.current);
         }
       };
-      
+
       document.addEventListener('keydown', handleKeyDown);
-      
+
       return () => {
         document.removeEventListener('keydown', handleKeyDown);
-        
+
         // Restore focus to previous element
         if (previousFocusRef.current instanceof HTMLElement) {
           previousFocusRef.current.focus();
@@ -702,11 +673,7 @@ export const Modal = ({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={onClose}
-      aria-hidden="true"
-    >
+    <div className="modal-overlay" onClick={onClose} aria-hidden="true">
       <div
         ref={modalRef}
         className="modal-content"
@@ -715,11 +682,7 @@ export const Modal = ({
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
-        <button
-          className="modal-close"
-          onClick={onClose}
-          aria-label="Close modal"
-        >
+        <button className="modal-close" onClick={onClose} aria-label="Close modal">
           ×
         </button>
         {children}
@@ -730,14 +693,14 @@ export const Modal = ({
 
 function trapFocus(event: KeyboardEvent, container: HTMLElement | null) {
   if (!container) return;
-  
+
   const focusableElements = container.querySelectorAll(
     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
   );
-  
+
   const firstElement = focusableElements[0] as HTMLElement;
   const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-  
+
   if (event.shiftKey) {
     if (document.activeElement === firstElement) {
       event.preventDefault();
@@ -775,8 +738,8 @@ interface DropdownProps {
 export const Dropdown = ({ options, onSelect, placeholder }: DropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [selectedOption, setSelectedOption] = useState<typeof options[0] | null>(null);
-  
+  const [selectedOption, setSelectedOption] = useState<(typeof options)[0] | null>(null);
+
   const buttonRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
@@ -792,41 +755,37 @@ export const Dropdown = ({ options, onSelect, placeholder }: DropdownProps) => {
           handleSelect(options[selectedIndex]);
         }
         break;
-        
+
       case 'Escape':
         setIsOpen(false);
         setSelectedIndex(-1);
         buttonRef.current?.focus();
         break;
-        
+
       case 'ArrowDown':
         event.preventDefault();
         if (!isOpen) {
           setIsOpen(true);
           setSelectedIndex(0);
         } else {
-          setSelectedIndex(prev => 
-            prev < options.length - 1 ? prev + 1 : 0
-          );
+          setSelectedIndex((prev) => (prev < options.length - 1 ? prev + 1 : 0));
         }
         break;
-        
+
       case 'ArrowUp':
         event.preventDefault();
         if (isOpen) {
-          setSelectedIndex(prev => 
-            prev > 0 ? prev - 1 : options.length - 1
-          );
+          setSelectedIndex((prev) => (prev > 0 ? prev - 1 : options.length - 1));
         }
         break;
-        
+
       case 'Home':
         if (isOpen) {
           event.preventDefault();
           setSelectedIndex(0);
         }
         break;
-        
+
       case 'End':
         if (isOpen) {
           event.preventDefault();
@@ -836,7 +795,7 @@ export const Dropdown = ({ options, onSelect, placeholder }: DropdownProps) => {
     }
   };
 
-  const handleSelect = (option: typeof options[0]) => {
+  const handleSelect = (option: (typeof options)[0]) => {
     setSelectedOption(option);
     setIsOpen(false);
     setSelectedIndex(-1);
@@ -859,7 +818,7 @@ export const Dropdown = ({ options, onSelect, placeholder }: DropdownProps) => {
         {selectedOption?.label || placeholder || 'Select an option'}
         <span aria-hidden="true">▼</span>
       </button>
-      
+
       {isOpen && (
         <ul
           ref={listRef}
@@ -873,9 +832,7 @@ export const Dropdown = ({ options, onSelect, placeholder }: DropdownProps) => {
               key={option.id}
               role="option"
               aria-selected={selectedIndex === index}
-              className={`dropdown-option ${
-                selectedIndex === index ? 'highlighted' : ''
-              }`}
+              className={`dropdown-option ${selectedIndex === index ? 'highlighted' : ''}`}
               onClick={() => handleSelect(option)}
             >
               {option.label}
@@ -931,6 +888,7 @@ This performance and accessibility guide emphasizes:
 6. **Keyboard Navigation** - Complete keyboard accessibility
 
 By following these guidelines, you can create applications that are:
+
 - Fast and performant across all devices
 - Accessible to users with disabilities
 - Optimized for search engines

@@ -131,11 +131,11 @@ export const formatCurrency = (
 // ❌ Bad - Class-based business logic
 class OrderCalculator {
   private discountRate: number;
-  
+
   constructor(discountRate: number) {
     this.discountRate = discountRate;
   }
-  
+
   calculateTotal(items: OrderItem[]): number {
     // Stateful implementation makes testing harder
   }
@@ -165,27 +165,27 @@ export const createUser = async (userData: CreateUserRequest): Promise<User> => 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(userData),
   });
-  
+
   if (!response.ok) {
     throw new Error(`Failed to create user: ${response.status}`);
   }
-  
+
   return await response.json();
 };
 
 // Database connection management (acceptable class usage)
 export class DatabaseConnection {
   private connectionString: string;
-  
+
   constructor(connectionString: string) {
     this.connectionString = connectionString;
   }
-  
+
   // Acceptable: Managing external resource connections
   async connect(): Promise<void> {
     // Connection management logic
   }
-  
+
   async disconnect(): Promise<void> {
     // Cleanup logic
   }
@@ -253,19 +253,19 @@ export const addOrderItem = (order: Order, item: OrderItem): Order => ({
 // ✅ Good - Pure validation functions
 export const validateUserCreation = (data: CreateUserRequest): ValidationResult => {
   const errors: ValidationError[] = [];
-  
+
   if (!data.email || !validateEmail(data.email)) {
     errors.push({ field: 'email', message: 'Valid email is required' });
   }
-  
+
   if (!data.name || data.name.trim().length < 2) {
     errors.push({ field: 'name', message: 'Name must be at least 2 characters' });
   }
-  
+
   if (!data.password || data.password.length < 8) {
     errors.push({ field: 'password', message: 'Password must be at least 8 characters' });
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
@@ -274,15 +274,15 @@ export const validateUserCreation = (data: CreateUserRequest): ValidationResult 
 
 export const validateOrderItem = (item: OrderItem): ValidationResult => {
   const errors: ValidationError[] = [];
-  
+
   if (item.quantity <= 0) {
     errors.push({ field: 'quantity', message: 'Quantity must be greater than 0' });
   }
-  
+
   if (item.price < 0) {
     errors.push({ field: 'price', message: 'Price cannot be negative' });
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
@@ -309,7 +309,7 @@ export const userService = {
         details: validation.errors,
       };
     }
-    
+
     try {
       // Check if user exists
       const existingUser = await findUserByEmail(userData.email);
@@ -319,14 +319,14 @@ export const userService = {
           error: 'User already exists',
         };
       }
-      
+
       // Create user
       const hashedPassword = await hashPassword(userData.password);
       const user = await createUser({
         ...userData,
         password: hashedPassword,
       });
-      
+
       return {
         success: true,
         data: user,
@@ -352,7 +352,7 @@ export const userService = {
           error: 'User not found',
         };
       }
-      
+
       const updatedUser = await updateUser(userId, updates);
       return {
         success: true,
@@ -374,20 +374,17 @@ export const userService = {
 ```typescript
 // ✅ Good - Use case composition with pure functions
 export const orderService = {
-  async createOrder(
-    userId: string,
-    items: OrderItem[]
-  ): Promise<ServiceResult<Order>> {
+  async createOrder(userId: string, items: OrderItem[]): Promise<ServiceResult<Order>> {
     try {
       // Validate user
       const user = await fetchUser(userId);
       if (!user) {
         return { success: false, error: 'User not found' };
       }
-      
+
       // Validate items
       const itemValidations = items.map(validateOrderItem);
-      const invalidItems = itemValidations.filter(v => !v.isValid);
+      const invalidItems = itemValidations.filter((v) => !v.isValid);
       if (invalidItems.length > 0) {
         return {
           success: false,
@@ -395,7 +392,7 @@ export const orderService = {
           details: invalidItems,
         };
       }
-      
+
       // Check inventory
       const inventoryCheck = await checkInventoryAvailability(items);
       if (!inventoryCheck.available) {
@@ -405,10 +402,10 @@ export const orderService = {
           details: inventoryCheck.unavailableItems,
         };
       }
-      
+
       // Calculate total
       const total = calculateOrderTotal(items);
-      
+
       // Create order
       const order = await createOrder({
         userId,
@@ -416,10 +413,10 @@ export const orderService = {
         total,
         status: 'pending',
       });
-      
+
       // Reserve inventory
       await reserveInventory(items);
-      
+
       return {
         success: true,
         data: order,
@@ -448,19 +445,11 @@ export const apiClient = {
     return makeRequest<T>('GET', url, undefined, options);
   },
 
-  async post<T>(
-    url: string,
-    data?: unknown,
-    options?: RequestOptions
-  ): Promise<ApiResponse<T>> {
+  async post<T>(url: string, data?: unknown, options?: RequestOptions): Promise<ApiResponse<T>> {
     return makeRequest<T>('POST', url, data, options);
   },
 
-  async put<T>(
-    url: string,
-    data?: unknown,
-    options?: RequestOptions
-  ): Promise<ApiResponse<T>> {
+  async put<T>(url: string, data?: unknown, options?: RequestOptions): Promise<ApiResponse<T>> {
     return makeRequest<T>('PUT', url, data, options);
   },
 
@@ -490,17 +479,13 @@ const makeRequest = async <T>(
 
   try {
     const response = await fetch(url, config);
-    
+
     if (!response.ok) {
-      throw new ApiError(
-        `HTTP ${response.status}`,
-        response.status,
-        await response.text()
-      );
+      throw new ApiError(`HTTP ${response.status}`, response.status, await response.text());
     }
 
     const responseData = await response.json();
-    
+
     return {
       success: true,
       data: responseData,
@@ -522,26 +507,23 @@ const makeRequest = async <T>(
 // ✅ Good - Type-safe API definitions
 export const userApi = {
   getUser: (id: string) => apiClient.get<User>(`/api/users/${id}`),
-  
-  createUser: (userData: CreateUserRequest) =>
-    apiClient.post<User>('/api/users', userData),
-    
+
+  createUser: (userData: CreateUserRequest) => apiClient.post<User>('/api/users', userData),
+
   updateUser: (id: string, updates: UpdateUserRequest) =>
     apiClient.put<User>(`/api/users/${id}`, updates),
-    
-  deleteUser: (id: string) =>
-    apiClient.delete<void>(`/api/users/${id}`),
-    
+
+  deleteUser: (id: string) => apiClient.delete<void>(`/api/users/${id}`),
+
   listUsers: (params?: ListUsersParams) =>
     apiClient.get<PaginatedResponse<User>>('/api/users', { params }),
 };
 
 export const orderApi = {
   getOrder: (id: string) => apiClient.get<Order>(`/api/orders/${id}`),
-  
-  createOrder: (orderData: CreateOrderRequest) =>
-    apiClient.post<Order>('/api/orders', orderData),
-    
+
+  createOrder: (orderData: CreateOrderRequest) => apiClient.post<Order>('/api/orders', orderData),
+
   listOrders: (userId: string, params?: ListOrdersParams) =>
     apiClient.get<PaginatedResponse<Order>>(`/api/orders`, {
       params: { userId, ...params },
@@ -587,14 +569,14 @@ export const convertSerializableToUser = (serializable: SerializableUser): User 
 // Server Component usage
 export default async function UserPage({ params }: { params: { id: string } }) {
   const user = await fetchUser(params.id);
-  
+
   if (!user) {
     notFound();
   }
-  
+
   // Convert to serializable format
   const serializableUser = convertUserToSerializable(user);
-  
+
   return <UserProfile user={serializableUser} />;
 }
 ```
@@ -610,11 +592,11 @@ export const syncUserData = async (
   // Compare timestamps to determine which is newer
   const localUpdated = new Date(localUser.updatedAt);
   const serverUpdated = new Date(serverUser.updatedAt);
-  
+
   if (serverUpdated > localUpdated) {
     return serverUser;
   }
-  
+
   return localUser;
 };
 
@@ -638,11 +620,11 @@ export const mergeUserUpdates = (
 // ✅ Acceptable - External resource management
 export class DatabasePool {
   private pool: Pool;
-  
+
   constructor(config: DatabaseConfig) {
     this.pool = new Pool(config);
   }
-  
+
   async query<T>(sql: string, params?: unknown[]): Promise<T[]> {
     const client = await this.pool.connect();
     try {
@@ -652,7 +634,7 @@ export class DatabasePool {
       client.release();
     }
   }
-  
+
   async close(): Promise<void> {
     await this.pool.end();
   }
@@ -661,14 +643,14 @@ export class DatabasePool {
 // ✅ Acceptable - Complex state machines
 export class PaymentProcessor {
   private state: PaymentState = 'idle';
-  
+
   async processPayment(paymentData: PaymentData): Promise<PaymentResult> {
     if (this.state !== 'idle') {
       throw new Error('Payment processor is busy');
     }
-    
+
     this.state = 'processing';
-    
+
     try {
       const result = await this.executePayment(paymentData);
       this.state = 'completed';
@@ -680,7 +662,7 @@ export class PaymentProcessor {
       this.state = 'idle';
     }
   }
-  
+
   private async executePayment(data: PaymentData): Promise<PaymentResult> {
     // Complex payment processing logic
   }
@@ -691,7 +673,7 @@ class UserUtilities {
   static formatName(user: User): string {
     return `${user.firstName} ${user.lastName}`;
   }
-  
+
   static validateEmail(email: string): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
@@ -721,6 +703,7 @@ This architecture guideline emphasizes:
 6. **Testable Design** - Architecture that facilitates easy testing
 
 By following these principles, you create:
+
 - Highly testable and maintainable code
 - Predictable and debuggable applications
 - Scalable architecture that grows with your project

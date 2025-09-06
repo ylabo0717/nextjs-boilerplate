@@ -106,7 +106,7 @@ export const AdminPanel = () => {
 // app/admin/page.tsx (Server Component)
 export default async function AdminPage() {
   const session = await getServerSession();
-  
+
   // Server-side permission check
   if (!session?.user || session.user.role !== 'admin') {
     redirect('/login');
@@ -119,7 +119,7 @@ export default async function AdminPage() {
 // app/api/admin/users/route.ts
 export async function GET() {
   const session = await getServerSession();
-  
+
   if (!session?.user || session.user.role !== 'admin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -147,7 +147,7 @@ export default async function Dashboard() {
   }
 
   const userData = await getUserData(session.user.id);
-  
+
   return (
     <div>
       <h1>Welcome, {userData.name}</h1>
@@ -172,10 +172,10 @@ export async function GET() {
 
     // 2. Input validation (if any)
     // 3. Authorization check (if needed)
-    
+
     // 4. Secure data retrieval
     const profile = await getProfileData(session.user.id);
-    
+
     // 5. Data sanitization before response
     const sanitizedProfile = {
       id: profile.id,
@@ -188,10 +188,7 @@ export async function GET() {
   } catch (error) {
     // 6. Secure error handling
     console.error('Profile fetch error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 ```
@@ -207,7 +204,7 @@ const envSchema = z.object({
   // Public variables (can be sent to client)
   NEXT_PUBLIC_APP_URL: z.string().url(),
   NEXT_PUBLIC_API_URL: z.string().url(),
-  
+
   // Private variables (server-only)
   DATABASE_URL: z.string(),
   JWT_SECRET: z.string().min(32),
@@ -325,11 +322,11 @@ export function hasPermission(
 // Usage in API routes
 export async function GET() {
   const session = await getServerSession();
-  
+
   if (!hasPermission(session.user.role, PERMISSIONS.USER_READ)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  
+
   // Proceed with operation
 }
 ```
@@ -359,13 +356,13 @@ export const updateUserSchema = createUserSchema.partial();
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
+
     // Validate and sanitize input
     const validatedData = createUserSchema.parse(body);
-    
+
     // Proceed with validated data
     const user = await createUser(validatedData);
-    
+
     return NextResponse.json({ user });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -374,11 +371,8 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 ```
@@ -392,12 +386,12 @@ import DOMPurify from 'isomorphic-dompurify';
 // For user-generated content
 export const SafeHTML = ({ content }: { content: string }) => {
   const sanitizedContent = DOMPurify.sanitize(content);
-  
+
   return (
-    <div 
-      dangerouslySetInnerHTML={{ 
-        __html: sanitizedContent 
-      }} 
+    <div
+      dangerouslySetInnerHTML={{
+        __html: sanitizedContent,
+      }}
     />
   );
 };
@@ -405,27 +399,23 @@ export const SafeHTML = ({ content }: { content: string }) => {
 // For form inputs
 export const UserCommentForm = () => {
   const [comment, setComment] = useState('');
-  
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     // Sanitize on client side as well (defense in depth)
     const sanitizedComment = DOMPurify.sanitize(comment);
-    
+
     await fetch('/api/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ comment: sanitizedComment }),
     });
   };
-  
+
   return (
     <form onSubmit={handleSubmit}>
-      <textarea
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-        maxLength={1000}
-      />
+      <textarea value={comment} onChange={(e) => setComment(e.target.value)} maxLength={1000} />
       <button type="submit">Submit</button>
     </form>
   );
@@ -451,7 +441,7 @@ export function validateCSRFToken(token: string, secret: string): boolean {
   const expectedToken = createHash('sha256')
     .update(secret + process.env.CSRF_SECRET!)
     .digest('hex');
-  
+
   return token === expectedToken;
 }
 
@@ -462,15 +452,12 @@ export function middleware(request: NextRequest) {
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
     const csrfToken = request.headers.get('x-csrf-token');
     const sessionId = request.cookies.get('session')?.value;
-    
+
     if (!csrfToken || !sessionId || !validateCSRFToken(csrfToken, sessionId)) {
-      return NextResponse.json(
-        { error: 'Invalid CSRF token' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 });
     }
   }
-  
+
   return NextResponse.next();
 }
 ```
@@ -491,9 +478,9 @@ export const COOKIE_OPTIONS = {
 // Usage in API routes
 export async function POST() {
   const response = NextResponse.json({ success: true });
-  
+
   response.cookies.set('session', sessionToken, COOKIE_OPTIONS);
-  
+
   return response;
 }
 ```
@@ -552,9 +539,7 @@ export default nextConfig;
 // ✅ Good - Strict CSP configuration
 const cspHeader = `
   default-src 'self';
-  script-src 'self' ${
-    process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''
-  };
+  script-src 'self' ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''};
   style-src 'self' 'unsafe-inline';
   img-src 'self' blob: data:;
   font-src 'self';
@@ -567,9 +552,9 @@ const cspHeader = `
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
-  
+
   response.headers.set('Content-Security-Policy', cspHeader.replace(/\s+/g, ' ').trim());
-  
+
   return response;
 }
 ```

@@ -76,11 +76,7 @@ export const SearchForm = ({ onSearch }: SearchFormProps) => {
         onSearch(query);
       }}
     >
-      <input 
-        value={query} 
-        onChange={(e) => setQuery(e.target.value)} 
-        placeholder="Search..." 
-      />
+      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search..." />
       <button type="submit">Search</button>
     </form>
   );
@@ -159,10 +155,10 @@ export const NavigationButton = () => {
   const handleNavigation = () => {
     // Client-side navigation
     router.push('/dashboard');
-    
+
     // With query parameters
     router.push('/products?category=electronics');
-    
+
     // Replace instead of push
     router.replace('/login');
   };
@@ -200,11 +196,7 @@ export const Navigation = () => {
 // app/dashboard/page.tsx
 async function DashboardPage() {
   // Parallel data fetching
-  const [user, posts, analytics] = await Promise.all([
-    getUser(),
-    getPosts(),
-    getAnalytics(),
-  ]);
+  const [user, posts, analytics] = await Promise.all([getUser(), getPosts(), getAnalytics()]);
 
   return (
     <div>
@@ -235,14 +227,14 @@ async function getUserData() {
 import useSWR from 'swr';
 
 export const UserProfile = ({ userId }: { userId: string }) => {
-  const { data: user, error, isLoading } = useSWR(
-    `/api/users/${userId}`,
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-    }
-  );
+  const {
+    data: user,
+    error,
+    isLoading,
+  } = useSWR(`/api/users/${userId}`, fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: true,
+  });
 
   if (isLoading) return <UserSkeleton />;
   if (error) return <ErrorMessage error={error} />;
@@ -252,7 +244,7 @@ export const UserProfile = ({ userId }: { userId: string }) => {
 };
 
 // ✅ Good - React Query usage
-'use client';
+('use client');
 import { useQuery } from '@tanstack/react-query';
 
 export const PostsList = () => {
@@ -262,7 +254,7 @@ export const PostsList = () => {
     error,
   } = useQuery({
     queryKey: ['posts'],
-    queryFn: () => fetch('/api/posts').then(res => res.json()),
+    queryFn: () => fetch('/api/posts').then((res) => res.json()),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -270,7 +262,9 @@ export const PostsList = () => {
     <div>
       {isLoading && <LoadingSpinner />}
       {error && <ErrorBoundary error={error} />}
-      {posts?.map(post => <PostCard key={post.id} post={post} />)}
+      {posts?.map((post) => (
+        <PostCard key={post.id} post={post} />
+      ))}
     </div>
   );
 };
@@ -299,7 +293,7 @@ async function PostsPage() {
 }
 
 // Client Component for progressive enhancement
-'use client';
+('use client');
 export const LoadMoreButton = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -307,7 +301,7 @@ export const LoadMoreButton = () => {
   const loadMore = async () => {
     setIsLoading(true);
     const newPosts = await fetchMorePosts();
-    setPosts(prev => [...prev, ...newPosts]);
+    setPosts((prev) => [...prev, ...newPosts]);
     setIsLoading(false);
   };
 
@@ -336,11 +330,7 @@ interface CardProps {
 }
 
 export const Card = ({ children, variant = 'default', className }: CardProps) => {
-  return (
-    <div className={cn('card', `card--${variant}`, className)}>
-      {children}
-    </div>
-  );
+  return <div className={cn('card', `card--${variant}`, className)}>{children}</div>;
 };
 
 // Sub-components
@@ -479,10 +469,7 @@ export class ErrorBoundary extends Component<Props, State> {
 // Usage
 export const App = () => {
   return (
-    <ErrorBoundary
-      fallback={<ErrorFallback />}
-      onError={(error) => reportError(error)}
-    >
+    <ErrorBoundary fallback={<ErrorFallback />} onError={(error) => reportError(error)}>
       <UserDashboard />
     </ErrorBoundary>
   );
@@ -539,19 +526,13 @@ export const TabsList = ({ children }: { children: React.ReactNode }) => {
   return <div className="tabs__list">{children}</div>;
 };
 
-export const TabsTrigger = ({ 
-  value, 
-  children 
-}: { 
-  value: string; 
-  children: React.ReactNode; 
-}) => {
+export const TabsTrigger = ({ value, children }: { value: string; children: React.ReactNode }) => {
   const { activeTab, setActiveTab } = useTabs();
-  
+
   return (
     <button
       className={cn('tabs__trigger', {
-        'tabs__trigger--active': activeTab === value
+        'tabs__trigger--active': activeTab === value,
       })}
       onClick={() => setActiveTab(value)}
     >
@@ -560,17 +541,11 @@ export const TabsTrigger = ({
   );
 };
 
-export const TabsContent = ({ 
-  value, 
-  children 
-}: { 
-  value: string; 
-  children: React.ReactNode; 
-}) => {
+export const TabsContent = ({ value, children }: { value: string; children: React.ReactNode }) => {
   const { activeTab } = useTabs();
-  
+
   if (activeTab !== value) return null;
-  
+
   return <div className="tabs__content">{children}</div>;
 };
 
@@ -583,15 +558,15 @@ export const ProductDetails = () => {
         <TabsTrigger value="specs">Specifications</TabsTrigger>
         <TabsTrigger value="reviews">Reviews</TabsTrigger>
       </TabsList>
-      
+
       <TabsContent value="overview">
         <ProductOverview />
       </TabsContent>
-      
+
       <TabsContent value="specs">
         <ProductSpecs />
       </TabsContent>
-      
+
       <TabsContent value="reviews">
         <ProductReviews />
       </TabsContent>
@@ -630,12 +605,12 @@ export const useApi = <T>(
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       setData(result);
       options.onSuccess?.(result);
@@ -748,21 +723,24 @@ export const useForm = <T extends Record<string, any>>({
   const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = useCallback((name: keyof T, value: any) => {
-    setValues(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }));
-    }
-  }, [errors]);
+  const handleChange = useCallback(
+    (name: keyof T, value: any) => {
+      setValues((prev) => ({ ...prev, [name]: value }));
+      // Clear error when user starts typing
+      if (errors[name]) {
+        setErrors((prev) => ({ ...prev, [name]: undefined }));
+      }
+    },
+    [errors]
+  );
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    
+
     // Validate
     const validationErrors = validate?.(values) || {};
     setErrors(validationErrors);
-    
+
     if (Object.keys(validationErrors).length > 0) {
       return;
     }
@@ -804,14 +782,14 @@ export const ContactForm = () => {
     },
     validate: (values) => {
       const errors: any = {};
-      
+
       if (!values.name) errors.name = 'Name is required';
       if (!values.email) errors.email = 'Email is required';
       else if (!/\S+@\S+\.\S+/.test(values.email)) {
         errors.email = 'Email is invalid';
       }
       if (!values.message) errors.message = 'Message is required';
-      
+
       return errors;
     },
     onSubmit: async (values) => {
@@ -831,7 +809,7 @@ export const ContactForm = () => {
         />
         {errors.name && <span className="error">{errors.name}</span>}
       </div>
-      
+
       <div>
         <input
           type="email"
@@ -841,7 +819,7 @@ export const ContactForm = () => {
         />
         {errors.email && <span className="error">{errors.email}</span>}
       </div>
-      
+
       <div>
         <textarea
           value={values.message}
@@ -850,7 +828,7 @@ export const ContactForm = () => {
         />
         {errors.message && <span className="error">{errors.message}</span>}
       </div>
-      
+
       <button type="submit" disabled={isSubmitting}>
         {isSubmitting ? 'Sending...' : 'Send Message'}
       </button>
@@ -873,6 +851,7 @@ This Next.js patterns guide emphasizes:
 6. **Developer Experience** - Custom hooks for common patterns
 
 By following these patterns, you can build Next.js applications that are:
+
 - Performant and SEO-friendly
 - Maintainable and scalable
 - Type-safe and error-resistant

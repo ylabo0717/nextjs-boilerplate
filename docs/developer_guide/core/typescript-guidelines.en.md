@@ -148,20 +148,16 @@ function isUserArray(value: unknown): value is User[] {
 }
 
 // Discriminated union type guard
-type ApiResponse<T> = 
-  | { success: true; data: T }
-  | { success: false; error: string };
+type ApiResponse<T> = { success: true; data: T } | { success: false; error: string };
 
-function isSuccessResponse<T>(
-  response: ApiResponse<T>
-): response is { success: true; data: T } {
+function isSuccessResponse<T>(response: ApiResponse<T>): response is { success: true; data: T } {
   return response.success === true;
 }
 
 // Usage
 async function fetchUser(id: string) {
   const response: ApiResponse<User> = await api.getUser(id);
-  
+
   if (isSuccessResponse(response)) {
     return response.data; // ✅ Typed as User
   } else {
@@ -188,14 +184,16 @@ const UserSchema = z.object({
   email: z.string().email(),
   role: z.enum(['admin', 'user', 'viewer']),
   createdAt: z.date(),
-  settings: z.object({
-    theme: z.enum(['light', 'dark', 'system']),
-    language: z.enum(['ja', 'en']),
-    notifications: z.object({
-      email: z.boolean(),
-      push: z.boolean(),
-    }),
-  }).optional(),
+  settings: z
+    .object({
+      theme: z.enum(['light', 'dark', 'system']),
+      language: z.enum(['ja', 'en']),
+      notifications: z.object({
+        email: z.boolean(),
+        push: z.boolean(),
+      }),
+    })
+    .optional(),
 });
 
 // Type inference from schema
@@ -231,10 +229,10 @@ type UserApiResponse = z.infer<typeof UserApiResponseSchema>;
 async function fetchUser(id: string): Promise<User> {
   const response = await fetch(`/api/users/${id}`);
   const rawData = await response.json();
-  
+
   // Validate response structure
   const validatedResponse = UserApiResponseSchema.parse(rawData);
-  
+
   if (validatedResponse.success && validatedResponse.data) {
     return validatedResponse.data;
   } else {
@@ -280,16 +278,16 @@ function ContactForm() {
     <form onSubmit={handleSubmit(onSubmit)}>
       <input {...register('name')} />
       {errors.name && <span>{errors.name.message}</span>}
-      
+
       <input {...register('email')} />
       {errors.email && <span>{errors.email.message}</span>}
-      
+
       <textarea {...register('message')} />
       {errors.message && <span>{errors.message.message}</span>}
-      
+
       <input type="checkbox" {...register('agreeToTerms')} />
       {errors.agreeToTerms && <span>{errors.agreeToTerms.message}</span>}
-      
+
       <button type="submit">Submit</button>
     </form>
   );
@@ -325,10 +323,7 @@ export const createUser = (data: Partial<User>): User => {
   // Implementation
 };
 
-export const updateUserSettings = (
-  user: User,
-  settings: Partial<UserSettings>
-): User => {
+export const updateUserSettings = (user: User, settings: Partial<UserSettings>): User => {
   // Implementation
 };
 
@@ -413,7 +408,7 @@ async function fetchApiData(url: string): Promise<unknown> {
 
 async function processApiData() {
   const data = await fetchApiData('/api/user');
-  
+
   // Must validate before use
   if (isUser(data)) {
     console.log(data.name); // ✅ Safe after validation
@@ -488,6 +483,7 @@ This TypeScript guideline emphasizes:
 6. **Avoid `any`** - Use `unknown` and type guards instead
 
 By following these guidelines, you can write TypeScript code that is:
+
 - Safe from runtime type errors
 - Easy to refactor and maintain
 - Self-documenting through types

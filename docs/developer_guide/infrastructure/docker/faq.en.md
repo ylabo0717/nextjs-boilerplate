@@ -184,6 +184,7 @@ pnpm install --frozen-lockfile
 **A:** Recommendation by test type:
 
 **Unit Tests:**
+
 ```bash
 # Local (faster iteration)
 pnpm test:unit
@@ -193,6 +194,7 @@ pnpm docker:test:unit
 ```
 
 **Integration/E2E Tests:**
+
 ```bash
 # Docker (recommended - environment consistency)
 pnpm docker:test:e2e

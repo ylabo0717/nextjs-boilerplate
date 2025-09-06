@@ -22,10 +22,10 @@ This guide explains detailed configuration methods for the structured logging sy
 
 ### 🔧 Basic Log Configuration
 
-| Variable Name           | Description                  | Type                                     | Default  | Required |
-| ----------------------- | ---------------------------- | ---------------------------------------- | -------- | -------- |
-| `LOG_LEVEL`             | Server-side log level        | `trace\|debug\|info\|warn\|error\|fatal` | `info`   | No       |
-| `NEXT_PUBLIC_LOG_LEVEL` | Client-side log level        | `trace\|debug\|info\|warn\|error\|fatal` | `info`   | No       |
+| Variable Name           | Description           | Type                                     | Default | Required |
+| ----------------------- | --------------------- | ---------------------------------------- | ------- | -------- |
+| `LOG_LEVEL`             | Server-side log level | `trace\|debug\|info\|warn\|error\|fatal` | `info`  | No       |
+| `NEXT_PUBLIC_LOG_LEVEL` | Client-side log level | `trace\|debug\|info\|warn\|error\|fatal` | `info`  | No       |
 
 **Usage Examples**:
 
@@ -41,9 +41,9 @@ NEXT_PUBLIC_LOG_LEVEL=debug
 
 ### 🔒 Security Configuration
 
-| Variable Name        | Description                    | Type     | Default | Required     |
-| -------------------- | ------------------------------ | -------- | ------- | ------------ |
-| `LOG_IP_HASH_SECRET` | Secret key for IP hashing      | `string` | -       | Yes (Prod)   |
+| Variable Name        | Description               | Type     | Default | Required   |
+| -------------------- | ------------------------- | -------- | ------- | ---------- |
+| `LOG_IP_HASH_SECRET` | Secret key for IP hashing | `string` | -       | Yes (Prod) |
 
 **Security Requirements**:
 
@@ -63,15 +63,15 @@ LOG_IP_HASH_SECRET=different-staging-secret-key-at-least-64-characters-long
 
 #### Rate Limiting Settings
 
-| Variable Name                       | Description                      | Type      | Default |
-| ----------------------------------- | -------------------------------- | --------- | ------- |
-| `LOG_RATE_LIMIT_MAX_TOKENS`         | Maximum token count              | `number`  | `100`   |
-| `LOG_RATE_LIMIT_REFILL_RATE`        | Token refill rate (sec/token)    | `number`  | `10`    |
-| `LOG_RATE_LIMIT_BURST_CAPACITY`     | Burst capacity                   | `number`  | `150`   |
-| `LOG_RATE_LIMIT_BACKOFF_MULTIPLIER` | Backoff multiplier               | `number`  | `2`     |
-| `LOG_RATE_LIMIT_MAX_BACKOFF`        | Maximum backoff time (seconds)   | `number`  | `300`   |
-| `LOG_RATE_LIMIT_ADAPTIVE`           | Adaptive sampling                | `boolean` | `true`  |
-| `LOG_RATE_LIMIT_ERROR_THRESHOLD`    | Error threshold (count/minute)   | `number`  | `100`   |
+| Variable Name                       | Description                    | Type      | Default |
+| ----------------------------------- | ------------------------------ | --------- | ------- |
+| `LOG_RATE_LIMIT_MAX_TOKENS`         | Maximum token count            | `number`  | `100`   |
+| `LOG_RATE_LIMIT_REFILL_RATE`        | Token refill rate (sec/token)  | `number`  | `10`    |
+| `LOG_RATE_LIMIT_BURST_CAPACITY`     | Burst capacity                 | `number`  | `150`   |
+| `LOG_RATE_LIMIT_BACKOFF_MULTIPLIER` | Backoff multiplier             | `number`  | `2`     |
+| `LOG_RATE_LIMIT_MAX_BACKOFF`        | Maximum backoff time (seconds) | `number`  | `300`   |
+| `LOG_RATE_LIMIT_ADAPTIVE`           | Adaptive sampling              | `boolean` | `true`  |
+| `LOG_RATE_LIMIT_ERROR_THRESHOLD`    | Error threshold (count/minute) | `number`  | `100`   |
 
 **Configuration Examples by Use Case**:
 
@@ -94,8 +94,8 @@ LOG_RATE_LIMIT_ADAPTIVE=false
 | `LOKI_ENABLED`        | Enable/disable Loki       | `boolean`  | `true`                  |
 | `LOKI_URL`            | Loki endpoint URL         | `string`   | `http://localhost:3100` |
 | `LOKI_TENANT_ID`      | Multi-tenant ID           | `string`   | -                       |
-| `LOKI_API_KEY`        | API authentication key   | `string`   | -                       |
-| `LOKI_MIN_LEVEL`      | Minimum log level to send| `LogLevel` | `info`                  |
+| `LOKI_API_KEY`        | API authentication key    | `string`   | -                       |
+| `LOKI_MIN_LEVEL`      | Minimum log level to send | `LogLevel` | `info`                  |
 | `LOKI_BATCH_SIZE`     | Batch size                | `number`   | `100`                   |
 | `LOKI_FLUSH_INTERVAL` | Flush interval (ms)       | `number`   | `5000`                  |
 
@@ -280,8 +280,8 @@ LOG_IP_HASH_SECRET=generated-secret-key-here
 // Check if IP hashing is working
 import { logger } from '@/lib/logger';
 
-logger.info('User request', { 
-  ip: '192.168.1.1'  // Will be automatically hashed
+logger.info('User request', {
+  ip: '192.168.1.1', // Will be automatically hashed
 });
 ```
 
@@ -340,13 +340,13 @@ groups:
         expr: rate(log_entries_total{level="error"}[5m]) > 10
         for: 2m
         annotations:
-          summary: "High error rate detected"
-          
+          summary: 'High error rate detected'
+
       - alert: LoggingSystemDown
         expr: up{job="nextjs-app"} == 0
         for: 1m
         annotations:
-          summary: "Logging system is down"
+          summary: 'Logging system is down'
 ```
 
 ---
@@ -442,7 +442,7 @@ import { logger } from '@/lib/logger';
 
 logger.info('Logger test', {
   test: 'configuration',
-  timestamp: new Date().toISOString()
+  timestamp: new Date().toISOString(),
 });
 ```
 

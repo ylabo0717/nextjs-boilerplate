@@ -389,19 +389,19 @@ const performanceConfig = {
     refillRate: 5,
     adaptive: true,
   },
-  
+
   // Batching
   batching: {
     size: 200,
     flushInterval: 3000,
   },
-  
+
   // Sampling
   sampling: {
-    error: 1.0,   // 100%
-    warn: 0.8,    // 80%
-    info: 0.5,    // 50%
-    debug: 0.1,   // 10%
+    error: 1.0, // 100%
+    warn: 0.8, // 80%
+    info: 0.5, // 50%
+    debug: 0.1, // 10%
   },
 };
 ```
@@ -446,10 +446,13 @@ logger.info('Payment processed', {
 });
 
 // ✅ Good - Explicit sanitization
-logger.info('User data', sanitizeLogData({
-  email: user.email,
-  sensitiveData: user.sensitiveData,
-}));
+logger.info(
+  'User data',
+  sanitizeLogData({
+    email: user.email,
+    sensitiveData: user.sensitiveData,
+  })
+);
 
 // ❌ Bad - Raw sensitive data
 logger.info('Raw user object', user); // May contain sensitive fields

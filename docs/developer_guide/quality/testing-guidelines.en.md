@@ -136,30 +136,27 @@ describe('useLocalStorage', () => {
 
   it('should return initial value when localStorage is empty', () => {
     const { result } = renderHook(() => useLocalStorage('test', 'default'));
-    
+
     expect(result.current[0]).toBe('default');
   });
 
   it('should return stored value from localStorage', () => {
     localStorageMock.setItem('test', JSON.stringify('stored'));
-    
+
     const { result } = renderHook(() => useLocalStorage('test', 'default'));
-    
+
     expect(result.current[0]).toBe('stored');
   });
 
   it('should update localStorage when value changes', () => {
     const { result } = renderHook(() => useLocalStorage('test', 'default'));
-    
+
     act(() => {
       result.current[1]('new value');
     });
-    
+
     expect(result.current[0]).toBe('new value');
-    expect(localStorageMock.setItem).toHaveBeenCalledWith(
-      'test',
-      JSON.stringify('new value')
-    );
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('test', JSON.stringify('new value'));
   });
 });
 ```
@@ -176,29 +173,29 @@ import { Button } from './Button';
 describe('Button', () => {
   it('should render with correct text', () => {
     render(<Button>Click me</Button>);
-    
+
     expect(screen.getByRole('button', { name: 'Click me' })).toBeInTheDocument();
   });
 
   it('should call onClick when clicked', () => {
     const handleClick = vi.fn();
     render(<Button onClick={handleClick}>Click me</Button>);
-    
+
     fireEvent.click(screen.getByRole('button'));
-    
+
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
   it('should be disabled when disabled prop is true', () => {
     render(<Button disabled>Click me</Button>);
-    
+
     const button = screen.getByRole('button');
     expect(button).toBeDisabled();
   });
 
   it('should show loading state', () => {
     render(<Button loading>Click me</Button>);
-    
+
     const button = screen.getByRole('button');
     expect(button).toBeDisabled();
     expect(screen.getByText('Loading...')).toBeInTheDocument();
@@ -240,9 +237,9 @@ describe('ContactForm Integration', () => {
 
   it('should submit form with valid data', async () => {
     mockSubmitForm.mockResolvedValue({ success: true });
-    
+
     render(<ContactForm />);
-    
+
     // Fill form
     fireEvent.change(screen.getByLabelText('Name'), {
       target: { value: 'John Doe' },
@@ -253,10 +250,10 @@ describe('ContactForm Integration', () => {
     fireEvent.change(screen.getByLabelText('Message'), {
       target: { value: 'Hello, this is a test message.' },
     });
-    
+
     // Submit form
     fireEvent.click(screen.getByRole('button', { name: 'Send Message' }));
-    
+
     // Verify API call
     await waitFor(() => {
       expect(mockSubmitForm).toHaveBeenCalledWith({
@@ -265,33 +262,33 @@ describe('ContactForm Integration', () => {
         message: 'Hello, this is a test message.',
       });
     });
-    
+
     // Verify success message
     expect(screen.getByText('Message sent successfully!')).toBeInTheDocument();
   });
 
   it('should show validation errors for invalid data', async () => {
     render(<ContactForm />);
-    
+
     // Submit empty form
     fireEvent.click(screen.getByRole('button', { name: 'Send Message' }));
-    
+
     // Verify validation errors
     await waitFor(() => {
       expect(screen.getByText('Name is required')).toBeInTheDocument();
       expect(screen.getByText('Email is required')).toBeInTheDocument();
       expect(screen.getByText('Message is required')).toBeInTheDocument();
     });
-    
+
     // Verify API was not called
     expect(mockSubmitForm).not.toHaveBeenCalled();
   });
 
   it('should handle API errors gracefully', async () => {
     mockSubmitForm.mockRejectedValue(new Error('Server error'));
-    
+
     render(<ContactForm />);
-    
+
     // Fill and submit form
     fireEvent.change(screen.getByLabelText('Name'), {
       target: { value: 'John Doe' },
@@ -302,9 +299,9 @@ describe('ContactForm Integration', () => {
     fireEvent.change(screen.getByLabelText('Message'), {
       target: { value: 'Test message' },
     });
-    
+
     fireEvent.click(screen.getByRole('button', { name: 'Send Message' }));
-    
+
     // Verify error handling
     await waitFor(() => {
       expect(screen.getByText('Failed to send message. Please try again.')).toBeInTheDocument();
@@ -327,7 +324,7 @@ import { getUser, updateUser, createUser } from './users';
 const server = setupServer(
   rest.get('/api/users/:id', (req, res, ctx) => {
     const { id } = req.params;
-    
+
     if (id === '1') {
       return res(
         ctx.json({
@@ -337,7 +334,7 @@ const server = setupServer(
         })
       );
     }
-    
+
     return res(ctx.status(404), ctx.json({ error: 'User not found' }));
   }),
 
@@ -369,7 +366,7 @@ afterEach(() => server.resetHandlers());
 describe('User API Integration', () => {
   it('should fetch user successfully', async () => {
     const user = await getUser('1');
-    
+
     expect(user).toEqual({
       id: '1',
       name: 'John Doe',
@@ -386,7 +383,7 @@ describe('User API Integration', () => {
       name: 'Jane Doe',
       email: 'jane@example.com',
     });
-    
+
     expect(updatedUser).toEqual({
       id: '1',
       name: 'Jane Doe',
@@ -400,7 +397,7 @@ describe('User API Integration', () => {
       name: 'Alice Smith',
       email: 'alice@example.com',
     });
-    
+
     expect(newUser).toEqual({
       id: 'new-id',
       name: 'Alice Smith',
@@ -462,9 +459,7 @@ test.describe('User Registration Flow', () => {
 
     // Verify validation errors
     await expect(page.locator('[data-testid="name-error"]')).toHaveText('Name is required');
-    await expect(page.locator('[data-testid="email-error"]')).toHaveText(
-      'Email is required'
-    );
+    await expect(page.locator('[data-testid="email-error"]')).toHaveText('Email is required');
 
     // Test invalid email format
     await page.fill('[data-testid="email-input"]', 'invalid-email');
@@ -493,20 +488,20 @@ test.describe('Authentication Flow', () => {
   test('should login and logout successfully', async ({ page }) => {
     // Login
     await page.goto('/login');
-    
+
     await page.fill('[data-testid="email-input"]', 'user@example.com');
     await page.fill('[data-testid="password-input"]', 'password123');
-    
+
     await page.click('[data-testid="login-button"]');
-    
+
     // Verify login success
     await expect(page).toHaveURL('/dashboard');
     await expect(page.locator('[data-testid="welcome-message"]')).toBeVisible();
-    
+
     // Logout
     await page.click('[data-testid="user-menu"]');
     await page.click('[data-testid="logout-button"]');
-    
+
     // Verify logout
     await expect(page).toHaveURL('/');
     await expect(page.locator('[data-testid="login-link"]')).toBeVisible();
@@ -515,7 +510,7 @@ test.describe('Authentication Flow', () => {
   test('should protect authenticated routes', async ({ page }) => {
     // Try to access protected route without login
     await page.goto('/dashboard');
-    
+
     // Should redirect to login
     await expect(page).toHaveURL('/login');
     await expect(page.locator('[data-testid="login-required-message"]')).toContainText(
@@ -529,14 +524,14 @@ test.describe('Authentication Flow', () => {
     await page.fill('[data-testid="email-input"]', 'user@example.com');
     await page.fill('[data-testid="password-input"]', 'password123');
     await page.click('[data-testid="login-button"]');
-    
+
     // Verify login
     await expect(page).toHaveURL('/dashboard');
-    
+
     // Create new page in same context (simulates new tab)
     const newPage = await context.newPage();
     await newPage.goto('/dashboard');
-    
+
     // Should still be logged in
     await expect(newPage).toHaveURL('/dashboard');
     await expect(newPage.locator('[data-testid="welcome-message"]')).toBeVisible();
@@ -559,10 +554,10 @@ describe('UserService', () => {
       const userId = '123';
       const expectedUser = { id: '123', name: 'John' };
       mockUserRepository.findById.mockResolvedValue(expectedUser);
-      
+
       // Act
       const result = await userService.getUser(userId);
-      
+
       // Assert
       expect(result).toEqual(expectedUser);
       expect(mockUserRepository.findById).toHaveBeenCalledWith(userId);
@@ -572,7 +567,7 @@ describe('UserService', () => {
       // Arrange
       const userId = '999';
       mockUserRepository.findById.mockResolvedValue(null);
-      
+
       // Act & Assert
       await expect(userService.getUser(userId)).rejects.toThrow('User not found');
     });
@@ -615,7 +610,7 @@ describe('UserComponent', () => {
   it('should display user information', () => {
     const user = createUserData({ name: 'Jane Smith' });
     render(<UserComponent user={user} />);
-    
+
     expect(screen.getByText('Jane Smith')).toBeInTheDocument();
   });
 });
@@ -630,26 +625,26 @@ describe('AsyncComponent', () => {
     const mockFetch = vi.fn().mockImplementation(() =>
       new Promise(resolve => setTimeout(() => resolve({ data: [] }), 100))
     );
-    
+
     render(<AsyncComponent fetchData={mockFetch} />);
-    
+
     // Verify loading state
     expect(screen.getByText('Loading...')).toBeInTheDocument();
-    
+
     // Wait for loading to complete
     await waitFor(() => {
       expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
     });
-    
+
     // Verify final state
     expect(screen.getByText('Data loaded')).toBeInTheDocument();
   });
 
   it('should handle errors', async () => {
     const mockFetch = vi.fn().mockRejectedValue(new Error('API Error'));
-    
+
     render(<AsyncComponent fetchData={mockFetch} />);
-    
+
     await waitFor(() => {
       expect(screen.getByText('Error: API Error')).toBeInTheDocument();
     });
@@ -690,14 +685,11 @@ export const handlers = [
 
   rest.get('/api/users/:id', (req, res, ctx) => {
     const { id } = req.params;
-    
+
     if (id === '404') {
-      return res(
-        ctx.status(404),
-        ctx.json({ error: 'User not found' })
-      );
+      return res(ctx.status(404), ctx.json({ error: 'User not found' }));
     }
-    
+
     return res(
       ctx.json({
         id,
@@ -748,9 +740,9 @@ describe('Dashboard', () => {
       tableData: [{ id: 1 }, { id: 2 }],
       columns: [{ key: 'id' }],
     };
-    
+
     render(<Dashboard data={dashboardData} />);
-    
+
     expect(screen.getByTestId('mock-chart')).toHaveTextContent('Chart with 3 items');
     expect(screen.getByTestId('mock-data-table')).toHaveTextContent(
       'Table with 1 columns and 2 rows'
@@ -782,31 +774,25 @@ describe('EmailService', () => {
 
   it('should send email successfully', async () => {
     mockSendEmail.mockResolvedValue({ messageId: 'test-id' });
-    
+
     const emailService = new EmailService();
-    const result = await emailService.sendWelcomeEmail(
-      'user@example.com',
-      'John Doe'
-    );
-    
+    const result = await emailService.sendWelcomeEmail('user@example.com', 'John Doe');
+
     expect(mockSendEmail).toHaveBeenCalledWith({
       to: 'user@example.com',
       subject: 'Welcome to our platform',
       html: expect.stringContaining('John Doe'),
     });
-    
+
     expect(result.success).toBe(true);
   });
 
   it('should handle email sending errors', async () => {
     mockSendEmail.mockRejectedValue(new Error('SMTP Error'));
-    
+
     const emailService = new EmailService();
-    const result = await emailService.sendWelcomeEmail(
-      'user@example.com',
-      'John Doe'
-    );
-    
+    const result = await emailService.sendWelcomeEmail('user@example.com', 'John Doe');
+
     expect(result.success).toBe(false);
     expect(result.error).toBe('SMTP Error');
   });
@@ -826,6 +812,7 @@ This testing strategy guide emphasizes:
 5. **Real-world Scenarios** - Testing error cases, edge cases, and user workflows
 
 By following these guidelines, you can create:
+
 - Fast and reliable test suites
 - Comprehensive coverage of critical functionality
 - Maintainable and readable tests

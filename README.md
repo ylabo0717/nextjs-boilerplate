@@ -1,5 +1,11 @@
 # 🚧 Next.js Boilerplate (Under Active Development)
 
+<!-- Language Switcher -->
+
+**Languages**: [English](./README.md) | [日本語](./README.ja.md)
+
+---
+
 > **⚠️ This project is currently under active development and not yet production-ready. Features and APIs may change.**
 
 A production-ready Next.js boilerplate with TypeScript, Tailwind CSS, shadcn/ui, and comprehensive development tooling.
@@ -48,778 +54,403 @@ The Docker version is recommended as it avoids environment-specific issues. See 
 #### Quick Setup
 
 ```bash
-# 1. Clone repository
+# Clone the repository
 git clone https://github.com/ylabo0717/nextjs-boilerplate.git
 cd nextjs-boilerplate
 
-# 2. Copy environment files
-cp .env.base.example .env.base
-cp .env.dev.example .env.dev
+# Copy environment file
+cp .env.dev.example .env
 
-# 3. Start development environment
+# Start the development server with Docker
 pnpm docker:dev
-# Or use Docker Compose directly if pnpm script is not available
-# docker compose -f docker/compose/docker-compose.yml --env-file .env.base --env-file .env.dev up
 ```
 
-#### Verification
+The application will be available at:
+- **Development server**: http://localhost:3010
+- **Storybook**: http://localhost:6016
+
+#### Development Commands
 
 ```bash
-# Access application (open in browser)
-open http://localhost:3000
+# Start development server
+pnpm docker:dev
 
-# Run all tests in Docker environment
+# Run tests
 pnpm docker:test
 
-# Run individual test types
-pnpm docker:test:unit        # Unit tests
-pnpm docker:test:integration # Integration tests
-pnpm docker:test:e2e         # E2E tests
+# Run linting
+pnpm docker:lint
+
+# Type checking
+pnpm docker:type-check
 ```
 
-### 💻 Local Development
-
-For local development without Docker. See [Tool Installation Guide](#tool-installation) below for detailed setup instructions.
-
-#### Quick Setup
+#### Stop and Cleanup
 
 ```bash
-# 1. Clone repository
+# Stop containers
+pnpm docker:down
+
+# Remove containers and volumes (complete cleanup)
+pnpm docker:clean
+```
+
+### 💻 Local Version
+
+#### Prerequisites Check
+
+Before starting, ensure you have the required tools installed:
+
+```bash
+# Check Node.js version (should be 20.x or higher)
+node --version
+
+# Check pnpm version (should be 8.x or higher) 
+pnpm --version
+
+# Check if Gitleaks is installed
+gitleaks version
+```
+
+#### Setup Steps
+
+```bash
+# Clone the repository
 git clone https://github.com/ylabo0717/nextjs-boilerplate.git
 cd nextjs-boilerplate
 
-# 2. Install dependencies
+# Install dependencies
 pnpm install
 
-# 3. Install Playwright browsers
-pnpm exec playwright install
+# Copy environment file
+cp .env.dev.example .env
 
-# 4. Copy environment files
-cp .env.base.example .env.base
-cp .env.dev.example .env.dev
-cp .env.test.example .env.test
-
-# 5. Start development server
+# Start development server
 pnpm dev
 ```
 
-#### Verification
+#### Development Commands
 
 ```bash
-# Access application (open in browser)
-open http://localhost:3000
+# Development server with Turbopack
+pnpm dev
 
-# Code quality check
-pnpm precommit:check
+# Type checking
+pnpm type-check
 
-# Run tests
-pnpm test:unit           # Unit tests
-pnpm test:integration    # Integration tests
-pnpm test:e2e           # E2E tests
-pnpm test:coverage      # Test coverage
-```
-
-### 🔍 Git Hooks Verification
-
-The project has pre-commit and pre-push hooks configured:
-
-```bash
-# 1. Create a test file to verify hooks
-echo "console.log('test');" > test-file.js
-git add test-file.js
-
-# 2. Commit (pre-commit hook will run)
-git commit -m "test: check pre-commit hooks"
-# ESLint, Prettier, and TypeScript checks run automatically
-
-# 3. Push (pre-push hook will run)
-git push
-# Gitleaks secret scanning will run
-
-# 4. Clean up test file
-git rm test-file.js
-git commit -m "test: cleanup test file"
-```
-
-### ✅ Setup Completion Verification
-
-If all the following succeed, your setup is complete:
-
-- [ ] Application displays correctly at http://localhost:3000
-- [ ] `pnpm precommit:check` completes without errors
-- [ ] `pnpm test:unit` passes all tests
-- [ ] `pnpm test:integration` passes all tests
-- [ ] `pnpm test:e2e` passes all tests
-- [ ] Pre-commit hooks work on git commit
-- [ ] Pre-push hooks work on git push
-
-### 🚨 Troubleshooting
-
-**Node.js Version Issues:**
-
-```bash
-# Check current version
-node --version  # Should be 20.x.x or higher
-
-# If pnpm is missing
-npm install -g pnpm
-
-# Clear npm/pnpm cache if needed
-npm cache clean --force
-pnpm store prune
-```
-
-**Docker Issues:**
-
-```bash
-# Check Docker status
-docker --version
-docker compose version
-
-# Docker not running
-sudo systemctl start docker  # Linux
-# Start Docker Desktop # macOS/Windows
-
-# Port conflicts
-# Kill processes using port 3000
-lsof -ti:3000 | xargs kill -9
-```
-
-**Permission Errors:**
-
-```bash
-# Linux/macOS file permissions
-sudo chown -R $USER:$USER .
-chmod +x scripts/*.sh
-
-# Docker permission denied
-sudo usermod -aG docker $USER  # Logout required
-```
-
-**Test Environment Issues:**
-
-```bash
-# Reset test environment
-rm -rf node_modules
-pnpm install
-pnpm exec playwright install
-
-# For known test limitations
-SKIP_LOKI_TESTS=true pnpm test:integration
-```
-
-For detailed FAQ and advanced troubleshooting, see [docs/developer_guide/infrastructure/docker/faq.ja.md](docs/developer_guide/infrastructure/docker/faq.ja.md).
-
-## 📦 Available Scripts
-
-```bash
-# Development
-pnpm dev          # Start development server with Turbopack
-pnpm build        # Build for production
-pnpm start        # Start production server
-
-# Code Quality
-pnpm lint         # Run ESLint
-pnpm format       # Format code with Prettier
-pnpm format:check # Check code formatting
-pnpm typecheck    # Run TypeScript type checking
+# Linting
+pnpm lint
+pnpm lint:fix
 
 # Testing
-pnpm test:unit         # Unit tests with Vitest
-pnpm test:integration  # Integration tests with Vitest
-pnpm test:coverage     # Generate test coverage report
-pnpm test:scripts      # Run scripts tests
-pnpm test:e2e          # End-to-end tests with Playwright
+pnpm test
+pnpm test:ui
 
-# Docker Commands
-pnpm docker:test       # Run all Docker tests
-pnpm docker:dev        # Start development environment
-pnpm docker:prod       # Start production environment
+# Storybook
+pnpm storybook
 
-# Quality Metrics & Analysis
-pnpm metrics           # Measure project metrics
-pnpm quality:check     # Run quality gate checks
-pnpm quality:analyze   # Analyze code quality
-pnpm quality:report    # Generate quality report
-
-# Documentation & Release
-pnpm docs:check        # Check documentation completeness
-pnpm changeset         # Create changeset for version management
-pnpm changeset:version # Update version based on changesets
-pnpm release           # Build and publish release
-
-# Git Hooks (automatic)
-# Pre-commit: ESLint, Prettier, TypeScript checks
-# Commit-msg: Conventional commit validation
+# Build
+pnpm build
 ```
+
+## 🏗️ Project Structure
+
+```
+📁 nextjs-boilerplate/
+├── 📁 .changeset/           # Changeset configuration for version management
+├── 📁 .claude/              # Claude AI configuration files
+├── 📁 .github/              # GitHub workflows and templates
+├── 📁 .husky/               # Git hooks configuration
+├── 📁 .serena/              # Serena AI assistant configuration 
+├── 📁 .vscode/              # VS Code settings and extensions
+├── 📁 config/               # Build and tool configurations
+├── 📁 docker/               # Docker configurations
+├── 📁 docs/                 # Developer guides and documentation
+├── 📁 public/               # Static assets
+├── 📁 scripts/              # Build and utility scripts
+├── 📁 src/                  # Source code
+│   ├── 📁 app/              # Next.js App Router pages
+│   ├── 📁 components/       # React components
+│   │   ├── 📁 functional/   # Business logic components
+│   │   ├── 📁 templates/    # Page templates
+│   │   └── 📁 ui/           # UI components (shadcn/ui)
+│   ├── 📁 hooks/            # Custom React hooks
+│   ├── 📁 lib/              # Utility libraries
+│   ├── 📁 stores/           # State management
+│   ├── 📁 styles/           # Global styles
+│   └── 📁 utils/            # Utility functions
+├── 📁 tests/                # Test files
+└── 📁 types/                # TypeScript type definitions
+```
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+The project uses a layered environment configuration system:
+
+1. **`.env.base.example`** - Base configuration template
+2. **`.env.dev.example`** - Development-specific settings  
+3. **`.env.prod.example`** - Production-specific settings
+4. **`.env.test.example`** - Test-specific settings
+
+Copy the appropriate example file to `.env` for your environment:
+
+```bash
+# For development
+cp .env.dev.example .env
+
+# For production  
+cp .env.prod.example .env
+
+# For testing
+cp .env.test.example .env
+```
+
+### Key Configuration Files
+
+- **`next.config.ts`** - Next.js configuration with Turbopack and strict mode
+- **`eslint.config.mjs`** - ESLint configuration with TypeScript support
+- **`tsconfig.json`** - TypeScript configuration with strict mode
+- **`tailwind.config.ts`** - Tailwind CSS configuration with shadcn/ui
+- **`package.json`** - Dependencies and scripts
 
 ## 🧪 Testing
 
-This project includes comprehensive testing with multiple frameworks and approaches.
+### Test Structure
+
+```
+📁 tests/
+├── 📁 __mocks__/            # Mock files
+├── 📁 components/           # Component tests
+├── 📁 e2e/                  # End-to-end tests
+├── 📁 integration/          # Integration tests
+├── 📁 unit/                 # Unit tests
+└── 📁 utils/                # Test utilities
+```
 
 ### Running Tests
 
-Run unit/integration tests with Vitest:
-
 ```bash
-pnpm test            # all (unit+integration)
-pnpm test:unit       # unit only
-pnpm test:integration # integration only
-pnpm test:coverage   # coverage for unit+integration
+# Run all tests
+pnpm test
+
+# Run tests with UI (Vitest UI)
+pnpm test:ui
+
+# Run tests in watch mode
+pnpm test:watch
+
+# Run specific test file
+pnpm test src/components/ui/Button.test.tsx
+
+# Run tests with coverage
+pnpm test:coverage
 ```
 
-Run end-to-end tests with Playwright:
-
-```bash
-pnpm test:e2e        # E2E tests
-```
-
-### Test Architecture
-
-- **Unit Tests**: Fast, isolated component/function tests
-- **Integration Tests**: Database and API integration testing with Docker containers
-- **E2E Tests**: Full user workflow testing with Playwright
-- **Coverage Reports**: Comprehensive code coverage analysis
-
-## 🐳 Docker Support
-
-This project includes comprehensive Docker support for development, testing, and production environments.
-
-### Development Environment
-
-Start the development environment with hot reload:
-
-```bash
-docker compose up
-```
-
-Access the application at [http://localhost:3000](http://localhost:3000).
-
-### Testing Environment
-
-Run all tests in Docker containers:
-
-```bash
-# All test types
-pnpm docker:test
-
-# Individual test types
-pnpm docker:test:unit        # Unit tests
-pnpm docker:test:integration # Integration tests
-pnpm docker:test:e2e         # E2E tests
-
-# Clean up test containers
-pnpm docker:test:clean
-```
-
-### Production Environment
-
-Start the production environment with monitoring:
-
-```bash
-# Using pnpm script (recommended)
-pnpm docker:prod
-
-# Or using Docker Compose directly
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
-```
-
-**Access Points:**
-
-- **Application**: [http://localhost:8080](http://localhost:8080)
-- **Grafana Dashboard**: [http://localhost:3001](http://localhost:3001) (admin/password)
-- **Loki Logs**: [http://localhost:3100](http://localhost:3100)
-- **Health Check**: [http://localhost:8080/api/health](http://localhost:8080/api/health)
-- **Metrics**: [http://localhost:8080/api/metrics](http://localhost:8080/api/metrics)
-
-### Environment Variables
-
-This project uses an **integrated environment variable system** that separates common settings from environment-specific configurations for better maintainability.
-
-**File Structure:**
-
-- `.env.base.example` - Common settings for all environments
-- `.env.dev.example` - Development-specific settings
-- `.env.prod.example` - Production-specific settings
-- `.env.test.example` - Test-specific settings
-
-**Setup:**
-
-```bash
-# Copy example files (required)
-cp .env.base.example .env.base
-cp .env.dev.example .env.dev
-cp .env.prod.example .env.prod
-cp .env.test.example .env.test
-
-# Edit files with your actual values (especially .env.prod for production)
-```
-
-**Usage with Docker Compose:**
-
-```bash
-# Development
-docker compose --env-file .env.base --env-file .env.dev up
-
-# Production
-docker compose -f docker-compose.prod.yml --env-file .env.base --env-file .env.prod up -d
-```
-
-For detailed configuration options, see [`docs/environment-variables.md`](docs/environment-variables.md).
-
-### Docker Architecture
-
-- **Multi-stage builds** for optimized image sizes
-- **Security-first design** with non-root users
-- **Health checks** for all services
-- **Resource limits** for production stability
-- **Logging integration** with Loki and Grafana
-- **OpenTelemetry metrics** support
-
-## 📁 Project Structure
-
-```
-nextjs-boilerplate/
-├── src/                  # Application source code
-│   ├── app/              # Next.js App Router
-│   │   ├── layout.tsx    # Root layout with providers
-│   │   ├── page.tsx      # Home page
-│   │   └── globals.css   # Global styles
-│   ├── components/       # React components
-│   │   ├── ui/           # shadcn/ui base components
-│   │   ├── layout/       # Layout components (header, footer, etc.)
-│   │   └── features/     # Feature-specific components
-│   ├── lib/              # Complex business logic
-│   │   └── logger/       # Structured logging system (Pure functions)
-│   ├── utils/            # Pure utility functions
-│   │   └── cn.ts         # Class name utility
-│   ├── hooks/            # Custom React hooks
-│   ├── services/         # Business logic and API services
-│   ├── features/         # Feature-based modules
-│   ├── types/            # TypeScript type definitions
-│   ├── constants/        # Application constants
-│   ├── stores/           # State management
-│   └── repositories/     # Data access layer
-├── public/               # Static assets
-└── docs/                # Documentation
-```
-
-## 🎨 UI Components
-
-This boilerplate includes pre-configured shadcn/ui components:
-
-### Adding New Components
-
-```bash
-pnpm dlx shadcn@latest add [component-name]
-```
-
-### Available Components
-
-- **Forms**: Input, Label, Form (with React Hook Form)
-- **Feedback**: Toast (Sonner), Alert
-- **Overlay**: Dialog, Dropdown Menu
-- **Display**: Card, Separator, Skeleton
-- **Buttons**: Button with multiple variants
-
-### Example Usage
-
-```tsx
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-
-export function Example() {
-  return <Button onClick={() => toast.success('Hello!')}>Click me</Button>;
-}
-```
-
-## 🔧 Configuration
-
-### TypeScript
-
-- Strict mode enabled
-- Path aliases configured (`@/*`)
-- Target: ES2017
-
-### ESLint
-
-- Next.js recommended rules
-- TypeScript integration
-- Prettier integration
-
-### Tailwind CSS
-
-- Version 4 with CSS variables
-- Dark mode support
-- Custom theme with zinc color palette
-- Automatic class sorting with Prettier
-
-### Git Hooks
-
-- **Pre-commit**: Runs ESLint, Prettier, and TypeScript checks
-- **Pre-push**: Runs Gitleaks secret scanning
-- **Commit-msg**: Validates commit messages against Conventional Commits
-
-## 📝 Commit Convention
-
-This project follows [Conventional Commits](https://www.conventionalcommits.org/):
-
-```bash
-# Format
-<type>(<scope>): <subject>
-
-# Examples
-feat: add user authentication
-fix: resolve login error
-docs: update README
-style: format code
-refactor: extract API client
-perf: optimize image loading
-test: add unit tests
-chore: update dependencies
-```
-
-### Commit Types
-
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, etc.)
-- `refactor`: Code refactoring
-- `perf`: Performance improvements
-- `test`: Test updates
-- `chore`: Maintenance tasks
-- `build`: Build system changes
-- `ci`: CI/CD changes
-
-## 🎯 Example Page
-
-Visit `/example` to see a demonstration of:
-
-- Form validation with React Hook Form and Zod
-- Toast notifications with Sonner
-- Various button styles and variants
-- Responsive layout with Tailwind CSS
-
-## 🚢 Deployment
-
-### Vercel (Recommended)
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/nextjs-boilerplate)
-
-### Docker
-
-```dockerfile
-# Dockerfile example coming in Phase 3
-```
-
-### Environment Variables
-
-Create a `.env.local` file:
-
-```env
-# Add your environment variables here
-NEXT_PUBLIC_API_URL=http://localhost:3000/api
-```
+### Test Technologies
+
+- **Vitest** - Fast unit testing framework
+- **@testing-library/react** - React component testing utilities
+- **@testing-library/jest-dom** - Jest DOM matchers
+- **MSW (Mock Service Worker)** - API mocking
 
 ## 📚 Documentation
 
-- [Design Document](./docs/work_dir/nextjs_boilerplate_design.md) - Architecture and design decisions
-- [Phase 1 Status](./docs/work_dir/phase1_implementation_status.md) - Implementation progress
-- [CLAUDE.md](./CLAUDE.md) - AI assistant guidelines
+### Developer Guides
 
-## 🤝 Contributing
+- **[Architecture Guide](./docs/ARCHITECTURE.md)** - System architecture and design patterns
+- **[Component Guide](./docs/COMPONENTS.md)** - Component development guidelines
+- **[Styling Guide](./docs/STYLING.md)** - CSS and Tailwind CSS best practices
+- **[Testing Guide](./docs/TESTING.md)** - Testing strategies and best practices
+- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Deployment and CI/CD setup
 
-### Development Workflow
+### API Documentation
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Implement your changes
-4. **Create a Changeset for your changes** (required for features and fixes):
+- **[Storybook](http://localhost:6016)** - Component documentation and examples (when running locally)
 
+## 🐳 Docker Installation
+
+### System Requirements
+
+- **Docker Desktop** or **Docker Engine** with **Docker Compose v2**
+- **Minimum 4GB RAM** allocated to Docker
+- **10GB free disk space**
+
+### Installation Steps
+
+#### Windows/macOS
+1. Download and install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+2. Start Docker Desktop
+3. Verify installation:
    ```bash
-   pnpm changeset:add
+   docker --version
+   docker compose version
    ```
 
-   - Select the appropriate version bump (patch/minor/major)
-   - Write a clear description of what changed
-
-5. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
-
-### When to Create a Changeset
-
-**Required for:**
-
-- ✅ New features or functionality
-- ✅ Bug fixes
-- ✅ Performance improvements
-- ✅ Breaking changes
-
-**Not required for:**
-
-- ❌ Internal refactoring (no user impact)
-- ❌ Test additions/modifications
-- ❌ Documentation updates (unless significant)
-
-For detailed instructions, see [Changeset Developer Guide](./docs/developer_guide/development/changeset-developer-guide.ja.md).
-
-## 🔐 Security
-
-### Secret Scanning
-
-This project uses [Gitleaks](https://github.com/gitleaks/gitleaks) to prevent secrets from being committed:
-
-- **Pre-push hook**: Automatically scans for secrets before pushing
-- **CI/CD**: Additional scanning in GitHub Actions
-- **Configuration**: See `config/security/.gitleaks.toml` for detection rules
-
-## 🛠️ Tool Installation
-
-### Docker Installation
-
-**macOS:**
-
+#### Linux
 ```bash
-# Docker Desktop for Mac
-# Download from https://docs.docker.com/desktop/mac/install/
+# Install Docker Engine
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
 
-# Or using Homebrew
-brew install --cask docker
-```
+# Install Docker Compose
+sudo apt-get update
+sudo apt-get install docker-compose-plugin
 
-**Windows:**
-
-```bash
-# Docker Desktop for Windows
-# Download from https://docs.docker.com/desktop/windows/install/
-
-# Or using Chocolatey
-choco install docker-desktop
-```
-
-**Linux (Ubuntu/Debian):**
-
-```bash
-# Docker Engine
-sudo apt update
-sudo apt install docker.io docker-compose-plugin
-sudo systemctl start docker
-sudo systemctl enable docker
-
-# Add user to docker group
+# Add user to docker group (logout/login required)
 sudo usermod -aG docker $USER
-# Logout and login again required
+
+# Verify installation
+docker --version
+docker compose version
 ```
 
-### Node.js & pnpm Installation
+### Docker Configuration
 
-**Node.js 20.x or higher:**
+The project includes optimized Docker configurations:
 
-**macOS:**
+- **`docker/Dockerfile.dev`** - Development container with hot reload
+- **`docker/Dockerfile.prod`** - Production container with optimized build
+- **`docker/docker-compose.dev.yml`** - Development services
+- **`docker/docker-compose.prod.yml`** - Production services
+
+### Docker Commands Reference
 
 ```bash
-# Homebrew
-brew install node@20
+# Development
+pnpm docker:dev           # Start development environment
+pnpm docker:dev:build     # Rebuild development containers
+pnpm docker:logs          # View container logs
 
-# Or using nodenv
-brew install nodenv
-nodenv install 20.x.x
-nodenv global 20.x.x
+# Testing
+pnpm docker:test          # Run tests in container
+pnpm docker:test:watch    # Run tests in watch mode
+pnpm docker:lint          # Run linting
+pnpm docker:type-check    # Run type checking
+
+# Production
+pnpm docker:prod          # Start production environment
+pnpm docker:prod:build    # Build production containers
+
+# Maintenance
+pnpm docker:down          # Stop containers
+pnpm docker:clean         # Remove containers and volumes
+pnpm docker:shell         # Access container shell
 ```
 
-**Windows:**
+## 🔧 Development Tools
+
+### Code Quality
+
+- **ESLint** - JavaScript/TypeScript linting with strict rules
+- **Prettier** - Code formatting with consistent style
+- **TypeScript** - Static type checking with strict mode
+- **Husky** - Git hooks for pre-commit quality checks
+- **lint-staged** - Run linters on staged files only
+
+### Build Tools
+
+- **Turbopack** - Next.js bundler for fast development builds
+- **pnpm** - Fast, space-efficient package manager
+- **Changesets** - Version management and changelog generation
+
+### Development Experience
+
+- **Storybook** - Component development and documentation
+- **VS Code Extensions** - Recommended extensions for optimal DX
+- **Path Aliases** - Clean imports with `@/` prefix
+- **Hot Reload** - Instant feedback during development
+
+## 🚀 Deployment
+
+### Deployment Options
+
+1. **[Vercel](https://vercel.com)** (Recommended)
+   - Native Next.js support with zero configuration
+   - Automatic deployments from Git
+   - Edge Functions and ISR support
+
+2. **[Railway](https://railway.app)**
+   - Simple container deployment
+   - Automatic HTTPS and custom domains
+   - Built-in monitoring and logs
+
+3. **Docker Container**
+   - Use provided production Dockerfile
+   - Deploy to any container platform
+   - Full control over environment
+
+### Environment Setup
+
+For production deployment, ensure these environment variables are configured:
 
 ```bash
-# Chocolatey
-choco install nodejs --version=20.x.x
-
-# Or download from Node.js official site
-# https://nodejs.org/
-```
-
-**Linux:**
-
-```bash
-# NodeSource repository (Ubuntu/Debian)
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Or using nvm
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-nvm install 20
-nvm use 20
-```
-
-**pnpm 8.x or higher:**
-
-```bash
-# Install via npm
-npm install -g pnpm@latest
-
-# Or use corepack (Node.js 16.10+)
-corepack enable
-corepack prepare pnpm@latest --activate
-
-# Verify version
-pnpm --version
-```
-
-### Gitleaks Installation
-
-**macOS:**
-
-```bash
-brew install gitleaks
-```
-
-**Windows:**
-
-```bash
-# Using Chocolatey
-choco install gitleaks
-
-# Using Scoop
-scoop install gitleaks
-
-# Or download binary from GitHub releases
-```
-
-**Linux:**
-
-```bash
-# Debian/Ubuntu
-sudo apt install gitleaks
-
-# Fedora/RHEL
-sudo dnf install gitleaks
-
-# Arch Linux (AUR)
-yay -S gitleaks
-
-# Or download binary from GitHub releases
-```
-
-**Docker:**
-
-```bash
-docker pull zricethezav/gitleaks:latest
-docker run -v ${PWD}:/path zricethezav/gitleaks:latest detect --source="/path"
-```
-
-**Manual Installation:**
-
-Download the latest binary from [Gitleaks Releases](https://github.com/gitleaks/gitleaks/releases) and add it to your PATH.
-
-### Running Secret Scans
-
-```bash
-# Scan entire repository
-gitleaks detect --config config/security/.gitleaks.toml
-
-# Scan staged changes only
-gitleaks protect --staged --config config/security/.gitleaks.toml
-
-# Verbose output for debugging
-gitleaks detect --verbose --config config/security/.gitleaks.toml
+NODE_ENV=production
+NEXT_TELEMETRY_DISABLED=1
+# Add your production-specific variables here
 ```
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the [MIT License](LICENSE).
 
-## 🙏 Acknowledgments
+## 🤝 Contributing
 
-- [Next.js](https://nextjs.org/) - The React Framework
-- [shadcn/ui](https://ui.shadcn.com/) - Beautifully designed components
-- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
-- [Vercel](https://vercel.com/) - Platform for deploying Next.js apps
+We welcome contributions! Please see our [Contributing Guide](./docs/CONTRIBUTING.md) for details.
 
-## 🔮 Roadmap
+### Development Workflow
 
-### Phase 1 ✅ (Completed)
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes with proper tests
+4. Run quality checks: `pnpm lint && pnpm type-check && pnpm test`
+5. Commit your changes: `git commit -m 'feat: add amazing feature'`
+6. Push to the branch: `git push origin feature/amazing-feature`
+7. Open a Pull Request
 
-- ✅ Basic Next.js setup with App Router
-- ✅ TypeScript configuration with strict mode
-- ✅ ESLint/Prettier setup with auto-formatting
-- ✅ Tailwind CSS v4 with CSS variables
-- ✅ shadcn/ui components integration
-- ✅ Git hooks with Husky and lint-staged
-- ✅ Commitlint for conventional commits
-- ✅ Gitleaks for secret scanning
+## 📞 Support
 
-### Phase 2 ✅ (Completed) - Testing & CI/CD Infrastructure
-
-- ✅ **Testing Framework**
-  - Vitest for unit/integration testing
-  - Playwright for E2E testing
-  - Testing infrastructure with coverage reports
-  - Test constants management system
-- ✅ **CI/CD Pipeline**
-  - GitHub Actions workflow automation
-  - Multi-environment testing (Node 18/20/22)
-  - Security scanning (CodeQL, Gitleaks, Dependabot)
-  - E2E scheduled execution
-  - Quality gates and metrics collection
-  - Lighthouse performance monitoring
-  - Automated release management
-
-### Phase 3 🔄 (Near Completion) - Advanced Logging & Observability
-
-- ✅ **Structured Logging System** - Pure function-based Pino integration
-  - Cross-platform support (Server/Client/Edge Runtime)
-  - GDPR-compliant IP hashing (HMAC-SHA256)
-  - Protection against log injection attacks (control character sanitization)
-  - Remote configuration with KV storage
-  - Rate limiting and error fallback mechanisms
-- ✅ **OpenTelemetry Integration** - Full distributed tracing & metrics
-  - Automatic trace_id correlation in all logs
-  - OpenTelemetry severity_number compliance
-  - Structured events (event_name/event_category)
-  - Instrumentation for Next.js App Router
-- ✅ **Metrics & Monitoring**
-  - Automatic error_count and log_entries_total collection
-  - Request duration histograms
-  - Memory usage monitoring
-  - Prometheus-compatible metrics export (/api/metrics)
-  - Enhanced metrics with labels and custom dimensions
-- ✅ **Error Handling System**
-  - Automatic error classification (21 error patterns)
-  - Fallback functionality and resilience
-  - API/Component/Global error boundary support
-- ✅ **Testing Coverage**
-  - 180+ unit tests with 99%+ coverage
-  - 60+ E2E tests for all logging scenarios
-  - Integration tests for external services (Loki, etc.)
-- ⏳ **Infrastructure** (Remaining items)
-  - Docker Compose setup
-  - Monitoring and observability dashboards
-
-### Phase 4 🚧 (In Progress) - State Management & Data Layer
-
-- ⏳ **TanStack Query** setup for server state management
-- ⏳ **Zustand** for client state management
-- ⏳ **API client infrastructure** with type-safe endpoints
-- ⏳ **Zod schema validation** for runtime type checking
-- ⏳ **Form management** with React Hook Form integration
-
-### Phase 5 (Planned) - Authentication & Security
-
-- ⏳ **NextAuth.js** authentication system
-- ⏳ **Security headers** (CSP, HSTS, etc.)
-- ⏳ **Rate limiting** middleware
-- ⏳ **Session management** with secure cookies
-- ⏳ **RBAC** (Role-Based Access Control)
-
-### Phase 6 (Planned) - Production Infrastructure
-
-- ⏳ **Docker containerization**
-- ⏳ **Monitoring dashboards** (Grafana integration)
-- ⏳ **Alerting system** setup
-- ⏳ **Performance optimization**
-- ⏳ **CDN integration**
+- **Issues**: [GitHub Issues](https://github.com/ylabo0717/nextjs-boilerplate/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/ylabo0717/nextjs-boilerplate/discussions)
 
 ---
 
-Built with ❤️ using Next.js and modern web technologies
+## 🎯 Roadmap
+
+### Phase 1: Foundation (Current)
+- [x] Basic Next.js setup with TypeScript
+- [x] Tailwind CSS integration
+- [x] shadcn/ui component library
+- [x] ESLint and Prettier configuration
+- [x] Docker development environment
+- [x] Basic testing setup with Vitest
+- [x] Storybook for component development
+
+### Phase 2: Advanced Features (In Progress)
+- [ ] Authentication system (NextAuth.js)
+- [ ] Database integration (Prisma + PostgreSQL)
+- [ ] API route examples
+- [ ] Comprehensive test coverage
+- [ ] CI/CD pipeline improvements
+- [ ] Performance optimization
+
+### Phase 3: Production Ready (Planned)
+- [ ] Security hardening
+- [ ] Monitoring and logging
+- [ ] Error tracking (Sentry)
+- [ ] Analytics integration
+- [ ] SEO optimization
+- [ ] Accessibility improvements
+
+## 📊 Project Status
+
+- **Development**: Active
+- **Stability**: Alpha (APIs may change)
+- **Test Coverage**: In Progress
+- **Documentation**: In Progress
+- **Production Ready**: Not Yet
+
+---
+
+*This boilerplate is actively maintained and regularly updated with the latest Next.js features and best practices.*
